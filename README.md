@@ -37,7 +37,7 @@ está desplegado — falta configurar el proyecto en Vercel.
 
 ## Nota
 
-Este scaffold fue armado sin poder correr `npm install` en la máquina donde
-se escribió (no había Node.js instalado), así que **no incluye
-`package-lock.json`**. Al hacer el primer `npm install` local, revisar que
-no haya conflictos de versiones y commitear el lockfile generado.
+`npm install`, `lint` y `build` ya se corrieron y verificaron de verdad
+(Node 20.20.2) — `package-lock.json` está commiteado. `npm audit` reporta 2
+vulnerabilidades (esbuild/vite, dev-server only) cuya única fix disponible
+es un upgrade breaking a Vite 8; se dejó sin aplicar por ahora.
