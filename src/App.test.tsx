@@ -142,9 +142,12 @@ describe("Enrutado y acceso", () => {
         screen.getByRole("heading", { name: /Escuchando el aula virtual/i })
       ).toBeInTheDocument();
     });
-    // La barra muestra el nombre real y la materia, no el usuario ni el id.
+    // La barra muestra el nombre real, no el usuario ni el id, y al lado el
+    // atajo a todos sus cursos. La materia es el título de la pantalla, y con
+    // eso alcanza: repetirla en la barra no agregaba nada.
     expect(screen.getByText("Docente de Prueba")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Sistemas de Información II/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Todos mis cursos/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Sistemas de Información II" })).toBeInTheDocument();
     // El rol no se muestra: al panel solo entra quien tiene la capacidad.
     expect(screen.queryByText(/^docente$/)).not.toBeInTheDocument();
   });
@@ -221,8 +224,10 @@ describe("Enrutado y acceso", () => {
     expect(suCurso).toHaveTextContent(/1 rindiendo/);
     expect(screen.getByRole("button", { name: /Bases de Datos/i })).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    // Estando en el general no se ofrece saltar al general.
-    expect(screen.queryByRole("link", { name: /Ver todos mis cursos/i })).not.toBeInTheDocument();
+    // Estando en el general, el atajo del encabezado no sale al campus: lleva a
+    // este mismo primer escalón, así que es un botón y no un enlace.
+    expect(screen.queryByRole("link", { name: /Todos mis cursos/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Todos mis cursos/i })).toBeInTheDocument();
 
     // Segundo escalón: los exámenes de ese curso, y sólo de ese curso.
     fireEvent.click(suCurso);
@@ -242,7 +247,7 @@ describe("Enrutado y acceso", () => {
     expect(await screen.findByRole("button", { name: /Bases de Datos/i })).toBeInTheDocument();
   });
 
-  it("desde un curso ofrece saltar al panel general, y es un enlace al campus", async () => {
+  it("desde un curso el encabezado ofrece todos sus cursos, y es un enlace al campus", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
@@ -254,10 +259,17 @@ describe("Enrutado y acceso", () => {
 
     render(<App />);
 
-    const salto = await screen.findByRole("link", { name: /Ver todos mis cursos/i });
+    const salto = await screen.findByRole("link", { name: /Todos mis cursos/i });
     // Va al campus y no a la API: el token nuevo lo tiene que firmar Moodle,
     // que es el único que sabe en qué cursos da clase el docente.
     expect(salto).toHaveAttribute("href", expect.stringContaining("/local/samce/launch_global.php"));
+    // Y el encabezado no repite el nombre de la materia, que ya es el título de
+    // la pantalla: ese rótulo además no llevaba a ninguna parte, porque entrando
+    // desde un curso este ya es el primer escalón.
+    expect(screen.getByRole("heading", { name: "Sistemas de Información II" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Sistemas de Información II" })
+    ).not.toBeInTheDocument();
     // Y mirando un curso solo, su nombre no se repite en cada fila.
     expect(screen.queryByRole("columnheader", { name: "Curso" })).not.toBeInTheDocument();
   });

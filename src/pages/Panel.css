@@ -53,24 +53,6 @@ body:has(.panel) {
 
 /* Vuelve al campus a buscar un token que abarque todos los cursos. Va discreto
    porque es un cambio de alcance, no la acción principal de la pantalla. */
-.panel__cambio {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--e2);
-  margin-top: var(--e2);
-  font-size: var(--panel-cuerpo);
-  line-height: 20px;
-  color: var(--celeste-hondo);
-  text-decoration: none;
-  transition: color var(--mov-estado) var(--curva);
-}
-
-.panel__cambio:hover {
-  color: var(--tinta);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
 /* ==== Cuando un bloque no tiene filas =================================== */
 
 .panel__vacio {

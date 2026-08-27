@@ -42,7 +42,11 @@ interface MoodleVerifyResponse {
   role: string;
   course_id: number;
   course_name: string;
-  course_ids?: number[];
+  /**
+   * Sólo en el lanzamiento general. Trae id y nombre de cada curso, y no viene
+   * acompañado de una lista de ids aparte: sería el mismo dato dos veces, y dos
+   * copias del mismo dato se terminan desincronizando.
+   */
   courses?: Curso[];
 }
 

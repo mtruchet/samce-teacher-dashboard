@@ -75,6 +75,9 @@
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
+  /* Según el alcance con que se entró, el atajo es un botón o un enlace al
+     campus. Se ven igual porque para quien mira hacen lo mismo. */
+  text-decoration: none;
   transition: background var(--mov-estado) var(--curva);
 }
 
@@ -150,8 +153,17 @@
     gap: var(--e4);
   }
 
-  .barra__pantalla {
+  /* El atajo se queda, pero sin rótulo. Antes mostraba el nombre de la materia,
+     que en angosto era lo primero que sobraba porque el título de la pantalla ya
+     lo decía; ahora es el único camino a todos los cursos cuando se entró desde
+     uno, y esconderlo dejaría al docente sin salida. El nombre sigue en la
+     etiqueta del control. */
+  .barra__pantalla-rotulo {
     display: none;
+  }
+
+  .barra__pantalla {
+    padding-inline: var(--e2);
   }
 }
 

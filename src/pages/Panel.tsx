@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Broadcast, Examen, Materia } from "../iconos";
+import { Broadcast, Examen, Materia } from "../iconos";
 import { clearSession, esPanelGeneral, getStoredSession } from "../services/authService";
 import {
   SesionVencida,
@@ -276,8 +276,16 @@ export function Panel() {
 
       <BarraPanel
         docente={sesion?.displayName || (sesion?.username ?? "")}
-        curso={general ? "Todos mis cursos" : (sesion?.courseName ?? "")}
-        onInicio={() => irA({})}
+        // El atajo del encabezado siempre lleva a todos sus cursos. En el panel
+        // general ya están adentro del token, así que es un salto interno; desde
+        // un curso el token autoriza esa materia sola, y la lista completa la
+        // firma el campus: es un enlace y no una llamada a la API porque el
+        // docente tiene su sesión de Moodle abierta y vuelve con un token nuevo.
+        cursos={
+          general
+            ? { onInicio: () => irA({}) }
+            : { href: `${API_CONFIG.MOODLE_URL}${API_CONFIG.MOODLE_LAUNCH_GENERAL}` }
+        }
         onSalir={salir}
       />
 
@@ -293,22 +301,10 @@ export function Panel() {
               <Migas escalones={escalones} />
 
               <div className="panel__encabezado">
-                <div>
-                  <h1 className="panel__curso">{titulo}</h1>
-                  {general || nivel !== "examenes" ? null : (
-                    // Es un enlace al campus y no un botón que llame a la API:
-                    // el docente ya tiene su sesión de Moodle abierta, así que
-                    // el salto es instantáneo y vuelve con un token que
-                    // autoriza todos sus cursos.
-                    <a
-                      className="panel__cambio"
-                      href={`${API_CONFIG.MOODLE_URL}${API_CONFIG.MOODLE_LAUNCH_GENERAL}`}
-                    >
-                      Ver todos mis cursos
-                      <ArrowRight size={13} weight="bold" aria-hidden="true" />
-                    </a>
-                  )}
-                </div>
+                {/* El salto a todos sus cursos vive en el encabezado de la
+                    barra, que es donde se lo busca y donde está en los dos
+                    modos. Acá abajo repetía lo mismo dos veces en pantalla. */}
+                <h1 className="panel__curso">{titulo}</h1>
                 <PulsoEnlace estado={enlace} desde={desde} marca={marca} />
               </div>
             </div>
