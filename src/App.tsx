@@ -1,69 +1,53 @@
-import { useEffect, useState } from "react";
-import { fetchPing, type PingResponse } from "./services/pingService";
-import { verifyMoodleLaunch, getStoredSession, type SessionInfo } from "./services/authService";
+import { lazy, Suspense, type ReactElement } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Arranque } from "./components/Arranque";
+import { getStoredSession } from "./services/authService";
+
+/**
+ * Cada pantalla se descarga cuando alguien la pide, y no antes.
+ *
+ * Sin esto, entrar al panel traía además la portada entera con sus gráficos: el
+ * docente que lo abre en el medio de un examen esperaba por dibujos que no va a
+ * mirar. Son cuatro pantallas que casi nunca se visitan en la misma sesión, así
+ * que separarlas no le cuesta nada a nadie.
+ */
+const Landing = lazy(() => import("./pages/Landing").then((m) => ({ default: m.Landing })));
+const AuthCallback = lazy(() => import("./pages/AuthCallback").then((m) => ({ default: m.AuthCallback })));
+const Panel = lazy(() => import("./pages/Panel").then((m) => ({ default: m.Panel })));
+const SinSesion = lazy(() => import("./pages/SinSesion").then((m) => ({ default: m.SinSesion })));
+
+/**
+ * Impide llegar al área privada sin sesión. Es el mecanismo que van a
+ * reutilizar todas las pantallas de supervisión que se sumen más adelante.
+ *
+ * Sin sesión no redirige de una: muestra una pantalla que explica qué pasó y
+ * adónde va. Llegar acá sin sesión es más común de lo que parece —un favorito,
+ * una pestaña vieja, volver atrás después de salir— y un salto instantáneo a
+ * otra página deja al docente sin entender nada.
+ */
+function RutaProtegida({ children }: { children: ReactElement }) {
+  return getStoredSession() ? children : <SinSesion />;
+}
 
 function App() {
-  const [ping, setPing] = useState<PingResponse | null>(null);
-  const [pingError, setPingError] = useState<string | null>(null);
-
-  const [session, setSession] = useState<SessionInfo | null>(() => getStoredSession());
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [verifyingLaunch, setVerifyingLaunch] = useState(false);
-
-  useEffect(() => {
-    fetchPing()
-      .then(setPing)
-      .catch((err: Error) => setPingError(err.message));
-  }, []);
-
-  useEffect(() => {
-    if (window.location.pathname !== "/auth/callback") {
-      return;
-    }
-
-    const launchToken = new URLSearchParams(window.location.search).get("token");
-    if (!launchToken) {
-      setAuthError("Falta el token de lanzamiento en la URL.");
-      return;
-    }
-
-    setVerifyingLaunch(true);
-    verifyMoodleLaunch(launchToken)
-      .then((newSession) => {
-        setSession(newSession);
-        window.history.replaceState({}, "", "/");
-      })
-      .catch((err: Error) => setAuthError(err.message))
-      .finally(() => setVerifyingLaunch(false));
-  }, []);
-
   return (
-    <main>
-      <h1>SAMCE — Panel Docente</h1>
-      <p>Scaffold inicial (Sprint 1). Conectividad con el backend:</p>
-      {pingError && <p>Error al conectar con el backend: {pingError}</p>}
-      {!pingError && !ping && <p>Consultando /ping...</p>}
-      {ping && (
-        <ul>
-          <li>API: {ping.status}</li>
-          <li>Base de datos: {ping.database}</li>
-        </ul>
-      )}
-
-      <hr />
-
-      <h2>Sesión</h2>
-      {verifyingLaunch && <p>Validando lanzamiento desde Moodle...</p>}
-      {authError && <p>Error de autenticación: {authError}</p>}
-      {!verifyingLaunch && !session && !authError && (
-        <p>Accedé desde el Campus Virtual (link "Panel de supervisión SAMCE" dentro del curso).</p>
-      )}
-      {session && !authError && (
-        <p>
-          Sesión activa: {session.username} ({session.role}), curso {session.courseId}
-        </p>
-      )}
-    </main>
+    <BrowserRouter>
+      <Suspense fallback={<Arranque />}>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route
+            path="/panel"
+            element={
+              <RutaProtegida>
+                <Panel />
+              </RutaProtegida>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
   );
 }
 

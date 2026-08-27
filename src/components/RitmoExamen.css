@@ -1,0 +1,127 @@
+.ritmo {
+  margin: 0;
+  padding: var(--e6);
+  border-radius: var(--radio-lamina);
+  background: var(--sup-1);
+  box-shadow: var(--anillo), var(--elev-2);
+}
+
+.ritmo__encabezado {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e4);
+  margin-bottom: var(--e5);
+}
+
+.ritmo__titulo {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: var(--track-titulo);
+  color: var(--tinta);
+}
+
+.ritmo__duracion {
+  font-size: var(--paso-rotulo);
+  color: var(--tinta-suave);
+}
+
+.ritmo__grafico {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ritmo__corredor {
+  fill: var(--celeste);
+  fill-opacity: 0.09;
+}
+
+.ritmo__linea {
+  fill: none;
+  stroke: var(--tinta-suave);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* El tramo que se sale se distingue por grosor y peso de color, nunca por un
+   rojo: la paleta tiene que leerse igual con cualquier daltonismo. */
+.ritmo__linea--fuera {
+  stroke: var(--pizarra);
+  stroke-width: 3;
+}
+
+.ritmo__punto {
+  fill: var(--pizarra);
+  stroke: var(--sup-1);
+  stroke-width: 2;
+}
+
+/* Hueco contra relleno: las señales que no alcanzan se distinguen de las que
+   arman la alerta por el vacío, sin necesidad de un segundo color. */
+.ritmo__suelta {
+  fill: var(--sup-1);
+  stroke: var(--tinta-tenue);
+  stroke-width: 1.5;
+}
+
+.ritmo__guia {
+  fill: none;
+  stroke: var(--tinta-tenue);
+  stroke-width: 1;
+}
+
+.ritmo__anotacion {
+  fill: var(--tinta-media);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.ritmo__minuto {
+  fill: var(--tinta-suave);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ritmo__leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2) var(--e6);
+  margin-top: var(--e5);
+  font-size: var(--paso-rotulo);
+  color: var(--tinta-suave);
+}
+
+.ritmo__clave {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+}
+
+.ritmo__clave::before {
+  content: "";
+  width: 18px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.ritmo__clave--corredor::before {
+  background: rgb(0 140 178 / 16%);
+}
+
+.ritmo__clave--suelta::before {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sup-1);
+  box-shadow: inset 0 0 0 1.5px var(--tinta-tenue);
+}
+
+.ritmo__clave--fuera::before {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--pizarra);
+}

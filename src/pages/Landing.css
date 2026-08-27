@@ -1,0 +1,329 @@
+.sup-2 { background: var(--sup-2); }
+
+/* ==== Portada: la foto llega hasta el borde ============================ */
+
+.portada {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: min(62vh, 560px);
+  align-items: stretch;
+}
+
+.portada__texto {
+  display: flex;
+  align-items: center;
+  padding-block: var(--e20);
+  padding-left: max(var(--e6), calc((100vw - var(--ancho-total)) / 2 + var(--e6)));
+  padding-right: var(--e12);
+}
+
+.portada__interna {
+  max-width: 30rem;
+}
+
+.portada__titular {
+  margin-bottom: var(--e5);
+}
+
+.portada__contra {
+  color: var(--celeste-hondo);
+}
+
+/* Tres oraciones cortas hacen el trabajo de un párrafo. */
+.portada__bajada {
+  font-size: var(--paso-subtitulo);
+  line-height: 1.4;
+  color: var(--tinta-media);
+  margin-bottom: var(--e8);
+}
+
+.portada__foto {
+  position: relative;
+  overflow: hidden;
+}
+
+.portada__foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 60% center;
+}
+
+/* Un velo del color institucional integra la foto con la paleta. */
+.portada__foto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, var(--sup-1) 0%, rgb(255 255 255 / 0%) 22%),
+    linear-gradient(0deg, rgb(17 76 94 / 12%), rgb(17 76 94 / 12%));
+}
+
+/* ==== La frase ========================================================= */
+
+/* El aire va afuera de la franja, no adentro: así la banda de color queda
+   separada de la foto en lugar de crecer. */
+.frase {
+  margin-top: var(--stack-seccion);
+  padding-block: var(--e20) var(--e16);
+  background: var(--sup-2);
+}
+
+.frase__titulo {
+  font-size: clamp(1.7rem, 4vw, 2.8rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: var(--track-display);
+  color: var(--pizarra);
+  text-wrap: balance;
+  margin-bottom: var(--stack-bloque);
+}
+
+.frase__pie {
+  margin-top: var(--e8);
+  max-width: var(--medida);
+  font-size: var(--paso-rotulo);
+  line-height: 1.6;
+  color: var(--tinta-suave);
+}
+
+/* ==== Piezas comunes =================================================== */
+
+.titulo {
+  margin-bottom: var(--stack-bloque);
+  max-width: 22ch;
+}
+
+.titulo--centro {
+  max-width: 26ch;
+  margin-inline: auto;
+  text-align: center;
+}
+
+/* ==== Secciones a dos columnas ========================================= */
+
+/* Cinco secciones de la página son lo mismo: un bloque de texto y una pieza al
+   lado. Una sola regla, y la variante invertida para las que empiezan por la
+   pieza. Agregar una sección nueva no debería costar CSS nuevo. */
+.dupla {
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: var(--e16);
+  align-items: center;
+}
+
+.dupla--invertida {
+  grid-template-columns: 7fr 5fr;
+}
+
+/* Sin esto, una pieza que no se encoge le impone su ancho a la grilla y saca
+   la página del viewport. */
+.dupla > * {
+  min-width: 0;
+}
+
+.dupla .bajada + .bajada {
+  margin-top: var(--e4);
+}
+
+/* ==== El panel ========================================================= */
+
+.panel-vista__pieza {
+  margin: 0;
+}
+
+/* ==== Quién decide: solo una frase, a pantalla ========================= */
+
+.decision {
+  padding-block: var(--e20);
+  background: var(--sup-5);
+  color: var(--tinta-clara);
+  text-align: center;
+}
+
+.decision__titulo {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1.15;
+  letter-spacing: var(--track-display);
+  color: var(--tinta-clara);
+}
+
+.decision__titulo span {
+  color: rgb(0 190 235 / 90%);
+}
+
+/* ==== El alumno ======================================================== */
+
+.alumno__foto {
+  margin: 0;
+  border-radius: var(--radio-lamina);
+  overflow: hidden;
+  box-shadow: var(--elev-2);
+}
+
+.alumno__foto img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+}
+
+.aviso {
+  display: grid;
+  gap: var(--e3);
+  margin-top: var(--stack-bloque);
+  padding: var(--e6);
+  border-radius: var(--radio-ficha);
+  background: var(--sup-2);
+  box-shadow: var(--anillo);
+  font-size: var(--paso-apoyo);
+  line-height: 1.55;
+  color: var(--tinta-media);
+}
+
+.aviso__titulo {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--tinta);
+  letter-spacing: var(--track-titulo);
+}
+
+.aviso__boton {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding-inline: var(--e4);
+  border-radius: var(--radio-chip);
+  background: var(--pizarra);
+  color: var(--tinta-clara);
+  font-size: var(--paso-rotulo);
+  font-weight: 500;
+}
+
+/* ==== Acceso =========================================================== */
+
+.acceso {
+  padding-block: var(--e20);
+  background:
+    linear-gradient(rgb(17 76 94 / 94%), rgb(13 61 76 / 97%)),
+    url("/img/escritorio.jpg") center bottom / cover;
+  color: var(--tinta-clara);
+}
+
+.acceso__titulo {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  letter-spacing: var(--track-titulo);
+  color: var(--tinta-clara);
+  margin-bottom: var(--e4);
+}
+
+.acceso__texto {
+  font-size: var(--paso-cuerpo-grande);
+  color: var(--tinta-clara-media);
+  max-width: 40ch;
+}
+
+/* Tres pasos, cada uno con su guía vertical. El número es un dato, no un
+   adorno: va en la cifra tabular como el resto de las cifras del sistema. */
+.pasos {
+  display: grid;
+  gap: var(--e5);
+  margin-top: var(--e8);
+}
+
+.pasos li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: var(--e4);
+  padding-left: var(--e4);
+  border-left: 2px solid var(--guia-clara);
+  font-size: var(--paso-apoyo);
+  line-height: 1.55;
+  color: var(--tinta-clara-media);
+}
+
+.pasos__numero {
+  font-size: var(--paso-rotulo);
+  font-weight: 600;
+  letter-spacing: var(--track-rotulo);
+  color: rgb(0 190 235 / 90%);
+}
+
+.pasos strong {
+  font-weight: 600;
+  color: var(--tinta-clara);
+}
+
+.acceso__cierre {
+  margin-top: var(--e6);
+  max-width: 44ch;
+  font-size: var(--paso-apoyo);
+  line-height: 1.55;
+  color: var(--tinta-clara-suave);
+}
+
+/* ==== Pantallas chicas ================================================= */
+
+@media (max-width: 960px) {
+  .portada {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .portada__texto {
+    padding: var(--e12) var(--e6);
+    order: 2;
+  }
+
+  .portada__foto {
+    order: 1;
+    height: 42vw;
+    min-height: 200px;
+  }
+
+  .portada__foto::after {
+    background: linear-gradient(0deg, rgb(17 76 94 / 14%), rgb(17 76 94 / 14%));
+  }
+
+  .dupla,
+  .dupla--invertida {
+    grid-template-columns: 1fr;
+    gap: var(--e10);
+  }
+
+  .decision,
+  .acceso {
+    padding-block: var(--e12);
+  }
+
+  .frase {
+    margin-top: var(--e12);
+    padding-block: var(--e12) var(--e10);
+  }
+}
+
+/* El otro camino de entrada. Va separado del cierre por el escalón de arriba y
+   con el icono al costado, para que se lea como una alternativa y no como la
+   continuación del párrafo anterior. */
+.acceso__otra {
+  display: flex;
+  gap: var(--e3);
+  margin-top: var(--e5);
+  padding-top: var(--e5);
+  border-top: 1px solid rgb(255 255 255 / 0.12);
+  font-size: var(--paso-cuerpo);
+  line-height: var(--alto-cuerpo);
+  color: var(--tinta-clara-media);
+}
+
+.acceso__otra svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--celeste);
+}
+
+.acceso__otra strong {
+  color: var(--tinta-clara);
+  font-weight: 500;
+}

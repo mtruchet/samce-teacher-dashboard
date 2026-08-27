@@ -1,0 +1,179 @@
+.lista {
+  padding: var(--e5) var(--e6);
+  border-radius: var(--radio-panel);
+  background: var(--sup-1);
+  box-shadow: var(--anillo), var(--elev-2);
+}
+
+.lista__encabezado {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e3);
+  margin-bottom: var(--e4);
+}
+
+.lista__titulo {
+  font-size: var(--panel-pieza);
+  font-weight: 600;
+  line-height: 25px;
+  letter-spacing: var(--track-titulo);
+  color: var(--tinta);
+}
+
+.lista__cuenta {
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+}
+
+/* La lista larga hace scroll adentro, así la barra nunca se va de pantalla: la
+   misma información siempre en el mismo lugar es lo que permite que el ojo
+   aprenda dónde mirar. */
+.lista__marco {
+  max-height: min(52vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ==== La tabla ========================================================= */
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0 var(--e4) var(--e2);
+  background: var(--sup-1);
+  text-align: left;
+  font-size: var(--panel-rotulo);
+  font-weight: 600;
+  letter-spacing: var(--track-rotulo);
+  text-transform: uppercase;
+  color: var(--tinta-media);
+  white-space: nowrap;
+}
+
+.tabla td {
+  height: var(--fila-curso);
+  padding: var(--e2) var(--e4);
+  font-size: var(--panel-fila);
+  line-height: 20px;
+  color: var(--tinta-media);
+  vertical-align: middle;
+}
+
+/* Va con el elemento adelante porque `.tabla th` fija la alineación a la
+   izquierda y le gana por especificidad: sin esto el rótulo queda contra un
+   borde de la columna y su dato contra el otro. */
+.tabla th.tabla__der,
+.tabla td.tabla__der {
+  text-align: right;
+}
+
+.tabla tbody tr {
+  transition: background var(--mov-estado) var(--curva);
+}
+
+.tabla tbody tr:hover {
+  background: var(--sup-2);
+}
+
+/* La columna de alumno se queda con lo que sobra; las de tiempo llevan ancho
+   fijo. Si estas crecen libres, el valor termina a media pantalla de su rótulo
+   y la tabla deja de leerse de un vistazo. */
+.tabla th:first-child,
+.tabla td:first-child {
+  width: auto;
+  padding-left: var(--e3);
+}
+
+.tabla th:not(:first-child),
+.tabla td:not(:first-child) {
+  width: 128px;
+  white-space: nowrap;
+}
+
+/* El curso pesa como el examen: los dos dicen de dónde salió la sesión, y
+   ninguno compite con el alumno ni con las cifras de la derecha. */
+.tabla th.tabla__curso,
+.tabla td.tabla__curso {
+  width: 22%;
+  white-space: normal;
+}
+
+.tabla td.tabla__curso {
+  color: var(--tinta-media);
+}
+
+/* El examen es contexto de la fila, no su dato principal: pesa menos que el
+   alumno y no compite con las cifras de la derecha. Lleva ancho declarado y
+   se le permite envolver porque, si lo decide su contenido, las dos tablas
+   del panel dejan de compartir grilla y el ojo pierde la columna al bajar. */
+.tabla th.tabla__examen,
+.tabla td.tabla__examen {
+  width: 24%;
+  white-space: normal;
+}
+
+.tabla td.tabla__examen {
+  color: var(--tinta-media);
+}
+
+/* ==== El alumno ======================================================== */
+
+/* El id de Moodle es el puente hacia el campus: el panel no guarda nombres, y
+   el docente ya tiene permiso para verlos allá. */
+.alumno svg {
+  flex: none;
+  color: var(--tinta-tenue);
+}
+
+.alumno {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  min-width: 0;
+}
+
+.alumno__id {
+  font-size: var(--panel-fila);
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+
+@media (max-width: 760px) {
+  .lista {
+    padding-inline: var(--e4);
+  }
+
+  /* La hora de comienzo se va: el transcurrido dice lo mismo y ocupa menos.
+     Va por su clase y no por su posición, porque el número de columna cambia
+     en cuanto se agrega una y la regla termina escondiendo otra cosa. */
+  .tabla th.tabla__hora,
+  .tabla td.tabla__hora {
+    display: none;
+  }
+
+  .tabla th:not(:first-child),
+  .tabla td:not(:first-child) {
+    width: 96px;
+  }
+
+  /* El examen se queda con lo que necesite y envuelve si hace falta. */
+  .tabla th.tabla__examen,
+  .tabla td.tabla__examen {
+    width: 38%;
+  }
+
+  /* «Alumno 6» es una unidad: partido en dos renglones deja de leerse de un
+     vistazo, que es lo único que se le pide a esta columna. */
+  .alumno__id,
+
+  .lista__marco {
+    max-height: none;
+  }
+}

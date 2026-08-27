@@ -1,0 +1,171 @@
+/**
+ * Sistema visual del SAMCE.
+ *
+ * Decisiones que sostienen todo lo demás:
+ *
+ *   Cuerpo a 19px, no 16px. Es la decisión de GOV.UK y es visiblemente más
+ *   institucional que el tamaño de landing. Interlíneas en múltiplos de 5 para
+ *   que haya un solo ritmo vertical en toda la página.
+ *
+ *   El celeste tiene un único rol: acción y estado activo. Nunca decoración,
+ *   nunca texto de cuerpo.
+ *
+ *   Las superficies son una escalera derivada del azul institucional. Las
+ *   secciones alternan escalones, y así se separan sin una sola línea.
+ */
+
+:root {
+  /* ---- Marca ------------------------------------------------------------ */
+  --celeste: #008cb2;
+  --celeste-hondo: #00738f;
+  --pizarra: #114c5e;
+  --pizarra-honda: #0d3d4c;
+
+  /* ---- Escalera de superficies ------------------------------------------ */
+  /* Cinco escalones del mismo azul. La banda oscura no es un elemento
+     aparte: es el extremo de esta misma escalera. */
+  --sup-1: #ffffff;
+  --sup-2: #f7fbfc;
+  --sup-3: #eef5f7;
+  --sup-4: #dfebee;
+  --sup-5: var(--pizarra);
+
+  /* ---- Tintas ----------------------------------------------------------- */
+  --tinta: #14232a;
+  --tinta-media: #3e535b;
+  --tinta-suave: #5f737a;
+  /* Solo para trazos, bordes y elementos gráficos: a 2,28:1 sobre lámina no
+     alcanza para texto. Si hace falta texto atenuado, va --tinta-suave. */
+  --tinta-tenue: #9bafb7;
+
+  --tinta-clara: #ffffff;
+  --tinta-clara-media: rgb(255 255 255 / 78%);
+  --tinta-clara-suave: rgb(255 255 255 / 58%);
+
+  /* ---- Guías verticales. Las horizontales están vedadas. ---------------- */
+  --guia: rgb(17 76 94 / 8%);
+  --guia-clara: rgb(255 255 255 / 13%);
+
+  /* ---- Niveles de atención ---------------------------------------------- */
+  /* Se distinguen por intensidad y trama, jamás por semáforo. */
+  --nivel-1-fondo: #e3f1f4;
+  --nivel-1-borde: #bcdde4;
+  --nivel-1-tinta: #1d5765;
+
+  --nivel-2-fondo: #f2dcbd;
+  --nivel-2-borde: #ecc79a;
+  --nivel-2-tinta: #7a4810;
+
+  --nivel-3-fondo: var(--pizarra);
+  --nivel-3-borde: var(--pizarra-honda);
+  --nivel-3-tinta: #ffffff;
+
+  /* ---- Tipografía -------------------------------------------------------- */
+  /* Una sola familia en todo el sistema. Los datos y los códigos se alinean
+     con las cifras tabulares de IBM Plex Sans, que no necesita una segunda
+     tipografía para eso. */
+  --letra: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+
+  /* Escala fluida entre dos extremos, declarada por paso y no por píxel. */
+  --paso-display: clamp(2.25rem, 1.4rem + 4.2vw, 3.5rem);
+  --paso-titulo: clamp(1.5rem, 1.15rem + 1.75vw, 2.125rem);
+  --paso-subtitulo: clamp(1.1875rem, 1.05rem + 0.7vw, 1.4375rem);
+  --paso-cuerpo-grande: clamp(1.125rem, 1.05rem + 0.4vw, 1.3125rem);
+  --paso-cuerpo: 1.1875rem;  /* 19px, como GOV.UK */
+  --paso-apoyo: 1rem;
+  --paso-rotulo: 0.75rem;
+
+  /* Interlíneas en múltiplos de 5px: un solo ritmo para toda la página. */
+  --alto-display: 1.05;
+  --alto-titulo: 1.15;
+  --alto-cuerpo: 1.5789;  /* 19 × 1.5789 = 30px */
+
+  /* Tracking escalonado por tamaño: lo que separa una tipografía puesta de
+     una compuesta. El cuerpo nunca lleva tracking negativo. */
+  --track-display: -0.03em;
+  --track-titulo: -0.015em;
+  --track-cuerpo: 0;
+  --track-rotulo: 0.08em;
+
+  /* ---- Espacio: tres niveles con nombre funcional ------------------------ */
+  /* La proporción entre el nivel de sección y el de bloque es lo que produce
+     la sensación de rigor. Aire generoso entre bloques, escaso adentro. */
+  --stack-texto: 0.75em;
+  --stack-bloque: 2.5rem;
+  --stack-seccion: clamp(4.5rem, 9vw, 8rem);
+
+  --e1: 4px;
+  --e2: 8px;
+  --e3: 12px;
+  --e4: 16px;
+  --e5: 20px;
+  --e6: 24px;
+  --e8: 32px;
+  --e10: 40px;
+  --e12: 48px;
+  --e16: 64px;
+  --e20: 80px;
+
+  /* ---- Radios: anidados, exterior = interior + padding ------------------- */
+  --radio-interior: 8px;
+  --radio-chip: 6px;
+  --radio-ficha: 12px;
+  --radio-lamina: 16px;
+  --radio-panel: 24px;
+
+  /* ---- Elevación: una sola fuente de luz, sin desplazamiento lateral ----- */
+  --elev-1:
+    0 1px 1px hsl(196 45% 20% / 6%),
+    0 2px 4px -1px hsl(196 45% 20% / 5%);
+  --elev-2:
+    0 1px 1px hsl(196 45% 20% / 5%),
+    0 3px 6px -2px hsl(196 45% 20% / 6%),
+    0 8px 16px -6px hsl(196 45% 20% / 7%);
+  --elev-3:
+    0 1px 1px hsl(196 45% 20% / 4%),
+    0 4px 8px -2px hsl(196 45% 20% / 5%),
+    0 12px 24px -8px hsl(196 45% 20% / 7%),
+    0 24px 48px -20px hsl(196 45% 20% / 10%);
+
+  /* Anillo semitransparente para capturas: se adapta al fondo, a diferencia
+     de un borde gris sólido. */
+  --anillo: inset 0 0 0 1px rgb(17 76 94 / 10%);
+
+  /* ---- Medidas ----------------------------------------------------------- */
+  --ancho-total: 1200px;
+  --ancho-lectura: 680px;
+  --medida: 68ch;
+  --cabecera-alta: 100px;
+  --cabecera-baja: 56px;
+
+  /* ---- Movimiento: presupuesto corto y explícito -------------------------- */
+  --mov-estado: 140ms;
+  --mov-entrada: 220ms;
+  --curva: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ---- El panel: el mismo sistema en otro paso -------------------------- */
+  /* La landing se lee, el panel se trabaja. El cuerpo baja de 19px a 14px,
+     pero las interlíneas siguen siendo múltiplos de 5: un solo ritmo vertical
+     para toda la aplicación. Lo que no cambia es la identidad — las mismas dos
+     familias tipográficas, el mismo celeste con su rol único, la misma
+     escalera de superficies y la misma prohibición de líneas horizontales. */
+  --panel-cuerpo: 14px;
+  --panel-fila: 13px;
+  --panel-nota: 12px;
+  --panel-rotulo: 11px;
+  --panel-pieza: 17px;
+  --panel-curso: clamp(1.375rem, 1.2rem + 0.85vw, 1.75rem);
+
+  --ancho-panel: 1080px;
+
+  --panel-barra: 52px;
+  --panel-franja: 48px;
+  --fila-curso: 40px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mov-estado: 0ms;
+    --mov-entrada: 0ms;
+  }
+}

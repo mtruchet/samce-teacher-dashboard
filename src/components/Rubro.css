@@ -1,0 +1,100 @@
+.rubro {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.rubro th,
+.rubro td {
+  vertical-align: top;
+  width: 50%;
+  padding: var(--e5) var(--e10) var(--e5) 0;
+  font-size: var(--paso-apoyo);
+  line-height: 1.55;
+}
+
+.rubro th {
+  padding-top: 0;
+  padding-bottom: var(--e4);
+  font-size: var(--paso-rotulo);
+  font-weight: 600;
+  letter-spacing: var(--track-rotulo);
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+/* La columna izquierda está apagada y la derecha presente. La jerarquía la
+   hace el peso del color, no un tilde ni una cruz: acá no hay bueno y malo,
+   hay dos maneras distintas de resolver lo mismo. */
+.rubro td {
+  color: var(--tinta-suave);
+}
+
+/* La única separación es vertical, que es la que el sistema admite. */
+.rubro th:last-child,
+.rubro td:last-child {
+  padding-right: 0;
+  padding-left: var(--e10);
+  border-left: 2px solid var(--guia);
+}
+
+.rubro__propio {
+  color: var(--tinta) !important;
+}
+
+th.rubro__propio {
+  color: var(--celeste-hondo) !important;
+}
+
+@media (max-width: 760px) {
+  /* Apilado: cada fila pasa a ser un par, uno encima del otro, y la guía se
+     mueve al costado del propio para que se siga leyendo cuál es cuál. */
+  .rubro,
+  .rubro thead,
+  .rubro tbody,
+  .rubro tr,
+  .rubro th,
+  .rubro td {
+    display: block;
+    width: auto;
+  }
+
+  .rubro thead {
+    display: none;
+  }
+
+  .rubro tr + tr {
+    margin-top: var(--e8);
+  }
+
+  .rubro td {
+    padding: 0;
+  }
+
+  .rubro td:first-child::before {
+    content: "Lo que ya conocés";
+    display: block;
+    margin-bottom: var(--e1);
+    font-size: var(--paso-rotulo);
+    font-weight: 600;
+    letter-spacing: var(--track-rotulo);
+    text-transform: uppercase;
+    color: var(--tinta-suave);
+  }
+
+  .rubro td:last-child {
+    margin-top: var(--e3);
+    padding-left: var(--e4);
+  }
+
+  .rubro td:last-child::before {
+    content: "Lo que hace SAMCE";
+    display: block;
+    margin-bottom: var(--e1);
+    font-size: var(--paso-rotulo);
+    font-weight: 600;
+    letter-spacing: var(--track-rotulo);
+    text-transform: uppercase;
+    color: var(--celeste-hondo);
+  }
+}

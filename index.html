@@ -4,9 +4,115 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SAMCE — Panel Docente</title>
+
+    <!-- Sin esto el navegador pide /favicon.ico en cada carga y se lleva un 404. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!--
+      El fondo y el aviso de arranque van acá y no en una hoja aparte porque
+      tienen que estar pintados en el primer cuadro, antes de que el navegador
+      haya pedido nada. Sin esto la pantalla queda en blanco hasta que React
+      monta, y en ese hueco no se ve ni la barra ni el pie.
+
+      Las mismas clases las usa el componente Arranque, que aparece mientras se
+      descarga la pantalla que pidió el visitante. El dibujo está definido una
+      sola vez, acá; lo que se repite es el marcado, porque uno tiene que ser
+      HTML servido y el otro React.
+
+      El aviso tarda 400 ms en aparecer a propósito. Si el arranque fue rápido
+      ya lo reemplazó React y nadie lo vio, que es lo que corresponde: un cartel
+      que asoma y desaparece molesta más que el hueco que tapa.
+    -->
+    <style>
+      html { background: #f7fbfc; }
+      body { margin: 0; }
+
+      .arranque {
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        animation: arranque-aparece 0.3s ease 0.4s both;
+      }
+
+      /* Encajado dentro de una pantalla que ya tiene barra y pie: ocupa el
+         hueco que le toca en lugar de la ventana entera.
+
+         Y aparece casi enseguida, no a los 400 ms como el de pantalla completa.
+         Allá el retardo evita un cartel que asoma y se va; acá el hueco ya está
+         abierto y sostenido por el pie, así que dejarlo vacío medio segundo es
+         lo único que se puede leer como que algo se colgó. */
+      .arranque--encajado {
+        min-height: 0;
+        height: 100%;
+        animation-delay: 0.12s;
+      }
+
+      .arranque__marca {
+        margin: 0;
+        font: 600 15px/1.4 "IBM Plex Sans", system-ui, sans-serif;
+        letter-spacing: 0.14em;
+        color: #6c8189;
+      }
+
+      /*
+        La misma tira con que el panel marca el pulso del enlace: marcas todas
+        iguales y una encendida que las recorre. Las medidas y los colores están
+        copiados de PulsoEnlace.css, que no se puede importar porque esto tiene
+        que existir antes de que cargue ninguna hoja de estilos.
+      */
+      .arranque__pulso {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        height: 10px;
+      }
+
+      .arranque__pulso i {
+        width: 2px;
+        height: 10px;
+        border-radius: 1px;
+        background: #9bafb7;
+        animation: arranque-recorre 1.4s linear infinite;
+      }
+
+      .arranque__pulso i:nth-child(2) { animation-delay: 0.117s; }
+      .arranque__pulso i:nth-child(3) { animation-delay: 0.233s; }
+      .arranque__pulso i:nth-child(4) { animation-delay: 0.35s; }
+      .arranque__pulso i:nth-child(5) { animation-delay: 0.467s; }
+      .arranque__pulso i:nth-child(6) { animation-delay: 0.583s; }
+      .arranque__pulso i:nth-child(7) { animation-delay: 0.7s; }
+      .arranque__pulso i:nth-child(8) { animation-delay: 0.817s; }
+      .arranque__pulso i:nth-child(9) { animation-delay: 0.933s; }
+      .arranque__pulso i:nth-child(10) { animation-delay: 1.05s; }
+      .arranque__pulso i:nth-child(11) { animation-delay: 1.167s; }
+      .arranque__pulso i:nth-child(12) { animation-delay: 1.283s; }
+
+      @keyframes arranque-aparece {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes arranque-recorre {
+        0%, 8% { background: #008cb2; }
+        9%, 100% { background: #9bafb7; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .arranque { animation: none; }
+        .arranque__pulso i { animation: none; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="arranque">
+        <div class="arranque__pulso" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <p class="arranque__marca">SAMCE</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

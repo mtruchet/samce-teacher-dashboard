@@ -1,0 +1,121 @@
+.cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--sup-1);
+}
+
+.cabecera__fila {
+  display: flex;
+  align-items: center;
+  gap: var(--e6);
+}
+
+/* ---- Fila institucional: se retrae al desplazarse ---------------------- */
+
+.cabecera__institucional {
+  height: 44px;
+  overflow: hidden;
+  background: var(--sup-2);
+  transition:
+    height var(--mov-entrada) var(--curva),
+    opacity var(--mov-estado) var(--curva);
+}
+
+.cabecera--contraida .cabecera__institucional {
+  height: 0;
+  opacity: 0;
+}
+
+.cabecera__institucional .cabecera__fila {
+  height: 44px;
+}
+
+.cabecera__casa img {
+  display: block;
+  height: 22px;
+  width: auto;
+}
+
+.cabecera__carrera {
+  font-size: var(--paso-rotulo);
+  letter-spacing: 0.02em;
+  color: var(--tinta-suave);
+  margin-left: auto;
+}
+
+/* ---- Fila de servicio -------------------------------------------------- */
+
+.cabecera__servicio {
+  height: var(--cabecera-baja);
+  /* Guía vertical, no horizontal: la de abajo está vedada, así que la
+     separación con el contenido la da el color de la superficie. */
+  background: var(--sup-1);
+}
+
+.cabecera--contraida .cabecera__servicio {
+  box-shadow: var(--elev-1);
+}
+
+.cabecera__servicio .cabecera__fila {
+  height: var(--cabecera-baja);
+}
+
+.cabecera__producto {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--pizarra);
+  text-decoration: none;
+}
+
+.cabecera__nav {
+  margin-right: auto;
+}
+
+.cabecera__nav ul {
+  display: flex;
+  gap: var(--e5);
+}
+
+.cabecera__nav a {
+  position: relative;
+  display: block;
+  padding-block: var(--e2);
+  font-size: var(--paso-apoyo);
+  color: var(--tinta-media);
+  text-decoration: none;
+  transition: color var(--mov-estado) var(--curva);
+}
+
+.cabecera__nav a:hover {
+  color: var(--pizarra);
+}
+
+/* El celeste tiene un solo rol en toda la página: acción y estado activo. */
+.cabecera__nav a.esta-aqui {
+  color: var(--pizarra);
+  font-weight: 500;
+}
+
+.cabecera__nav a.esta-aqui::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--celeste);
+}
+
+@media (max-width: 900px) {
+  .cabecera__nav,
+  .cabecera__carrera {
+    display: none;
+  }
+
+  .cabecera__producto {
+    margin-right: auto;
+  }
+}

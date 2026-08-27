@@ -1,0 +1,49 @@
+/* El rastro de navegación del panel. */
+
+.migas {
+  margin-bottom: var(--e3);
+}
+
+.migas ol {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.migas li {
+  display: flex;
+  font-size: var(--panel-cuerpo);
+  line-height: 20px;
+  color: var(--tinta-media);
+}
+
+.migas svg {
+  flex: none;
+  color: var(--tinta-tenue);
+}
+
+.migas__volver {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--celeste-hondo);
+  cursor: pointer;
+  transition: color var(--mov-estado) var(--curva);
+}
+
+.migas__volver:hover {
+  color: var(--tinta);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.migas__volver:focus-visible {
+  outline: 2px solid var(--celeste);
+  outline-offset: 2px;
+  border-radius: 3px;
+}

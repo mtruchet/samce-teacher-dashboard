@@ -13,13 +13,27 @@ describe("verifyMoodleLaunch", () => {
       vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => ({ token: "session-jwt", username: "docente.demo", role: "docente", course_id: 2 }),
+        json: async () => ({
+          token: "session-jwt",
+          username: "docente.demo",
+          display_name: "Docente de Prueba",
+          role: "docente",
+          course_id: 2,
+          course_name: "Sistemas de Información II",
+        }),
       }),
     );
 
     const session = await verifyMoodleLaunch("launch-token");
 
-    expect(session).toEqual({ token: "session-jwt", username: "docente.demo", role: "docente", courseId: 2 });
+    expect(session).toEqual({
+      token: "session-jwt",
+      username: "docente.demo",
+      displayName: "Docente de Prueba",
+      role: "docente",
+      courseId: 2,
+      courseName: "Sistemas de Información II",
+    });
     expect(getStoredSession()).toEqual(session);
   });
 
@@ -61,7 +75,14 @@ describe("clearSession", () => {
       vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => ({ token: "session-jwt", username: "docente.demo", role: "docente", course_id: 2 }),
+        json: async () => ({
+          token: "session-jwt",
+          username: "docente.demo",
+          display_name: "Docente de Prueba",
+          role: "docente",
+          course_id: 2,
+          course_name: "Sistemas de Información II",
+        }),
       }),
     );
 

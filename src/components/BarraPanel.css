@@ -1,0 +1,162 @@
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--sup-5);
+  color: var(--tinta-clara);
+}
+
+.barra__interna {
+  display: flex;
+  align-items: center;
+  gap: var(--e6);
+  height: var(--panel-barra);
+}
+
+/* La misma altura de logotipo que usa el pie de la página pública. */
+.barra__institucion {
+  flex: none;
+  height: 26px;
+  width: auto;
+}
+
+/* El mismo tratamiento que la marca de la cabecera pública: peso 600 y
+   tracking de título, no de rótulo. */
+.barra__pantalla:hover {
+  background: rgb(255 255 255 / 20%);
+}
+
+.barra__pantalla:focus-visible {
+  outline: 2px solid var(--celeste);
+  outline-offset: 2px;
+}
+
+.barra__pantalla svg {
+  flex: none;
+}
+
+.barra__marca {
+  flex: none;
+  font-size: var(--panel-cuerpo);
+  font-weight: 600;
+  letter-spacing: var(--track-titulo);
+  color: var(--tinta-clara);
+}
+
+/* El orden de sacrificio cuando falta lugar: primero se va la descripción de
+   la pantalla, que es redundante con la marca; después se trunca el nombre.
+   Lo que nunca se va es el logotipo ni la salida. */
+.barra__contexto {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  min-width: 0;
+  flex-shrink: 1;
+  overflow: hidden;
+  font-size: var(--panel-nota);
+}
+
+/* Misma pinta que el botón de salir: los dos son acciones de la barra, y que
+   una se vea como texto y la otra como botón hacía que sólo se intentara
+   pulsar una. */
+.barra__pantalla {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+  height: 28px;
+  padding-inline: var(--e3);
+  border: 0;
+  border-radius: var(--radio-chip);
+  background: rgb(255 255 255 / 10%);
+  color: var(--tinta-clara);
+  font: inherit;
+  font-size: var(--panel-rotulo);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--mov-estado) var(--curva);
+}
+
+
+.barra__derecha {
+  display: flex;
+  align-items: center;
+  gap: var(--e4);
+  margin-left: auto;
+  min-width: 0;
+}
+
+/* El saludo, con su ícono: a esta escala el glifo se reconoce antes que la
+   palabra. */
+.barra__saludo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+  font-size: var(--panel-nota);
+  white-space: nowrap;
+}
+
+.barra__saludo {
+  min-width: 0;
+  color: var(--tinta-clara-media);
+}
+
+/* El nombre cede antes que la salida: se recorta con puntos suspensivos en
+   lugar de empujar el botón fuera de la pantalla. */
+.barra__saludo b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barra__saludo b {
+  font-weight: 600;
+  color: var(--tinta-clara);
+}
+
+.barra__saludo svg {
+  flex: none;
+}
+
+.barra__salir {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+  height: 28px;
+  padding-inline: var(--e3);
+  border: 0;
+  border-radius: var(--radio-chip);
+  background: rgb(255 255 255 / 10%);
+  color: var(--tinta-clara);
+  font: inherit;
+  font-size: var(--panel-rotulo);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--mov-estado) var(--curva);
+}
+
+.barra__salir:hover {
+  background: rgb(255 255 255 / 20%);
+}
+
+/* Cuando falta lugar, las cosas se van en este orden: primero la descripción
+   de la pantalla, que la marca ya implica; después el saludo entero, no solo
+   el nombre, porque un "Hola," suelto es peor que nada. El logotipo y la
+   salida no se van nunca. */
+@media (max-width: 900px) {
+  .barra__interna {
+    gap: var(--e4);
+  }
+
+  .barra__pantalla {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .barra__saludo {
+    display: none;
+  }
+}

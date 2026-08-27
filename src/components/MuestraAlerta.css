@@ -1,0 +1,138 @@
+.alerta {
+  margin: 0;
+  border: 1px solid var(--guia);
+  border-radius: var(--radio-lamina);
+  background: var(--sup-1);
+  box-shadow: var(--elev-2);
+  overflow: hidden;
+  /* Un único elemento fuera de eje en toda la página se lee como gesto.
+     Tres se leerían como efecto. */
+  transform: rotate(-0.5deg);
+}
+
+.alerta__barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e4);
+  padding: var(--e3) var(--e4);
+  background: var(--sup-2);
+  border-bottom: 1px solid var(--guia);
+}
+
+.alerta__contexto {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tinta-media);
+}
+
+.alerta__vivo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--tinta-suave);
+  white-space: nowrap;
+}
+
+.alerta__pulso {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--celeste);
+  box-shadow: 0 0 0 0 rgb(0 140 178 / 40%);
+  animation: respirar 2.8s ease-out infinite;
+}
+
+@keyframes respirar {
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px rgb(0 140 178 / 0%);
+  }
+}
+
+/* Radio interno = externo menos el padding. Poner el mismo radio adentro y
+   afuera hace que se vea mal aunque nadie sepa decir por qué. */
+.alerta__cuerpo {
+  padding: var(--e6);
+}
+
+.alerta__encabezado {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e4);
+  margin-bottom: var(--e3);
+}
+
+.alerta__alumno {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: var(--track-titulo);
+}
+
+.alerta__momento {
+  font-size: 12px;
+  color: var(--tinta-suave);
+  white-space: nowrap;
+}
+
+.alerta__explicacion {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--tinta-media);
+  margin-bottom: var(--e4);
+}
+
+.alerta__evidencia {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+  padding: var(--e3);
+  border-radius: max(0px, calc(var(--radio-lamina) - var(--e3)));
+  background: var(--sup-2);
+  margin-bottom: var(--e3);
+}
+
+.alerta__evidencia li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e4);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--tinta-suave);
+}
+
+/* El rótulo cede espacio; la cifra nunca se parte en dos renglones. */
+.alerta__evidencia li > span:first-child {
+  min-width: 0;
+}
+
+.alerta__dato {
+  flex: none;
+  color: var(--tinta-media);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.alerta__contexto-nota {
+  font-size: 12px;
+  color: var(--tinta-suave);
+  font-style: italic;
+}
+
+@media (max-width: 960px) {
+  .alerta {
+    transform: none;
+  }
+}
+
+/* El override de tokens.css pone las duraciones en cero, pero eso no alcanza a
+   los @keyframes: hay que apagarlos a mano. */
+@media (prefers-reduced-motion: reduce) {
+  .alerta__pulso {
+    animation: none;
+  }
+}

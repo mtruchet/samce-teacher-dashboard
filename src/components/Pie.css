@@ -1,0 +1,112 @@
+.pie {
+  background: var(--sup-5);
+  color: var(--tinta-clara);
+  padding-top: var(--e20);
+}
+
+.pie__directorio {
+  display: grid;
+  grid-template-columns: 1.15fr 1.2fr 1.3fr 1.25fr;
+  gap: var(--e10);
+  padding-bottom: var(--e16);
+}
+
+/* Guías verticales entre columnas: las horizontales están vedadas, estas no.
+   Dan armazón y sensación de grilla. */
+.pie__col + .pie__col {
+  padding-left: var(--e12);
+  border-left: 1px solid var(--guia-clara);
+}
+
+.pie__logo {
+  height: 30px;
+  width: auto;
+  margin-bottom: var(--e5);
+}
+
+.pie__nombre {
+  font-size: var(--paso-apoyo);
+  font-weight: 500;
+  margin-bottom: var(--e2);
+}
+
+.pie__descripcion {
+  font-size: var(--paso-rotulo);
+  line-height: 1.6;
+  color: var(--tinta-clara-suave);
+  max-width: 34ch;
+}
+
+.pie__titulo {
+  font-size: var(--paso-rotulo);
+  font-weight: 500;
+  letter-spacing: var(--track-rotulo);
+  text-transform: uppercase;
+  color: var(--tinta-clara-suave);
+  margin-bottom: var(--e5);
+}
+
+.pie__col ul {
+  display: grid;
+  gap: var(--e3);
+}
+
+.pie__col li {
+  font-size: var(--paso-apoyo);
+  line-height: 1.45;
+  color: var(--tinta-clara-media);
+}
+
+/* Un nombre propio partido en dos renglones se lee como dos personas. Los
+   roles de abajo sí pueden envolver: son descripciones, no nombres. */
+.pie__col li:not(.pie__rol) {
+  text-wrap: nowrap;
+}
+
+.pie__col a {
+  color: var(--tinta-clara-media);
+  text-decoration: none;
+  transition: color var(--mov-estado) var(--curva);
+}
+
+.pie__col a:hover {
+  color: var(--tinta-clara);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pie__rol {
+  color: var(--tinta-clara-suave) !important;
+  font-size: var(--paso-rotulo) !important;
+}
+
+
+@media (max-width: 900px) {
+  .pie__directorio {
+    grid-template-columns: 1fr;
+    gap: var(--e10);
+  }
+
+  .pie__col + .pie__col {
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
+/* El panel es más ancho que la página pública. */
+.pie .marco--panel {
+  max-width: var(--ancho-panel);
+}
+
+/* El cargo va arriba y en chico, y el nombre debajo en su propio renglón: los
+   dos nombres son largos y en una sola línea la etiqueta y la persona se leían
+   como una frase sola. */
+.pie__cargo {
+  display: block;
+  margin-bottom: 2px;
+  font-size: var(--panel-rotulo);
+  letter-spacing: var(--track-rotulo);
+  text-transform: uppercase;
+  color: var(--tinta-clara-tenue, var(--tinta-clara-media));
+}
+

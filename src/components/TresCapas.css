@@ -1,0 +1,55 @@
+.capas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--e12);
+}
+
+.capa {
+  position: relative;
+  padding-left: var(--e6);
+}
+
+/* Riel vertical: estructura sin usar una línea horizontal. */
+.capa::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(var(--celeste), rgb(0 140 178 / 10%));
+}
+
+.capa__n {
+  display: block;
+  font-size: var(--paso-rotulo);
+  font-weight: 500;
+  letter-spacing: var(--track-rotulo);
+  color: var(--celeste-hondo);
+  margin-bottom: var(--e5);
+}
+
+.capa__icono {
+  display: block;
+  color: var(--pizarra);
+  margin-bottom: var(--e4);
+}
+
+.capa__titulo {
+  font-size: var(--paso-subtitulo);
+  margin-bottom: var(--e3);
+}
+
+.capa__texto {
+  font-size: var(--paso-apoyo);
+  line-height: 1.55;
+  color: var(--tinta-media);
+}
+
+@media (max-width: 960px) {
+  .capas {
+    grid-template-columns: 1fr;
+    gap: var(--e8);
+  }
+}
