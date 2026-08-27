@@ -8,13 +8,17 @@
  * redirección terminaba en «undefined».
  *
  * El respaldo del backend es el de desarrollo, porque su dirección cambia con
- * cada despliegue y allá se define de verdad. El del campus es el de la
- * facultad, que es siempre el mismo y es adonde hay que volver.
+ * cada despliegue y allá se define de verdad.
+ *
+ * El del campus apunta a la réplica del proyecto y no al Campus Virtual de la
+ * facultad: el panel se abre desde el complemento local_samce, y el campus de
+ * la facultad no lo tiene instalado. Mandar ahí a un docente lo dejaría dando
+ * vueltas buscando un ítem de menú que no existe.
  */
 export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:8080",
   /** El aula virtual, adonde se devuelve a quien llega sin sesión. */
-  MOODLE_URL: import.meta.env.VITE_MOODLE_URL || "https://frsfco.cvg.utn.edu.ar",
+  MOODLE_URL: import.meta.env.VITE_MOODLE_URL || "https://samce-entorno-moodle-production.up.railway.app",
   /**
    * El lanzamiento que abarca todos los cursos del docente.
    *

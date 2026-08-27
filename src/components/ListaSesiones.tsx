@@ -1,4 +1,4 @@
-import type { SesionDeExamen } from "../services/sesionesService";
+import type { SesionNumerada } from "../services/sesionesService";
 import { Usuario } from "../iconos";
 import { Transcurrido } from "./Transcurrido";
 import "./ListaSesiones.css";
@@ -27,7 +27,7 @@ function hora(iso: string) {
 
 interface Props {
   titulo: string;
-  sesiones: SesionDeExamen[];
+  sesiones: SesionNumerada[];
   /** Las cerradas no llevan un reloj corriendo sino una duración. */
   cerradas?: boolean;
   vacio?: React.ReactNode;
@@ -65,7 +65,17 @@ export function ListaSesiones({ titulo, sesiones, cerradas = false, vacio }: Pro
                   <td>
                     <span className="alumno">
                       <Usuario size={18} weight="duotone" aria-hidden="true" />
-                      <span className="alumno__id cifra">Alumno {s.moodle_user_id}</span>
+                      <span className="alumno__datos">
+                        <span className="alumno__id cifra">Alumno {s.moodle_user_id}</span>
+                        {/* Sólo si rindió más de una vez: con un intento no hay
+                            nada que aclarar, y el número sería ruido en todas
+                            las filas. */}
+                        {s.intentos > 1 ? (
+                          <span className="alumno__intento cifra">
+                            intento {s.intento} de {s.intentos}
+                          </span>
+                        ) : null}
+                      </span>
                     </span>
                   </td>
                   <td className="tabla__der tabla__hora">

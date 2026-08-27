@@ -138,6 +138,20 @@
   min-width: 0;
 }
 
+.alumno__datos {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* La aclaración del reintento pesa menos que el alumno: es una precisión, no
+   el dato de la fila. */
+.alumno__intento {
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+  white-space: nowrap;
+}
+
 .alumno__id {
   font-size: var(--panel-fila);
   font-weight: 600;
