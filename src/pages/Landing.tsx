@@ -206,9 +206,9 @@ export function Landing() {
               <p className="acceso__otra">
                 <Materia size={17} weight="duotone" aria-hidden="true" />
                 <span>
-                  Y si das más de una materia, en el menú del campus está{" "}
-                  <strong>Panel SAMCE (todos mis cursos)</strong>: entra directo, sin pasar por
-                  ningún curso, y muestra todas juntas.
+                  ¿Varias materias? En el menú del campus está{" "}
+                  <strong>Panel SAMCE (todos mis cursos)</strong>, que las abre todas juntas sin
+                  entrar a ninguna.
                 </span>
               </p>
             </div>

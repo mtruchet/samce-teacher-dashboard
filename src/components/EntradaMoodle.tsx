@@ -39,7 +39,7 @@ export function EntradaMoodle() {
             <i /><i /><i />
           </span>
           <span className="entrada__url cifra">
-            frsfco.cvg.utn.edu.ar/course/view.php?id=1248
+            samce-entorno-moodle.up.railway.app/course/view.php?id=2
           </span>
         </div>
 

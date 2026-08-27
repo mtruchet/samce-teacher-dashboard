@@ -8,6 +8,7 @@ import {
   traerSesiones,
   type ExamenMonitoreado,
   type SesionDeExamen,
+  type SesionNumerada,
 } from "../services/sesionesService";
 import { Arranque } from "../components/Arranque";
 import { BarraPanel } from "../components/BarraPanel";
@@ -43,6 +44,27 @@ import "./Panel.css";
 
 /** Cada cuánto se vuelve a preguntar. */
 const CADENCIA = 5000;
+
+/**
+ * Numera los intentos de cada alumno dentro de un examen, por orden de
+ * comienzo. El cuestionario admite reintentos, así que sin esto dos filas del
+ * mismo alumno quedan idénticas y no hay manera de saber cuál es cuál.
+ */
+function numerarIntentos(sesiones: SesionDeExamen[]): SesionNumerada[] {
+  const porAlumno = new Map<number, SesionDeExamen[]>();
+  for (const s of sesiones) {
+    porAlumno.set(s.moodle_user_id, [...(porAlumno.get(s.moodle_user_id) ?? []), s]);
+  }
+
+  const lugar = new Map<number, { intento: number; intentos: number }>();
+  for (const suyas of porAlumno.values()) {
+    [...suyas]
+      .sort((a, b) => a.started_at.localeCompare(b.started_at))
+      .forEach((s, i) => lugar.set(s.id, { intento: i + 1, intentos: suyas.length }));
+  }
+
+  return sesiones.map((s) => ({ ...s, ...lugar.get(s.id)! }));
+}
 
 export function Panel() {
   const navigate = useNavigate();
@@ -199,7 +221,7 @@ export function Panel() {
     [examenes, sesiones, cursoActual]
   );
 
-  const delExamen = sesiones.filter((s) => String(s.examenId) === examenElegido);
+  const delExamen = numerarIntentos(sesiones.filter((s) => String(s.examenId) === examenElegido));
   const examenDelCurso = examenes.find(
     (e) => String(e.id) === examenElegido && e.moodle_course_id === cursoActual
   );

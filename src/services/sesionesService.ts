@@ -76,6 +76,19 @@ export interface SesionDeExamen extends Sesion {
   curso: string;
 }
 
+/**
+ * Una sesión con el lugar que ocupa entre los intentos de ese alumno en ese
+ * examen: la primera es 1 de 2, la segunda 2 de 2.
+ *
+ * Se cuenta acá y no se usa el `moodle_attempt_id` porque ese número es el
+ * identificador interno de Moodle, corre por todo el campus y no dice nada:
+ * dos intentos seguidos del mismo alumno pueden ser el 7001 y el 90004.
+ */
+export interface SesionNumerada extends SesionDeExamen {
+  intento: number;
+  intentos: number;
+}
+
 export function traerExamenes(): Promise<ExamenMonitoreado[]> {
   return pedir<ExamenMonitoreado[]>(API_CONFIG.ENDPOINTS.MONITORED_QUIZZES);
 }

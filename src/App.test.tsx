@@ -292,6 +292,31 @@ describe("Enrutado y acceso", () => {
     expect(screen.queryByText(/^intento \d+$/)).not.toBeInTheDocument();
   });
 
+  it("aclara con qué número de intento va cada alumno que rindió más de una vez", async () => {
+    guardarSesion();
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
+    ]);
+    // El 41 rindió dos veces. Los identificadores de Moodle vienen desordenados
+    // y salteados a propósito: el número que se muestra no sale de ahí.
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+      { id: 1, moodle_attempt_id: 90004, moodle_user_id: 41, status: "open", started_at: "2026-08-26T15:00:00Z" },
+      { id: 2, moodle_attempt_id: 7001, moodle_user_id: 41, status: "closed", started_at: "2026-08-26T14:00:00Z", closed_at: "2026-08-26T14:30:00Z" },
+      { id: 3, moodle_attempt_id: 8002, moodle_user_id: 42, status: "open", started_at: "2026-08-26T14:10:00Z" },
+    ]);
+    window.history.pushState({}, "", "/panel?examen=1");
+
+    render(<App />);
+
+    // Se numeran por orden de comienzo, no por el identificador de Moodle: el
+    // que empezó a las 14 es el primero aunque su id sea el más chico.
+    expect(await screen.findByText("intento 1 de 2")).toBeInTheDocument();
+    expect(screen.getByText("intento 2 de 2")).toBeInTheDocument();
+    expect(screen.queryByText(/90004|7001|8002/)).not.toBeInTheDocument();
+    // Al que rindió una sola vez no se le aclara nada.
+    expect(screen.queryByText(/de 1$/)).not.toBeInTheDocument();
+  });
+
   it("redirige al inicio cualquier dirección desconocida", () => {
     window.history.pushState({}, "", "/una-ruta-que-no-existe");
 

@@ -72,7 +72,7 @@ export function Pie({ children, ancho = "publico" }: Props) {
               </a>
             </li>
             <li>
-              <a href="https://frsfco.cvg.utn.edu.ar" target="_blank" rel="noreferrer">
+              <a href="https://samce-entorno-moodle-production.up.railway.app" target="_blank" rel="noreferrer">
                 Campus Virtual
               </a>
             </li>
