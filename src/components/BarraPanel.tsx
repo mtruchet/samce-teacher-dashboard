@@ -8,13 +8,16 @@ import "./BarraPanel.css";
  * el docente entra acá desde el campus, y la marca institucional es lo que dice
  * que sigue adentro del mismo lugar.
  *
- * Al lado de la marca va la materia, y a la derecha el nombre del docente. Los
- * dos llegan en el token: el campus los manda junto con la identidad, así que
- * no hace falta mostrar identificadores internos.
+ * Al lado de la marca va el atajo a todos sus cursos, y a la derecha el nombre
+ * del docente, que llega en el token junto con la identidad.
  *
- * La materia es un botón que devuelve al principio del panel: es lo que uno
- * intenta pulsar después de meterse tres niveles adentro, y no hacer nada al
- * pulsarlo era el error.
+ * El atajo dice lo mismo se haya entrado por donde se haya entrado. Antes
+ * mostraba el nombre de la materia cuando el docente venía desde un curso, y
+ * ahí el encabezado repetía el título de la pantalla y encima no llevaba a
+ * ninguna parte, porque ese ya era el primer escalón. Lo que cambia es cómo se
+ * llega, no lo que dice: en el panel general es un salto interno, y desde un
+ * curso hay que pasar de nuevo por el campus, porque ese token autoriza una
+ * materia sola y quién da qué lo sabe Moodle.
  *
  * El rol no se muestra: al panel solo entra quien tiene la capacidad de
  * docente, así que decirlo no informa nada que no se sepa.
@@ -23,17 +26,29 @@ import "./BarraPanel.css";
  * superficie. Es la misma regla que sostiene la página pública.
  */
 
+/** Adónde lleva el atajo: dentro del panel, o de vuelta al campus por un token nuevo. */
+export type DestinoDeCursos = { onInicio: () => void } | { href: string };
+
 interface Props {
   /** Nombre y apellido, como lo muestra el campus. */
   docente: string;
-  /** Nombre de la materia, o el alcance del panel si abarca varias. */
-  curso: string;
-  /** Vuelve al primer escalón. Es el atajo que todos buscan en el encabezado. */
-  onInicio: () => void;
+  /** El atajo del encabezado. Lo resuelve el panel, que sabe con qué alcance se entró. */
+  cursos: DestinoDeCursos;
   onSalir: () => void;
 }
 
-export function BarraPanel({ docente, curso, onInicio, onSalir }: Props) {
+export function BarraPanel({ docente, cursos, onSalir }: Props) {
+  // En angosto queda sólo el ícono: el rótulo entero no entra junto al logotipo
+  // y la salida, y esconder el atajo no es una opción cuando es el único camino
+  // a los demás cursos. El nombre viaja igual en la etiqueta, así que quien usa
+  // lector de pantalla o teclado escucha lo mismo en cualquier ancho.
+  const atajo = (
+    <>
+      <Tablero size={15} weight="duotone" aria-hidden="true" />
+      <span className="barra__pantalla-rotulo">Todos mis cursos</span>
+    </>
+  );
+
   return (
     <header className="barra">
       <div className="marco marco--panel barra__interna">
@@ -46,13 +61,22 @@ export function BarraPanel({ docente, curso, onInicio, onSalir }: Props) {
         <p className="barra__contexto">
           <span className="barra__marca">SAMCE</span>
 
-          {/* Sólo esto se pulsa, y vuelve al principio: es lo primero que se
-              intenta cuando uno se metió tres niveles adentro. El nombre del
-              proyecto queda afuera del botón, porque no lleva a ningún lado. */}
-          <button className="barra__pantalla" type="button" onClick={onInicio}>
-            <Tablero size={15} weight="duotone" aria-hidden="true" />
-            {curso}
-          </button>
+          {/* Sólo esto se pulsa. El nombre del proyecto queda afuera, porque no
+              lleva a ningún lado. */}
+          {"href" in cursos ? (
+            <a className="barra__pantalla" href={cursos.href} aria-label="Todos mis cursos">
+              {atajo}
+            </a>
+          ) : (
+            <button
+              className="barra__pantalla"
+              type="button"
+              onClick={cursos.onInicio}
+              aria-label="Todos mis cursos"
+            >
+              {atajo}
+            </button>
+          )}
         </p>
 
         <div className="barra__derecha">
