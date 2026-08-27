@@ -1,0 +1,133 @@
+/* Las fichas para elegir curso o examen.
+
+   Van sobre lámina blanca como el resto de los bloques del panel, y se separan
+   entre sí por el escalón de superficie: ni una línea, que es la regla del
+   sistema. */
+
+.fichas {
+  display: grid;
+  gap: var(--e3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ficha {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--e4);
+  padding: var(--e5) var(--e6);
+  border: 0;
+  border-radius: var(--radio-panel);
+  background: var(--sup-1);
+  box-shadow: var(--anillo), var(--elev-2);
+  font: inherit;
+  text-align: left;
+  color: var(--tinta);
+  cursor: pointer;
+  transition:
+    box-shadow var(--mov-estado) var(--curva),
+    transform var(--mov-estado) var(--curva);
+}
+
+.ficha:hover {
+  box-shadow: var(--anillo), var(--elev-3);
+  transform: translateY(-1px);
+}
+
+.ficha:active {
+  transform: none;
+}
+
+.ficha:focus-visible {
+  outline: 2px solid var(--celeste);
+  outline-offset: 3px;
+}
+
+.ficha__nombre {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--panel-pieza);
+  font-weight: 600;
+  line-height: 24px;
+  letter-spacing: var(--track-titulo);
+}
+
+/* El recuento es lo que decide si vale la pena entrar, así que no se achica
+   hasta desaparecer: se queda en su renglón aunque el nombre sea largo. */
+.ficha__estado {
+  display: flex;
+  align-items: center;
+  gap: var(--e5);
+  flex: none;
+  font-size: var(--panel-cuerpo);
+  line-height: 20px;
+  color: var(--tinta-media);
+  font-variant-numeric: tabular-nums;
+}
+
+.ficha__cuenta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+}
+
+/* Que haya alguien rindiendo ahora mismo es lo único que cambia de color: es
+   el mismo celeste con que el panel marca todo lo que está vivo. */
+.ficha__cuenta--vivo {
+  color: var(--celeste-hondo);
+  font-weight: 500;
+}
+
+.ficha__estado--nada {
+  color: var(--tinta-tenue);
+}
+
+.ficha svg {
+  flex: none;
+  color: currentColor;
+}
+
+/* La flecha del final sólo dice que se entra: pesa menos que todo lo demás. */
+.ficha > svg:last-child {
+  color: var(--tinta-tenue);
+}
+
+/* El de la izquierda dice qué se está eligiendo, así que pesa más que la
+   flecha de la derecha, que sólo indica que se entra. */
+.ficha > svg:first-child {
+  color: var(--celeste-hondo);
+}
+
+@media (max-width: 620px) {
+  /* En dos renglones: arriba de qué se trata, abajo qué está pasando adentro.
+     El orden se declara pieza por pieza y no por posición, porque hacerlo por
+     posición mandaba al final cualquier icono que se agregara. */
+  .ficha {
+    flex-wrap: wrap;
+    gap: var(--e2) var(--e3);
+    padding: var(--e4) var(--e5);
+  }
+
+  .ficha > svg:first-child {
+    order: 0;
+  }
+
+  .ficha__nombre {
+    flex: 1 1 auto;
+    order: 1;
+  }
+
+  .ficha__estado {
+    flex: 1 1 100%;
+    order: 2;
+    gap: var(--e4);
+  }
+
+  /* La flecha se va: la ficha entera se pulsa, y en dos renglones sólo suma
+     ruido en un ancho donde no sobra nada. */
+  .ficha > svg:last-child {
+    display: none;
+  }
+}

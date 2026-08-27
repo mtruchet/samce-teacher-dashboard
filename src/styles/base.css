@@ -1,0 +1,251 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* El desplazamiento animado puede marear de verdad a quien tiene un
+     trastorno vestibular. En un sistema cuyo argumento es el respeto, esto
+     no es un detalle opcional. */
+  scroll-behavior: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: var(--letra);
+  font-size: var(--paso-cuerpo);
+  line-height: var(--alto-cuerpo);
+  letter-spacing: var(--track-cuerpo);
+  color: var(--tinta);
+  background: var(--sup-1);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* El pie va abajo aunque el contenido no llegue.
+   Sin esto, mientras el panel espera la respuesta del backend el pie sube a
+   pegarse contra la barra y después baja de golpe: la página da un salto justo
+   cuando el docente está mirando si hay alguien rindiendo. */
+#root {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+#root > main {
+  flex: 1;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--paso-display);
+  line-height: var(--alto-display);
+  letter-spacing: var(--track-display);
+}
+
+h2 {
+  font-size: var(--paso-titulo);
+  line-height: var(--alto-titulo);
+  letter-spacing: var(--track-titulo);
+}
+
+h3 {
+  font-size: var(--paso-subtitulo);
+  line-height: 1.25;
+  letter-spacing: var(--track-titulo);
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: var(--pizarra);
+}
+
+/* Anillo de foco de dos capas. La interior actúa de separador contra
+   cualquier fondo, incluido el oscuro. Sobre :focus-visible, nunca :focus. */
+:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--sup-1),
+    0 0 0 4px var(--celeste);
+  border-radius: var(--radio-chip);
+}
+
+.sup-5 :focus-visible {
+  box-shadow:
+    0 0 0 2px var(--sup-5),
+    0 0 0 4px var(--celeste);
+}
+
+/* El defecto más barato de arreglar: sin esto, al hacer clic en un enlace del
+   índice el título queda tapado por la cabecera. */
+[id] {
+  scroll-margin-top: calc(var(--cabecera-baja) + 1.5rem);
+}
+
+/* ---- Contenedores ------------------------------------------------------ */
+
+.marco {
+  width: 100%;
+  max-width: var(--ancho-total);
+  margin-inline: auto;
+  padding-inline: var(--e6);
+}
+
+/* El panel necesita más ancho que la página pública: es una herramienta de
+   trabajo con una tabla de cuarenta filas, no un texto que se lee. */
+.marco--panel {
+  max-width: var(--ancho-panel);
+}
+
+
+.seccion {
+  padding-block: var(--stack-seccion);
+}
+
+/* ---- Piezas tipográficas ----------------------------------------------- */
+
+.rotulo {
+  font-size: var(--paso-rotulo);
+  font-weight: 500;
+  letter-spacing: var(--track-rotulo);
+  text-transform: uppercase;
+  color: var(--celeste-hondo);
+  text-wrap: balance;
+}
+
+.rotulo--claro {
+  color: var(--tinta-clara-suave);
+}
+
+
+/* Los datos que se comparan en columna: cifras de ancho fijo para que las
+   filas alineen carácter contra carácter sin una segunda tipografía. */
+.cifra {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.bajada {
+  font-size: var(--paso-cuerpo-grande);
+  color: var(--tinta-media);
+  max-width: var(--medida);
+}
+
+/* Epígrafe de procedencia: qué es, de dónde salió y con qué fecha. Es lo que
+   convierte una ilustración en un documento. */
+.procedencia {
+  font-size: var(--paso-rotulo);
+  line-height: 1.5;
+  color: var(--tinta-suave);
+  margin-top: var(--e3);
+}
+
+/* Sin consumidor en la página pública desde que se rehízo el gráfico del
+   motor. Se queda porque cualquier figura accesible la necesita, y reponerla
+   mal es más caro que estas ocho líneas. */
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Salto al contenido: aparece solo al tabular. */
+.salto {
+  position: absolute;
+  left: var(--e4);
+  top: -100px;
+  z-index: 100;
+  padding: var(--e3) var(--e4);
+  border-radius: var(--radio-chip);
+  background: var(--pizarra);
+  color: var(--tinta-clara);
+  text-decoration: none;
+  font-size: var(--paso-apoyo);
+  transition: top var(--mov-estado) var(--curva);
+}
+
+.salto:focus {
+  top: var(--e4);
+}
+
+/* ==== Botón ============================================================ */
+
+/* Vive acá y no con la portada porque lo usan también la pantalla de traspaso
+   y la de sesión cerrada. Mientras todo viajaba junto daba igual; desde que
+   cada pantalla se descarga por su cuenta, el botón aparecía sin estilos en
+   las dos que no eran la portada. */
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+  height: 50px;
+  padding-inline: var(--e8);
+  border-radius: var(--radio-chip);
+  background: var(--pizarra);
+  color: var(--tinta-clara);
+  text-decoration: none;
+  font-size: var(--paso-cuerpo);
+  font-weight: 500;
+  transition:
+    background-color var(--mov-estado) var(--curva),
+    transform var(--mov-estado) var(--curva);
+}
+
+.boton:hover {
+  background: var(--pizarra-honda);
+}
+
+.boton:active {
+  transform: translateY(1px);
+}
+
+.boton--chico {
+  height: 36px;
+  padding-inline: var(--e4);
+  font-size: var(--paso-rotulo);
+}
+
+.boton svg {
+  transition: transform var(--mov-entrada) var(--curva);
+}
+
+.boton:hover svg {
+  transform: translateX(3px);
+}
+

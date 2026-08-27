@@ -1,0 +1,195 @@
+.entrada {
+  margin: 0;
+}
+
+.entrada__ventana {
+  border-radius: var(--radio-lamina);
+  overflow: hidden;
+  background: var(--sup-1);
+  box-shadow: var(--elev-3);
+}
+
+/* La barra del navegador: lo mínimo para que se lea como una ventana. */
+.entrada__barra {
+  display: flex;
+  align-items: center;
+  gap: var(--e4);
+  padding: var(--e3) var(--e4);
+  background: var(--sup-3);
+}
+
+.entrada__puntos {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+.entrada__puntos i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tinta-tenue);
+}
+
+.entrada__url {
+  flex: 1;
+  min-width: 0;
+  padding: 5px var(--e3);
+  border-radius: 999px;
+  background: var(--sup-1);
+  font-size: var(--paso-rotulo);
+  color: var(--tinta-suave);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* La banda del campus, con su color real. */
+.entrada__campus {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding-inline: var(--e5);
+  /* El tono hondo, no el celeste puro: el rótulo en blanco sobre el claro daba
+     3,89:1 y no llegaba al umbral de texto chico. */
+  background: var(--celeste-hondo);
+}
+
+.entrada__marca {
+  font-size: var(--paso-rotulo);
+  font-weight: 600;
+  letter-spacing: var(--track-rotulo);
+  color: var(--tinta-clara);
+}
+
+/* El alto de abajo está reservado para que el desplegable quepa adentro de la
+   ventana: si se recorta, la escena deja de ser una pantalla. */
+.entrada__curso {
+  padding: var(--e5) var(--e5) 272px;
+}
+
+.entrada__nombre {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: var(--track-titulo);
+  color: var(--tinta);
+  margin-bottom: var(--e4);
+}
+
+.entrada__pestanas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e1) var(--e2);
+  font-size: 0.8125rem;
+  color: var(--celeste-hondo);
+}
+
+.entrada__pestanas > li {
+  padding: 6px var(--e3);
+  border-radius: var(--radio-chip) var(--radio-chip) 0 0;
+  border-bottom: 3px solid transparent;
+}
+
+.entrada__activa {
+  border-bottom-color: var(--celeste) !important;
+  background: var(--sup-2);
+  color: var(--tinta);
+  font-weight: 500;
+}
+
+/* «Más», abierto */
+.entrada__mas {
+  position: relative;
+  background: var(--sup-2);
+}
+
+.entrada__abierta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--tinta);
+  font-weight: 500;
+}
+
+.entrada__lista {
+  position: absolute;
+  top: calc(100% + 3px);
+  right: 0;
+  min-width: 236px;
+  padding-block: var(--e2);
+  border-radius: var(--radio-ficha);
+  background: var(--sup-1);
+  box-shadow: var(--anillo), var(--elev-3);
+  text-align: left;
+}
+
+.entrada__lista > li {
+  padding: 7px var(--e5);
+  font-size: 0.8125rem;
+  color: var(--tinta-media);
+  white-space: nowrap;
+}
+
+/* El ítem del complemento va relleno, no contorneado: es el estado que Moodle
+   pinta con su color primario en el instante anterior al clic. */
+.entrada__destino {
+  position: relative;
+  margin: var(--e1) var(--e2) 0;
+  padding-inline: var(--e4) !important;
+  border-radius: var(--radio-chip);
+  background: var(--pizarra);
+  color: var(--tinta-clara) !important;
+  font-weight: 500;
+  box-shadow: 0 0 0 4px rgb(0 140 178 / 20%);
+}
+
+.entrada__pulso {
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  animation: entrada-latido 2.6s var(--curva) infinite;
+}
+
+@keyframes entrada-latido {
+  0% { box-shadow: 0 0 0 0 rgb(0 140 178 / 40%); }
+  70% { box-shadow: 0 0 0 12px rgb(0 140 178 / 0%); }
+  100% { box-shadow: 0 0 0 0 rgb(0 140 178 / 0%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entrada__pulso {
+    animation: none;
+  }
+}
+
+.entrada__pie {
+  margin-top: var(--e4);
+  font-size: var(--paso-rotulo);
+  line-height: 1.5;
+  color: var(--tinta-clara-media);
+}
+
+/* En pantallas angostas el desplegable no puede colgar de la pestaña sin
+   salirse de la ventana. Se abre debajo, ocupando el ancho, que es además lo
+   que hace Moodle cuando la barra se apila. */
+@media (max-width: 620px) {
+  .entrada__curso {
+    padding-bottom: var(--e6);
+  }
+
+  .entrada__mas {
+    position: static;
+    flex-basis: 100%;
+  }
+
+  .entrada__lista {
+    position: static;
+    min-width: 0;
+    margin-top: var(--e3);
+  }
+
+  .entrada__lista > li {
+    white-space: normal;
+  }
+}

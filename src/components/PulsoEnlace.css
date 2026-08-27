@@ -1,0 +1,40 @@
+.enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e3);
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+  white-space: nowrap;
+}
+
+.enlace__tira {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+}
+
+.enlace__marca {
+  width: 2px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--tinta-tenue);
+  transition: background var(--mov-estado) var(--curva);
+}
+
+.enlace__marca--viva {
+  background: var(--celeste);
+}
+
+/* Cuando el canal no está vivo, la tira se apaga entera: no hay marca viva que
+   sugiera que sigue llegando algo. */
+.enlace--demorado .enlace__marca--viva,
+.enlace--sin-conexion .enlace__marca--viva,
+.enlace--pausado .enlace__marca--viva {
+  background: var(--tinta-tenue);
+}
+
+.enlace__texto--alerta {
+  color: var(--nivel-2-tinta);
+  font-weight: 500;
+}

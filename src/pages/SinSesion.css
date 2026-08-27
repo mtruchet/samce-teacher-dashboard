@@ -1,0 +1,57 @@
+.sin-sesion {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--e6);
+  background: var(--sup-2);
+}
+
+.sin-sesion__caja {
+  display: grid;
+  justify-items: start;
+  gap: var(--e4);
+  max-width: 520px;
+  padding: var(--e10);
+  border-radius: var(--radio-panel);
+  background: var(--sup-1);
+  box-shadow: var(--anillo), var(--elev-2);
+}
+
+.sin-sesion__icono {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--nivel-1-fondo);
+  color: var(--celeste-hondo);
+}
+
+.sin-sesion__titulo {
+  font-size: var(--paso-titulo);
+  line-height: var(--alto-titulo);
+  letter-spacing: var(--track-titulo);
+  color: var(--tinta);
+}
+
+.sin-sesion__texto {
+  font-size: var(--panel-cuerpo);
+  line-height: 20px;
+  color: var(--tinta-media);
+}
+
+/* La cuenta atrás va apagada: informa, no apura. */
+.sin-sesion__aviso {
+  font-size: var(--panel-nota);
+  color: var(--tinta-suave);
+}
+
+.sin-sesion .boton {
+  margin-top: var(--e2);
+}
+
+@media (max-width: 620px) {
+  .sin-sesion__caja {
+    padding: var(--e6);
+  }
+}

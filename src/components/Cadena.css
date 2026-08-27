@@ -1,0 +1,265 @@
+.cadena {
+  display: grid;
+  gap: var(--e5);
+}
+
+.cadena__pieza,
+.cotejo {
+  margin: 0;
+  padding: var(--e6);
+  border-radius: var(--radio-lamina);
+  background: var(--sup-1);
+  box-shadow: var(--anillo), var(--elev-2);
+}
+
+.cadena__titulo,
+.cotejo__titulo {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: var(--track-titulo);
+  color: var(--tinta);
+  margin-bottom: var(--e6);
+}
+
+/* ---- Los eslabones ----------------------------------------------------- */
+
+.cadena__bloques {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e5);
+}
+
+.bloque {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--e2);
+  flex: 1;
+  min-width: 0;
+}
+
+/* El enlace entre eslabones: un trazo que sale de cada caja hacia la anterior.
+   Es la única línea horizontal del sistema, y existe porque acá la línea es
+   el contenido, no una separación. */
+.bloque + .bloque .bloque__caja::before {
+  content: "";
+  position: absolute;
+  top: 21px;
+  right: 100%;
+  width: var(--e5);
+  height: 2px;
+  background: var(--tinta-tenue);
+}
+
+.bloque__caja {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 46px;
+  padding: 0 var(--e4);
+  border-radius: var(--radio-chip);
+  background: var(--sup-3);
+  box-shadow: var(--anillo);
+}
+
+.bloque__trama {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--tinta-tenue);
+  opacity: 0.55;
+}
+
+.bloque__trama:nth-child(2) { width: 78%; }
+.bloque__trama:nth-child(3) { width: 52%; }
+
+.bloque--propio {
+  position: relative;
+  z-index: 1;
+}
+
+.bloque--propio .bloque__caja {
+  background: var(--pizarra);
+  box-shadow: 0 0 0 4px rgb(0 140 178 / 16%);
+}
+
+.bloque--propio .bloque__trama {
+  background: var(--tinta-clara);
+  opacity: 0.75;
+}
+
+.bloque__huella {
+  font-size: 11px;
+  color: var(--tinta-suave);
+  white-space: nowrap;
+}
+
+.bloque--propio .bloque__huella {
+  color: var(--pizarra);
+  font-weight: 500;
+}
+
+.bloque__rotulo {
+  font-size: var(--paso-rotulo);
+  font-weight: 600;
+  letter-spacing: var(--track-rotulo);
+  color: var(--celeste-hondo);
+  text-transform: uppercase;
+}
+
+.bloque .bloque__sello {
+  font-size: 10px;
+  color: var(--tinta-suave);
+  white-space: nowrap;
+}
+
+.cadena__nota,
+.cotejo__nota {
+  margin-top: var(--e5);
+  font-size: var(--paso-rotulo);
+  line-height: 1.6;
+  color: var(--tinta-suave);
+}
+
+/* ---- El cotejo --------------------------------------------------------- */
+
+/* Los dos casos, uno al lado del otro. El contraste es el argumento: el caso
+   íntegro solo significa algo si se ve el roto. */
+.cotejo__casos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e4);
+}
+
+.caso {
+  display: grid;
+  align-content: start;
+  gap: var(--e3);
+  padding: var(--e4);
+  border-radius: max(0px, calc(var(--radio-lamina) - var(--e4)));
+  background: var(--sup-2);
+  box-shadow: var(--anillo);
+}
+
+.caso__titulo {
+  font-size: var(--paso-rotulo);
+  font-weight: 600;
+  letter-spacing: var(--track-rotulo);
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+.caso__pares {
+  display: grid;
+  gap: var(--e2);
+}
+
+.caso__pares > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e3);
+}
+
+.caso__pares dt {
+  font-size: var(--paso-rotulo);
+  color: var(--tinta-suave);
+}
+
+.caso__pares dd {
+  margin: 0;
+  flex: none;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--pizarra);
+  letter-spacing: 0.04em;
+}
+
+/* Los primeros caracteres, en otro tono: son el ancla que permite comparar dos
+   códigos sin leerlos enteros. */
+.caso__pares dd b {
+  font-weight: 600;
+  color: var(--celeste-hondo);
+}
+
+.caso__distinto b {
+  color: inherit;
+}
+
+/* El código que no coincide se marca por peso y subrayado, no por rojo: la
+   paleta tiene que seguir leyéndose con cualquier daltonismo. */
+.caso__distinto {
+  color: var(--nivel-2-tinta);
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.caso__sello {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  margin-top: var(--e1);
+  font-size: var(--paso-apoyo);
+  font-weight: 500;
+  color: var(--nivel-1-tinta);
+}
+
+.caso__sello svg {
+  flex: none;
+}
+
+.caso--roto .caso__sello {
+  color: var(--nivel-2-tinta);
+}
+
+/* En pantallas angostas la cadena se recorta a los tres eslabones que hacen
+   falta: el propio y uno a cada lado. Los extremos ya estaban atenuados, y
+   sacarlos no cambia lo que la pieza cuenta. */
+@media (max-width: 620px) {
+  .bloque:first-child,
+  .bloque:last-child {
+    display: none;
+  }
+
+  .bloque:nth-child(2) .bloque__caja::before {
+    content: none;
+  }
+
+  .cadena__bloques {
+    gap: var(--e4);
+  }
+
+  .bloque__huella {
+    font-size: 10px;
+  }
+
+  .bloque:not(.bloque--propio) .bloque__huella {
+    display: none;
+  }
+
+  .bloque__caja {
+    padding-inline: var(--e2);
+  }
+
+  .cotejo__casos {
+    grid-template-columns: 1fr;
+  }
+
+  .caso__pares > div {
+    display: grid;
+    gap: 2px;
+  }
+}
+
+/* El pie técnico: la única vez que la palabra aparece en la sección, y lo hace
+   con el alcance que el proyecto tiene documentado, ni más ni menos. */
+.cadena__pie {
+  font-size: var(--paso-rotulo);
+  line-height: 1.6;
+  color: var(--tinta-suave);
+}
