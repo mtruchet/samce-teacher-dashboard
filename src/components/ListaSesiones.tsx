@@ -47,7 +47,7 @@ export function ListaSesiones({ titulo, sesiones, cerradas = false, vacio }: Pro
         <div className="lista__marco">
           <table className="tabla">
             <caption className="solo-lectores">
-              {titulo}. Cada fila es la sesión de un alumno, identificado por su número del
+              {titulo}. Cada fila es la sesión de un alumno, con su nombre y su número del
               aula virtual.
             </caption>
             <thead>
@@ -66,15 +66,21 @@ export function ListaSesiones({ titulo, sesiones, cerradas = false, vacio }: Pro
                     <span className="alumno">
                       <Usuario size={18} weight="duotone" aria-hidden="true" />
                       <span className="alumno__datos">
-                        <span className="alumno__id cifra">Alumno {s.moodle_user_id}</span>
+                        {/* El nombre es lo que el docente reconoce. El número
+                            del aula virtual queda igual, más chico: es el
+                            puente para buscarlo en el campus, y lo único que
+                            hay si el nombre no llegó. */}
+                        <span className="alumno__nombre">
+                          {s.student_name || `Alumno ${s.moodle_user_id}`}
+                        </span>
                         {/* Sólo si rindió más de una vez: con un intento no hay
                             nada que aclarar, y el número sería ruido en todas
                             las filas. */}
-                        {s.intentos > 1 ? (
-                          <span className="alumno__intento cifra">
-                            intento {s.intento} de {s.intentos}
-                          </span>
-                        ) : null}
+                        <span className="alumno__pie cifra">
+                          {s.student_name ? `Alumno ${s.moodle_user_id}` : null}
+                          {s.student_name && s.intentos > 1 ? " · " : null}
+                          {s.intentos > 1 ? `intento ${s.intento} de ${s.intentos}` : null}
+                        </span>
                       </span>
                     </span>
                   </td>

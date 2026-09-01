@@ -35,10 +35,13 @@ y el nivel queda en la dirección (`/panel?curso=2&examen=25`), así el botón d
 volver del navegador funciona y recargar en medio de un examen no devuelve al
 principio.
 
-De cada alumno se muestra su número del aula virtual, que es el puente hacia el
-campus: el panel no guarda nombres, y el docente ya tiene permiso para verlos
-allá. Si rindió más de una vez el mismo examen, la fila aclara en cuál va, por
-orden de comienzo.
+De cada alumno se muestra su nombre, que es lo que el docente reconoce, y debajo
+su número del aula virtual, que es el puente para buscarlo en el campus. El
+nombre viaja cifrado desde el aula virtual y el panel no lo guarda: lo pide en
+cada consulta y vive sólo mientras la pantalla está abierta. Si la sesión es
+anterior a que el aula virtual empezara a mandarlo, la fila cae en el número, que
+alcanza para identificar a quien está rindiendo. Y si rindió más de una vez el
+mismo examen, aclara en cuál va, por orden de comienzo.
 
 Los exámenes aparecen solos: nadie los da de alta. Cuando un alumno abre el
 cuestionario, el complemento avisa al backend y la sesión se registra sin que

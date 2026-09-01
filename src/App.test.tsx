@@ -210,6 +210,7 @@ describe("Enrutado y acceso", () => {
         id: examenId,
         moodle_attempt_id: 7000 + examenId,
         moodle_user_id: 40 + examenId,
+        student_name: examenId === 1 ? "Ana Gómez" : "Bruno Pérez",
         status: "open" as const,
         started_at: "2026-08-26T14:02:00Z",
       },
@@ -237,7 +238,7 @@ describe("Enrutado y acceso", () => {
 
     // Tercer escalón: recién acá, los alumnos rindiendo.
     fireEvent.click(screen.getByRole("button", { name: /Primer Parcial/i }));
-    expect(await screen.findByText("Alumno 41")).toBeInTheDocument();
+    expect(await screen.findByText("Ana Gómez")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Primer Parcial" })).toBeInTheDocument();
 
     // Y el rastro deja volver a cualquier escalón anterior. Se lo busca dentro
@@ -253,7 +254,7 @@ describe("Enrutado y acceso", () => {
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
     ]);
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
-      { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, status: "open", started_at: "2026-08-26T14:02:00Z" },
+      { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
     ]);
     window.history.pushState({}, "", "/panel");
 
@@ -280,8 +281,8 @@ describe("Enrutado y acceso", () => {
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
     ]);
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
-      { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, status: "open", started_at: "2026-08-26T14:02:00Z" },
-      { id: 2, moodle_attempt_id: 7002, moodle_user_id: 42, status: "closed", started_at: "2026-08-26T14:01:00Z", closed_at: "2026-08-26T14:40:00Z" },
+      { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
+      { id: 2, moodle_attempt_id: 7002, moodle_user_id: 42, student_name: "Bruno Pérez", status: "closed", started_at: "2026-08-26T14:01:00Z", closed_at: "2026-08-26T14:40:00Z" },
     ]);
     window.history.pushState({}, "", "/panel");
 
@@ -297,7 +298,7 @@ describe("Enrutado y acceso", () => {
     fireEvent.click(ficha);
     // El alumno se identifica por su id del aula virtual, que es el puente
     // hacia el campus: el panel no guarda nombres.
-    expect(await screen.findByText("Alumno 41")).toBeInTheDocument();
+    expect(await screen.findByText("Ana Gómez")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Finalizadas/i })).toBeInTheDocument();
     // Cada alumno aparece una sola vez, así que el número de intento —que es un
     // identificador interno de Moodle— no hace falta para distinguirlos.
@@ -312,9 +313,9 @@ describe("Enrutado y acceso", () => {
     // El 41 rindió dos veces. Los identificadores de Moodle vienen desordenados
     // y salteados a propósito: el número que se muestra no sale de ahí.
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
-      { id: 1, moodle_attempt_id: 90004, moodle_user_id: 41, status: "open", started_at: "2026-08-26T15:00:00Z" },
-      { id: 2, moodle_attempt_id: 7001, moodle_user_id: 41, status: "closed", started_at: "2026-08-26T14:00:00Z", closed_at: "2026-08-26T14:30:00Z" },
-      { id: 3, moodle_attempt_id: 8002, moodle_user_id: 42, status: "open", started_at: "2026-08-26T14:10:00Z" },
+      { id: 1, moodle_attempt_id: 90004, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T15:00:00Z" },
+      { id: 2, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "closed", started_at: "2026-08-26T14:00:00Z", closed_at: "2026-08-26T14:30:00Z" },
+      { id: 3, moodle_attempt_id: 8002, moodle_user_id: 42, student_name: "Bruno Pérez", status: "open", started_at: "2026-08-26T14:10:00Z" },
     ]);
     window.history.pushState({}, "", "/panel?examen=1");
 
@@ -322,11 +323,33 @@ describe("Enrutado y acceso", () => {
 
     // Se numeran por orden de comienzo, no por el identificador de Moodle: el
     // que empezó a las 14 es el primero aunque su id sea el más chico.
-    expect(await screen.findByText("intento 1 de 2")).toBeInTheDocument();
-    expect(screen.getByText("intento 2 de 2")).toBeInTheDocument();
+    expect(await screen.findByText(/intento 1 de 2/)).toBeInTheDocument();
+    expect(screen.getByText(/intento 2 de 2/)).toBeInTheDocument();
     expect(screen.queryByText(/90004|7001|8002/)).not.toBeInTheDocument();
     // Al que rindió una sola vez no se le aclara nada.
     expect(screen.queryByText(/de 1$/)).not.toBeInTheDocument();
+  });
+
+  it("cae en el número del aula virtual cuando el nombre no llegó", async () => {
+    guardarSesion();
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
+    ]);
+    // Una sesión registrada antes de que el aula virtual empezara a mandar el
+    // nombre. La fila tiene que seguir sirviendo: sin identificar al alumno no
+    // hay nada que supervisar.
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+      { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "", status: "open", started_at: "2026-08-26T14:02:00Z" },
+      { id: 2, moodle_attempt_id: 7002, moodle_user_id: 42, student_name: "Bruno Pérez", status: "open", started_at: "2026-08-26T14:03:00Z" },
+    ]);
+    window.history.pushState({}, "", "/panel?examen=1");
+
+    render(<App />);
+
+    expect(await screen.findByText("Alumno 41")).toBeInTheDocument();
+    expect(screen.getByText("Bruno Pérez")).toBeInTheDocument();
+    // Y el que sí tiene nombre no pierde su número, que es el puente al campus.
+    expect(screen.getByText(/Alumno 42/)).toBeInTheDocument();
   });
 
   it("redirige al inicio cualquier dirección desconocida", () => {
