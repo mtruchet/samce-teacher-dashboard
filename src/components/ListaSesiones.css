@@ -144,15 +144,15 @@
   min-width: 0;
 }
 
-/* La aclaración del reintento pesa menos que el alumno: es una precisión, no
-   el dato de la fila. */
-.alumno__intento {
+/* El número del aula virtual y la aclaración del reintento pesan menos que el
+   nombre: son precisiones, no el dato de la fila. */
+.alumno__pie {
   font-size: var(--panel-nota);
   color: var(--tinta-media);
   white-space: nowrap;
 }
 
-.alumno__id {
+.alumno__nombre {
   font-size: var(--panel-fila);
   font-weight: 600;
   color: var(--tinta);
@@ -185,7 +185,7 @@
 
   /* «Alumno 6» es una unidad: partido en dos renglones deja de leerse de un
      vistazo, que es lo único que se le pide a esta columna. */
-  .alumno__id,
+  .alumno__nombre,
 
   .lista__marco {
     max-height: none;

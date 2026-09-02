@@ -24,6 +24,12 @@ export interface Sesion {
   moodle_attempt_id: number;
   /** El backend descifra la referencia protegida y devuelve el id del alumno. */
   moodle_user_id: number;
+  /**
+   * Nombre y apellido, como lo escribe el campus. Viaja cifrado y el backend lo
+   * descifra al responder. Puede llegar vacío en sesiones registradas antes de
+   * que el aula virtual empezara a mandarlo.
+   */
+  student_name: string;
   status: "open" | "closed";
   started_at: string;
   closed_at?: string;
