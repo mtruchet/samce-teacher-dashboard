@@ -180,6 +180,44 @@ describe("DetalleSesion", () => {
     expect(screen.getByText(/intento 2 de 2/)).toBeInTheDocument();
   });
 
+  // El panel se redibuja cada segundo y le pasa a esta pantalla una función
+  // nueva cada vez. Antes eso reiniciaba la consulta: se vaciaba la lista y se
+  // volvía a pedir todo una vez por segundo.
+  it("no reinicia la consulta cuando quien la muestra se redibuja con una función nueva", async () => {
+    const traer = vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "focus_lost")]);
+
+    const { rerender } = render(<DetalleSesion examenId={3} sesion={SESION} onVencida={() => undefined} />);
+    await esperar();
+    expect(screen.getByText("Salió de la ventana")).toBeInTheDocument();
+
+    for (let segundo = 0; segundo < 3; segundo++) {
+      rerender(<DetalleSesion examenId={3} sesion={{ ...SESION }} onVencida={() => undefined} />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+      // La lista sigue a la vista: no vuelve a «Cargando».
+      expect(screen.getByText("Salió de la ventana")).toBeInTheDocument();
+      expect(screen.queryByText(/Cargando los eventos/)).not.toBeInTheDocument();
+    }
+
+    // Pasaron 3 s: todavía no toca la próxima consulta (es cada 5 s), y no hubo ninguna de más.
+    expect(traer).toHaveBeenCalledTimes(1);
+  });
+
+  it("si el token vence llama a la función más reciente que recibió", async () => {
+    vi.spyOn(sesionesService, "traerEventos")
+      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce(new sesionesService.SesionVencida());
+    const primera = vi.fn();
+    const ultima = vi.fn();
+
+    const { rerender } = render(<DetalleSesion examenId={3} sesion={SESION} onVencida={primera} />);
+    await esperar();
+    rerender(<DetalleSesion examenId={3} sesion={SESION} onVencida={ultima} />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+
+    expect(ultima).toHaveBeenCalledTimes(1);
+    expect(primera).not.toHaveBeenCalled();
+  });
+
   it("al cambiar de sesión empieza de cero y no mezcla eventos", async () => {
     const traer = vi
       .spyOn(sesionesService, "traerEventos")

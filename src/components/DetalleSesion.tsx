@@ -43,6 +43,15 @@ export function DetalleSesion({ examenId, sesion, onVencida }: Props) {
   // porque la consulta lo lee y lo escribe, y si estuviera en el estado, cada
   // respuesta rearmaría el efecto y volvería a consultar de inmediato.
   const ultimo = useRef(0);
+  // `onVencida` también va en una referencia, y por lo mismo: quien renderiza
+  // esta pantalla la redibuja cada segundo (el reloj de «actualiza en N») y le
+  // pasa una función nueva cada vez. Si el efecto dependiera de ella, se
+  // reiniciaría en cada redibujo: vaciaba la lista, mostraba «Cargando» y
+  // volvía a pedir todo una vez por segundo, en vez de una vez cada cinco.
+  const alVencer = useRef(onVencida);
+  useEffect(() => {
+    alVencer.current = onVencida;
+  });
   const sesionId = sesion.id;
   const abierta = sesion.status === "open";
 
@@ -67,7 +76,7 @@ export function DetalleSesion({ examenId, sesion, onVencida }: Props) {
       } catch (error) {
         if (!vigente) return;
         if (error instanceof SesionVencida) {
-          onVencida();
+          alVencer.current();
           return;
         }
         // Se conserva lo último que llegó y se reintenta: seguir mostrándolo
@@ -86,7 +95,7 @@ export function DetalleSesion({ examenId, sesion, onVencida }: Props) {
       vigente = false;
       window.clearInterval(consulta);
     };
-  }, [examenId, sesionId, abierta, onVencida]);
+  }, [examenId, sesionId, abierta]);
 
   return (
     <section className="lista">
