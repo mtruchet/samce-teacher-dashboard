@@ -1,0 +1,72 @@
+/* La misma tabla que la de sesiones, con sus tres columnas propias. Lleva su
+   propia clase y no reutiliza `.tabla`: esa fija el ancho de todas las
+   columnas menos la primera, pensado para una columna de nombres y dos de
+   tiempos, y acá la que se lleva el espacio es la última. */
+
+.eventos__marco {
+  max-height: min(60vh, 640px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.eventos {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.eventos th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0 var(--e4) var(--e2);
+  background: var(--sup-1);
+  text-align: left;
+  font-size: var(--panel-rotulo);
+  font-weight: 600;
+  letter-spacing: var(--track-rotulo);
+  text-transform: uppercase;
+  color: var(--tinta-media);
+  white-space: nowrap;
+}
+
+.eventos td {
+  padding: var(--e2) var(--e4);
+  font-size: var(--panel-fila);
+  line-height: 20px;
+  color: var(--tinta-media);
+  vertical-align: top;
+}
+
+.eventos tbody tr {
+  transition: background var(--mov-estado) var(--curva);
+}
+
+.eventos tbody tr:hover {
+  background: var(--sup-2);
+}
+
+.eventos th:first-child,
+.eventos td:first-child {
+  padding-left: var(--e3);
+}
+
+.eventos__hora {
+  width: 96px;
+  white-space: nowrap;
+}
+
+.eventos__que {
+  width: 30%;
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+@media (max-width: 760px) {
+  .eventos__marco {
+    max-height: none;
+  }
+
+  .eventos__que {
+    width: 38%;
+  }
+}

@@ -122,6 +122,52 @@
   color: var(--tinta-media);
 }
 
+/* ==== Ver los eventos de una sesión ==================================== */
+
+/* Es un botón de texto: el docente ya está mirando una fila y lo único que
+   hace falta es entrar a ella. Sin caja ni relleno, para que treinta filas no
+   sean treinta botones gritando. Lleva el subrayado del enlace y el foco
+   visible, que es lo que lo hace alcanzable con teclado. */
+.tabla__accion {
+  padding: var(--e1) var(--e2);
+  border: 0;
+  border-radius: var(--radio-chip);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--panel-fila);
+  font-weight: 600;
+  color: var(--tinta);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--tinta-tenue);
+  cursor: pointer;
+}
+
+.tabla__accion:hover {
+  background: var(--sup-3);
+  text-decoration-color: currentcolor;
+}
+
+.tabla__accion:focus-visible {
+  outline: 2px solid var(--tinta);
+  outline-offset: 2px;
+}
+
+/* La línea con el alumno arriba del detalle de una sesión. */
+.detalle__alumno {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  margin-bottom: var(--e4);
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+}
+
+.detalle__alumno svg {
+  flex: none;
+  color: var(--tinta-tenue);
+}
+
 /* ==== El alumno ======================================================== */
 
 /* El id de Moodle es el puente hacia el campus: el panel no guarda nombres, y

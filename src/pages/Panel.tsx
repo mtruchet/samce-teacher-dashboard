@@ -12,6 +12,7 @@ import {
 } from "../services/sesionesService";
 import { Arranque } from "../components/Arranque";
 import { BarraPanel } from "../components/BarraPanel";
+import { DetalleSesion } from "../components/DetalleSesion";
 import { Fichas, type Ficha } from "../components/Fichas";
 import { ListaSesiones } from "../components/ListaSesiones";
 import { Migas, type Escalon } from "../components/Migas";
@@ -83,6 +84,7 @@ export function Panel() {
   const [parametros, setParametros] = useSearchParams();
   const cursoElegido = parametros.get("curso");
   const examenElegido = parametros.get("examen");
+  const sesionElegida = parametros.get("sesion");
 
   const [examenes, setExamenes] = useState<ExamenMonitoreado[]>([]);
   const [sesiones, setSesiones] = useState<SesionDeExamen[]>([]);
@@ -157,10 +159,11 @@ export function Panel() {
   }, [consultar, vencida]);
 
   const irA = useCallback(
-    (destino: { curso?: string; examen?: string }) => {
+    (destino: { curso?: string; examen?: string; sesion?: string }) => {
       const siguiente = new URLSearchParams();
       if (destino.curso) siguiente.set("curso", destino.curso);
       if (destino.examen) siguiente.set("examen", destino.examen);
+      if (destino.sesion) siguiente.set("sesion", destino.sesion);
       setParametros(siguiente);
     },
     [setParametros]
@@ -169,6 +172,14 @@ export function Panel() {
   function salir() {
     clearSession();
     navigate("/", { replace: true });
+  }
+
+  function verEventos(s: SesionNumerada) {
+    irA({
+      curso: cursoElegido ?? undefined,
+      examen: examenElegido ?? undefined,
+      sesion: String(s.id),
+    });
   }
 
   /** Cuántas sesiones hay, abiertas y cerradas, en un subconjunto. */
@@ -228,10 +239,22 @@ export function Panel() {
   const nombreExamenActual = examenDelCurso?.name ?? "";
   const examenValido = datosAlDia ? Boolean(examenDelCurso) : Boolean(examenElegido);
 
+  // La sesión se busca entre las del examen, que son las que el backend
+  // devolvió para este docente. Una dirección con una sesión que no está ahí
+  // —de otro examen, o a mano— cae a la lista de sesiones en vez de mostrar
+  // una pantalla que el backend igual rechazaría.
+  const sesionDelExamen = delExamen.find((s) => String(s.id) === sesionElegida);
+
   // Qué pantalla toca. El escalón de cursos sólo existe en el panel general: si
   // se entró desde un curso, el propio enlace ya lo eligió.
   const nivel =
-    general && !cursoValido ? "cursos" : examenValido ? "sesiones" : "examenes";
+    general && !cursoValido
+      ? "cursos"
+      : !examenValido
+        ? "examenes"
+        : sesionDelExamen
+          ? "eventos"
+          : "sesiones";
 
   const escalones: Escalon[] = [];
   if (general) {
@@ -243,11 +266,26 @@ export function Panel() {
   if (nivel !== "cursos" && nombreCursoActual) {
     escalones.push({
       nombre: nombreCursoActual,
-      volver: nivel === "sesiones" ? () => irA({ curso: cursoElegido ?? undefined }) : undefined,
+      volver:
+        nivel === "sesiones" || nivel === "eventos"
+          ? () => irA({ curso: cursoElegido ?? undefined })
+          : undefined,
     });
   }
-  if (nivel === "sesiones" && nombreExamenActual) {
-    escalones.push({ nombre: nombreExamenActual });
+  if ((nivel === "sesiones" || nivel === "eventos") && nombreExamenActual) {
+    escalones.push({
+      nombre: nombreExamenActual,
+      volver:
+        nivel === "eventos"
+          ? () => irA({ curso: cursoElegido ?? undefined, examen: examenElegido ?? undefined })
+          : undefined,
+    });
+  }
+  const nombreDelAlumno = sesionDelExamen
+    ? sesionDelExamen.student_name || `Alumno ${sesionDelExamen.moodle_user_id}`
+    : "";
+  if (nivel === "eventos") {
+    escalones.push({ nombre: nombreDelAlumno });
   }
 
   const titulo =
@@ -255,7 +293,9 @@ export function Panel() {
       ? "Todos mis cursos"
       : nivel === "examenes"
         ? nombreCursoActual
-        : nombreExamenActual;
+        : nivel === "eventos"
+          ? nombreDelAlumno
+          : nombreExamenActual;
 
   // Sin sesión no hay nada que supervisar: se explica y se lo devuelve al
   // campus, igual que a quien llega de un favorito viejo.
@@ -345,12 +385,22 @@ export function Panel() {
                 onElegir={(examen) => irA({ curso: cursoElegido ?? undefined, examen })}
                 vacio={null}
               />
+            ) : nivel === "eventos" && sesionDelExamen ? (
+              <DetalleSesion
+                examenId={sesionDelExamen.examenId}
+                sesion={sesionDelExamen}
+                onVencida={() => {
+                  clearSession();
+                  setVencida(true);
+                }}
+              />
             ) : (
               <>
                 <ListaSesiones
                   titulo="En curso"
                   sesiones={enCurso}
                   vacio={<p className="panel__vacio">No hay sesiones de examen vigentes.</p>}
+                  onVerEventos={verEventos}
                 />
 
                 {finalizadas.length > 0 ? (
@@ -358,6 +408,7 @@ export function Panel() {
                     titulo="Finalizadas"
                     sesiones={finalizadas}
                     cerradas
+                    onVerEventos={verEventos}
                   />
                 ) : null}
               </>
