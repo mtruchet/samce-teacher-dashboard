@@ -173,7 +173,10 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
     case "connection":
       return {
         titulo: d.online === true ? "Se recuperó la conexión" : "Se perdió la conexión",
-        detalle: "",
+        // El navegador no siempre avisa que se cortó la red, así que el
+        // complemento también lo deduce de los envíos que fallan. Se aclara
+        // cuál de las dos fue, porque no dicen lo mismo.
+        detalle: d.source === "send" ? "detectado porque fallaron los envíos" : "",
       };
 
     default:

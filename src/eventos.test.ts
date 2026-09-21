@@ -81,6 +81,15 @@ describe("describirEvento", () => {
     expect(de("connection", { online: true }).titulo).toBe("Se recuperó la conexión");
   });
 
+  it("aclara cuando la pérdida de conexión se dedujo de los envíos y no la informó el navegador", () => {
+    expect(de("connection", { online: false, source: "browser" }).detalle).toBe("");
+    expect(de("connection", { online: false, source: "send" })).toEqual({
+      titulo: "Se perdió la conexión",
+      detalle: "detectado porque fallaron los envíos",
+    });
+    expect(de("connection", { online: true, source: "send" }).titulo).toBe("Se recuperó la conexión");
+  });
+
   it("cuenta el navegador sin el user agent", () => {
     expect(de("client_profile", { browser_family: "Chrome", browser_major: 126, is_touch: false })).toEqual({
       titulo: "Navegador del alumno",
