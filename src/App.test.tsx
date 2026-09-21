@@ -352,6 +352,51 @@ describe("Enrutado y acceso", () => {
     expect(screen.getByText(/Alumno 42/)).toBeInTheDocument();
   });
 
+  it("desde una sesión se puede ver lo que pasó durante el intento", async () => {
+    guardarSesion();
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
+    ]);
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+      { id: 5, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
+    ]);
+    const traerEventos = vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
+      { seq: 1, type: "focus_lost", occurred_at: "2026-08-26T14:03:00Z", received_at: "2026-08-26T14:03:01Z", data: {} },
+    ]);
+    window.history.pushState({}, "", "/panel?examen=1");
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Ver los eventos de Ana Gómez/i }));
+
+    expect(await screen.findByText("Salió de la ventana")).toBeInTheDocument();
+    // Se pide por el examen y la sesión que se eligieron, y la dirección lo recuerda.
+    expect(traerEventos).toHaveBeenCalledWith(1, 5, 0);
+    expect(window.location.search).toContain("sesion=5");
+    // El rastro dice dónde está parado el docente y deja volver.
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Ana Gómez");
+    fireEvent.click(screen.getByRole("button", { name: "Primer Parcial" }));
+    expect(await screen.findByRole("heading", { name: /En curso/i })).toBeInTheDocument();
+    expect(window.location.search).not.toContain("sesion");
+  });
+
+  it("una sesión que no es del examen cae a la lista, sin pedirle nada al backend", async () => {
+    guardarSesion();
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
+    ]);
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+      { id: 5, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
+    ]);
+    const traerEventos = vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
+    window.history.pushState({}, "", "/panel?examen=1&sesion=999");
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: /En curso/i })).toBeInTheDocument();
+    expect(traerEventos).not.toHaveBeenCalled();
+  });
+
   it("redirige al inicio cualquier dirección desconocida", () => {
     window.history.pushState({}, "", "/una-ruta-que-no-existe");
 

@@ -31,9 +31,11 @@ interface Props {
   /** Las cerradas no llevan un reloj corriendo sino una duración. */
   cerradas?: boolean;
   vacio?: React.ReactNode;
+  /** Abre lo que pasó durante el intento. Sin esto la columna no aparece. */
+  onVerEventos?: (sesion: SesionNumerada) => void;
 }
 
-export function ListaSesiones({ titulo, sesiones, cerradas = false, vacio }: Props) {
+export function ListaSesiones({ titulo, sesiones, cerradas = false, vacio, onVerEventos }: Props) {
   return (
     <section className="lista">
       <header className="lista__encabezado">
@@ -57,6 +59,9 @@ export function ListaSesiones({ titulo, sesiones, cerradas = false, vacio }: Pro
                 <th scope="col" className="tabla__der">
                   {cerradas ? "Duración" : "Transcurrido"}
                 </th>
+                {onVerEventos ? (
+                  <th scope="col" className="tabla__der tabla__eventos">Eventos</th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -90,6 +95,20 @@ export function ListaSesiones({ titulo, sesiones, cerradas = false, vacio }: Pro
                   <td className="tabla__der">
                     <Transcurrido inicio={s.started_at} cierre={s.closed_at ?? null} />
                   </td>
+                  {onVerEventos ? (
+                    <td className="tabla__der tabla__eventos">
+                      <button
+                        className="tabla__accion"
+                        type="button"
+                        onClick={() => onVerEventos(s)}
+                        aria-label={`Ver los eventos de ${s.student_name || `Alumno ${s.moodle_user_id}`}${
+                          s.intentos > 1 ? `, intento ${s.intento} de ${s.intentos}` : ""
+                        }`}
+                      >
+                        Ver
+                      </button>
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

@@ -36,6 +36,30 @@ export interface Sesion {
 }
 
 /**
+ * Un evento de interacción del alumno durante un intento, tal como se guardó.
+ *
+ * El backend no lo interpreta ni le agrega nada: no trae índice de integridad,
+ * nivel de riesgo ni alertas, y no viene ordenado por relevancia sino en el
+ * orden en que se generaron. Tampoco lleva ningún dato del alumno: pertenece a
+ * una sesión, y la sesión es la que sabe de quién es.
+ */
+export interface Evento {
+  /** Número creciente que arma el navegador; sirve para pedir solo lo nuevo. */
+  seq: number;
+  /** Qué pasó. Ver `describirEvento` para cómo se cuenta cada tipo. */
+  type: string;
+  /** Hora según el reloj del alumno. No es confiable: el reloj puede estar mal. */
+  occurred_at: string;
+  /** Hora en que el servidor lo recibió. Es la que manda. */
+  received_at: string;
+  /** Contenido del evento; depende de `type`. */
+  data: Record<string, unknown>;
+}
+
+/** Cuántos eventos se piden por vez. Es el máximo que acepta el backend. */
+export const EVENTOS_POR_PAGINA = 1000;
+
+/**
  * El backend rechazó el token de sesión.
  *
  * Se distingue de cualquier otro fallo porque no se arregla reintentando: el
@@ -101,4 +125,21 @@ export function traerExamenes(): Promise<ExamenMonitoreado[]> {
 
 export function traerSesiones(examenId: number): Promise<Sesion[]> {
   return pedir<Sesion[]>(`${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions`);
+}
+
+/**
+ * Los eventos de una sesión, en el orden en que se generaron.
+ *
+ * `despuesDe` es el `seq` del último evento que ya se tiene: el panel vuelve a
+ * preguntar cada pocos segundos y así trae solo lo nuevo, en vez de repetir
+ * todo lo que ya mostró. El examen tiene que ser del que salió la sesión: el
+ * backend lo verifica, y responde 404 si la sesión es de otro examen.
+ */
+export function traerEventos(examenId: number, sesionId: number, despuesDe = 0): Promise<Evento[]> {
+  const consulta = new URLSearchParams({ limit: String(EVENTOS_POR_PAGINA) });
+  if (despuesDe > 0) consulta.set("after_seq", String(despuesDe));
+
+  return pedir<Evento[]>(
+    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions/${sesionId}/events?${consulta}`
+  );
 }
