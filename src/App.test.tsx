@@ -380,6 +380,32 @@ describe("Enrutado y acceso", () => {
     expect(window.location.search).not.toContain("sesion");
   });
 
+  it("mientras se ven los eventos, el reloj del panel no reinicia la consulta", async () => {
+    guardarSesion();
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
+    ]);
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+      { id: 5, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
+    ]);
+    const traerEventos = vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
+      { seq: 1, type: "focus_lost", occurred_at: "2026-08-26T14:03:00Z", received_at: "2026-08-26T14:03:01Z", data: {} },
+    ]);
+    window.history.pushState({}, "", "/panel?examen=1&sesion=5");
+
+    render(<App />);
+    expect(await screen.findByText("Salió de la ventana")).toBeInTheDocument();
+
+    // El panel se redibuja cada segundo por su reloj. Esperar un par de
+    // segundos alcanza para que lo haga dos veces, y todavía falta para la
+    // próxima consulta, que es cada cinco.
+    await new Promise((resolve) => setTimeout(resolve, 2300));
+
+    expect(screen.getByText("Salió de la ventana")).toBeInTheDocument();
+    expect(screen.queryByText(/Cargando los eventos/)).not.toBeInTheDocument();
+    expect(traerEventos).toHaveBeenCalledTimes(1);
+  });
+
   it("una sesión que no es del examen cae a la lista, sin pedirle nada al backend", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
