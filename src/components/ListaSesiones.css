@@ -243,3 +243,21 @@
   font-size: 0.85rem;
   opacity: 0.75;
 }
+
+.alumno__captura {
+  display: inline-block;
+  width: fit-content;
+  margin-top: 2px;
+  padding: 1px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+}
+
+.detalle__captura {
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 3px solid currentColor;
+  font-size: 0.9rem;
+}

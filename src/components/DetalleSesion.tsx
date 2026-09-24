@@ -1,3 +1,4 @@
+import { avisoDeCaptura } from "../captura";
 import { useEffect, useRef, useState } from "react";
 import {
   EVENTOS_POR_PAGINA,
@@ -117,6 +118,12 @@ export function DetalleSesion({ examenId, sesion, onVencida }: Props) {
           {abierta ? "rindiendo ahora" : "entregó"}
         </span>
       </p>
+
+      {avisoDeCaptura(sesion.capture) ? (
+        <p className="detalle__captura" role="note">
+          <strong>{avisoDeCaptura(sesion.capture)!.corto}.</strong> {avisoDeCaptura(sesion.capture)!.detalle}
+        </p>
+      ) : null}
 
       <p className="detalle__nota">
         Registro autoinformado por el navegador del alumno: la firma garantiza de dónde salió, no

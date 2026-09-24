@@ -179,6 +179,17 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
         : { titulo: "Cambió el tamaño de la ventana", detalle: medidas };
     }
 
+    case "capture_status":
+      // Lo genera el servidor de Moodle, no el navegador del alumno: es lo único que puede
+      // afirmar que la captura no estuvo.
+      return {
+        titulo: "La captura no estuvo activa",
+        detalle:
+          d.state === "js_disabled"
+            ? "una página del examen se cargó con JavaScript desactivado"
+            : "una página del examen se cargó y la captura no arrancó",
+      };
+
     case "consent_accepted":
       return { titulo: "Aceptó el aviso de monitoreo", detalle: "" };
 
