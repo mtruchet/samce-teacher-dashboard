@@ -270,8 +270,45 @@ describe("Enrutado y acceso", () => {
     // Al entrar a uno se piden las de ese, y solo esas.
     fireEvent.click(await screen.findByRole("button", { name: /Primer Parcial/i }));
     expect(await screen.findByText("Ana Gómez")).toBeInTheDocument();
-    expect(traer).toHaveBeenCalledWith(1);
+    expect(traer).toHaveBeenCalledWith(1, 50);
     expect(traer).not.toHaveBeenCalledWith(2);
+  });
+
+  it("pide las sesiones de a 50 y «Ver más» pide otras 50", async () => {
+    guardarSesion();
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 60, abandoned_sessions: 0 },
+    ]);
+    const cincuenta = Array.from({ length: 50 }, (_, i) => ({
+      id: i + 1, moodle_attempt_id: 7000 + i, moodle_user_id: 100 + i, student_name: `Alumno ${i + 1}`,
+      status: "closed" as const, started_at: "2026-08-26T14:02:00Z", closed_at: "2026-08-26T14:40:00Z",
+    }));
+    const traer = vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(cincuenta);
+    window.history.pushState({}, "", "/panel?examen=1");
+
+    render(<App />);
+
+    const verMas = await screen.findByRole("button", { name: /Ver más sesiones/i });
+    expect(traer).toHaveBeenCalledWith(1, 50);
+
+    fireEvent.click(verMas);
+    await waitFor(() => expect(traer).toHaveBeenCalledWith(1, 100));
+  });
+
+  it("no ofrece «Ver más» si entraron todas", async () => {
+    guardarSesion();
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 1, closed_sessions: 0, abandoned_sessions: 0 },
+    ]);
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+      { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
+    ]);
+    window.history.pushState({}, "", "/panel?examen=1");
+
+    render(<App />);
+
+    expect(await screen.findByText("Ana Gómez")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Ver más sesiones/i })).not.toBeInTheDocument();
   });
 
   it("desde un curso el encabezado ofrece todos sus cursos, y es un enlace al campus", async () => {

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Broadcast, Examen, Materia } from "../iconos";
 import { clearSession, esPanelGeneral, getStoredSession } from "../services/authService";
 import {
+  SESIONES_POR_PAGINA,
   SesionVencida,
   traerExamenes,
   traerSesiones,
@@ -92,6 +93,8 @@ export function Panel() {
   // segundos, y el costo crecía con cada examen que se acumulaba.
   const [sesiones, setSesiones] = useState<SesionDeExamen[]>([]);
   const [sesionesDe, setSesionesDe] = useState<number | null>(null);
+  // Cuántas «páginas» de 50 sesiones se pidieron. Vuelve a 1 al cambiar de examen.
+  const [paginas, setPaginas] = useState(1);
   const [enlace, setEnlace] = useState<EstadoEnlace>("vivo");
   const [desde, setDesde] = useState(0);
   const [marca, setMarca] = useState(0);
@@ -120,7 +123,7 @@ export function Panel() {
       // por el backend según su token).
       const elegido = examenElegido ? lista.find((e) => String(e.id) === examenElegido) : undefined;
       const delElegido = elegido
-        ? (await traerSesiones(elegido.id)).map((s) => ({
+        ? (await traerSesiones(elegido.id, paginas * SESIONES_POR_PAGINA)).map((s) => ({
             ...s,
             examenId: elegido.id,
             cursoId: elegido.moodle_course_id,
@@ -153,7 +156,11 @@ export function Panel() {
     } finally {
       setCargando(false);
     }
-  }, [nombreDeCurso, examenElegido]);
+  }, [nombreDeCurso, examenElegido, paginas]);
+
+  useEffect(() => {
+    setPaginas(1);
+  }, [examenElegido]);
 
   useEffect(() => {
     if (vencida) return;
@@ -428,6 +435,17 @@ export function Panel() {
                     cerradas
                     onVerEventos={verEventos}
                   />
+                ) : null}
+
+                {/* Si llegó justo lo que se pidió, probablemente hay más. */}
+                {delExamen.length >= paginas * SESIONES_POR_PAGINA ? (
+                  <button
+                    type="button"
+                    className="panel__ver-mas"
+                    onClick={() => setPaginas((p) => p + 1)}
+                  >
+                    Ver más sesiones
+                  </button>
                 ) : null}
               </>
             )}

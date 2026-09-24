@@ -132,8 +132,19 @@ export function traerExamenes(): Promise<ExamenMonitoreado[]> {
   return pedir<ExamenMonitoreado[]>(API_CONFIG.ENDPOINTS.MONITORED_QUIZZES);
 }
 
-export function traerSesiones(examenId: number): Promise<Sesion[]> {
-  return pedir<Sesion[]>(`${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions`);
+/** Cuántas sesiones se muestran por vez en la lista de un examen. */
+export const SESIONES_POR_PAGINA = 50;
+
+/**
+ * Las sesiones de un examen: las en curso primero y después las finalizadas,
+ * cada grupo con las más recientes arriba. `limite` es cuántas pedir desde la
+ * primera; el panel lo sube de a 50 con «Ver más» y sigue refrescando todo lo
+ * que ya mostró.
+ */
+export function traerSesiones(examenId: number, limite = SESIONES_POR_PAGINA): Promise<Sesion[]> {
+  return pedir<Sesion[]>(
+    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?limit=${limite}`
+  );
 }
 
 /**
