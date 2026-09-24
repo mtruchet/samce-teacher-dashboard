@@ -160,3 +160,16 @@ body:has(.panel) {
     padding: var(--e6);
   }
 }
+
+.panel__ver-mas {
+  display: block;
+  margin: 1.5rem auto 0;
+  padding: 0.6rem 1.4rem;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  cursor: pointer;
+}
