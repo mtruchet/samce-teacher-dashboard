@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Broadcast, Examen, Materia } from "../iconos";
 import { clearSession, esPanelGeneral, getStoredSession } from "../services/authService";
 import {
+  MAXIMO_SESIONES,
   SESIONES_POR_PAGINA,
   SesionVencida,
   traerExamenes,
@@ -262,6 +263,10 @@ export function Panel() {
     (e) => String(e.id) === examenElegido && e.moodle_course_id === cursoActual
   );
   const nombreExamenActual = examenDelCurso?.name ?? "";
+  // Cuántas sesiones tiene el examen en total, según los recuentos del backend.
+  const totalDelExamen = examenDelCurso
+    ? examenDelCurso.open_sessions + examenDelCurso.closed_sessions + examenDelCurso.abandoned_sessions
+    : 0;
   const examenValido = datosAlDia ? Boolean(examenDelCurso) : Boolean(examenElegido);
 
   // La sesión se busca entre las del examen, que son las que el backend
@@ -437,8 +442,9 @@ export function Panel() {
                   />
                 ) : null}
 
-                {/* Si llegó justo lo que se pidió, probablemente hay más. */}
-                {delExamen.length >= paginas * SESIONES_POR_PAGINA ? (
+                {/* «Ver más» solo si el examen tiene más sesiones de las que se ven, y
+                    mientras el backend pueda devolver más (tope de 1000 por pedido). */}
+                {delExamen.length < totalDelExamen && paginas * SESIONES_POR_PAGINA < MAXIMO_SESIONES ? (
                   <button
                     type="button"
                     className="panel__ver-mas"
@@ -446,6 +452,11 @@ export function Panel() {
                   >
                     Ver más sesiones
                   </button>
+                ) : null}
+                {totalDelExamen > MAXIMO_SESIONES && delExamen.length >= MAXIMO_SESIONES ? (
+                  <p className="panel__vacio" role="status">
+                    Se muestran las {MAXIMO_SESIONES} sesiones más recientes de {totalDelExamen}.
+                  </p>
                 ) : null}
               </>
             )}

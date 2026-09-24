@@ -136,4 +136,15 @@ describe("describirEvento", () => {
 
     todos.forEach((e) => expect(`${e.titulo} ${e.detalle}`).not.toMatch(/sospech|irregular|riesgo|alerta|copi[oó] de|trampa|fraude/i));
   });
+
+  it("el tamaño inicial de la ventana no se lee como una acción del alumno", () => {
+    expect(de("resize", { w: 1280, h: 720, initial: true })).toEqual({ titulo: "Tamaño de la ventana al empezar", detalle: "1280 × 720" });
+    expect(de("resize", { w: 900, h: 700 }).titulo).toBe("Cambió el tamaño de la ventana");
+  });
+
+  it("pegar un archivo o una imagen no dice cero caracteres", () => {
+    const r = de("clipboard", { action: "paste", non_text: true, slot: 2, qtype: "essay" });
+    expect(r.titulo).toBe("Pegó contenido que no es texto");
+    expect(r.detalle).not.toMatch(/carácter/);
+  });
 });

@@ -295,6 +295,23 @@ describe("Enrutado y acceso", () => {
     await waitFor(() => expect(traer).toHaveBeenCalledWith(1, 100));
   });
 
+  it("aclara cuando el examen tiene más sesiones de las que el backend devuelve por pedido", async () => {
+    guardarSesion();
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 1200, abandoned_sessions: 0 },
+    ]);
+    const mil = Array.from({ length: 1000 }, (_, i) => ({
+      id: i + 1, moodle_attempt_id: 7000 + i, moodle_user_id: 100 + i, student_name: `Alumno ${i + 1}`,
+      status: "closed" as const, started_at: "2026-08-26T14:02:00Z", closed_at: "2026-08-26T14:40:00Z",
+    }));
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(mil);
+    window.history.pushState({}, "", "/panel?examen=1");
+
+    render(<App />);
+
+    expect(await screen.findByText(/Se muestran las 1000 sesiones más recientes de 1200/)).toBeInTheDocument();
+  });
+
   it("no ofrece «Ver más» si entraron todas", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
@@ -424,7 +441,7 @@ describe("Enrutado y acceso", () => {
       { id: 5, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
     ]);
     const traerEventos = vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
-      { seq: 1, type: "focus_lost", occurred_at: "2026-08-26T14:03:00Z", received_at: "2026-08-26T14:03:01Z", data: {} },
+      { id: 1, seq: 1, type: "focus_lost", occurred_at: "2026-08-26T14:03:00Z", received_at: "2026-08-26T14:03:01Z", data: {} },
     ]);
     window.history.pushState({}, "", "/panel?examen=1");
 
@@ -452,7 +469,7 @@ describe("Enrutado y acceso", () => {
       { id: 5, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
     ]);
     const traerEventos = vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
-      { seq: 1, type: "focus_lost", occurred_at: "2026-08-26T14:03:00Z", received_at: "2026-08-26T14:03:01Z", data: {} },
+      { id: 1, seq: 1, type: "focus_lost", occurred_at: "2026-08-26T14:03:00Z", received_at: "2026-08-26T14:03:01Z", data: {} },
     ]);
     window.history.pushState({}, "", "/panel?examen=1&sesion=5");
 
