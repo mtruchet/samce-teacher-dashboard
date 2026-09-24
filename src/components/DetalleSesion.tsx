@@ -39,7 +39,7 @@ export function DetalleSesion({ examenId, sesion, onVencida }: Props) {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [cargando, setCargando] = useState(true);
   const [sinConexion, setSinConexion] = useState(false);
-  // El último `seq` que ya se tiene. Va en una referencia y no en el estado
+  // El último `id` (orden de llegada) que ya se tiene. Va en una referencia y no en el estado
   // porque la consulta lo lee y lo escribe, y si estuviera en el estado, cada
   // respuesta rearmaría el efecto y volvería a consultar de inmediato.
   const ultimo = useRef(0);
@@ -68,10 +68,14 @@ export function DetalleSesion({ examenId, sesion, onVencida }: Props) {
           const lote = await traerEventos(examenId, sesionId, ultimo.current);
           if (!vigente) return;
           nuevos.push(...lote);
-          if (lote.length > 0) ultimo.current = lote[lote.length - 1].seq;
+          if (lote.length > 0) ultimo.current = Math.max(ultimo.current, ...lote.map((e) => e.id));
           if (lote.length < EVENTOS_POR_PAGINA) break;
         }
-        if (nuevos.length > 0) setEventos((actuales) => [...actuales, ...nuevos]);
+        // Se muestran por `seq` (el orden en que ocurrieron) aunque lleguen por
+        // orden de llegada: un evento tardío se acomoda donde corresponde.
+        if (nuevos.length > 0) {
+          setEventos((actuales) => [...actuales, ...nuevos].sort((a, b) => a.seq - b.seq));
+        }
         setSinConexion(false);
       } catch (error) {
         if (!vigente) return;
@@ -112,6 +116,11 @@ export function DetalleSesion({ examenId, sesion, onVencida }: Props) {
           {" · "}
           {abierta ? "rindiendo ahora" : "entregó"}
         </span>
+      </p>
+
+      <p className="detalle__nota">
+        Registro autoinformado por el navegador del alumno: la firma garantiza de dónde salió, no
+        que lo que dice sea verdad.
       </p>
 
       {sinConexion ? (

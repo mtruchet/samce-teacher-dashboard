@@ -152,6 +152,10 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
     case "clipboard": {
       const accion = d.action === "paste" ? "Pegó" : d.action === "cut" ? "Cortó" : d.action === "copy" ? "Copió" : "Usó el portapapeles";
       const largo = numero(d.length);
+      // Pegar un archivo o una imagen no es texto y no tiene largo.
+      if (d.non_text === true) {
+        return { titulo: `${accion} contenido que no es texto`, detalle: pregunta(d) };
+      }
       // Solo se sabe cuánto; qué texto era no se guarda, y acá tampoco se pide.
       return {
         titulo: accion,
@@ -168,10 +172,11 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
     case "resize": {
       const ancho = numero(d.w);
       const alto = numero(d.h);
-      return {
-        titulo: "Cambió el tamaño de la ventana",
-        detalle: ancho !== null && alto !== null ? `${ancho} × ${alto}` : "",
-      };
+      const medidas = ancho !== null && alto !== null ? `${ancho} × ${alto}` : "";
+      // El primero de cada sesión no lo hizo el alumno: es el tamaño con el que arrancó.
+      return d.initial === true
+        ? { titulo: "Tamaño de la ventana al empezar", detalle: medidas }
+        : { titulo: "Cambió el tamaño de la ventana", detalle: medidas };
     }
 
     case "consent_accepted":

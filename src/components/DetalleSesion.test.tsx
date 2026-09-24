@@ -19,6 +19,7 @@ const SESION: sesionesService.SesionNumerada = {
 };
 
 const evento = (seq: number, type: string, data: Record<string, unknown> = {}): sesionesService.Evento => ({
+  id: seq,
   seq,
   type,
   occurred_at: "2026-09-21T14:05:00.000Z",
@@ -54,6 +55,34 @@ describe("DetalleSesion", () => {
     expect(filas[1]).toHaveTextContent("Pegó");
     expect(filas[1]).toHaveTextContent("pregunta 1 (ensayo) · 340 caracteres");
     expect(screen.getByText("Ana Gómez · rindiendo ahora")).toBeInTheDocument();
+  });
+
+  it("pide por orden de llegada y acomoda por seq el evento que llega tarde", async () => {
+    const traer = vi.spyOn(sesionesService, "traerEventos");
+    traer.mockResolvedValueOnce([
+      { ...evento(10, "focus_lost"), id: 1 },
+      { ...evento(30, "focus_gained"), id: 2 },
+    ]);
+    render(<DetalleSesion examenId={3} sesion={SESION} onVencida={() => undefined} />);
+    await esperar();
+
+    // Llega después, con un seq menor al último visto: con el cursor por seq se perdía.
+    traer.mockResolvedValueOnce([{ ...evento(20, "clipboard", { action: "copy", length: 5 }), id: 3 }]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+
+    expect(traer).toHaveBeenLastCalledWith(3, 7, 2);
+    const filas = screen.getAllByRole("row").slice(1);
+    expect(filas).toHaveLength(3);
+    expect(filas[1]).toHaveTextContent("Copió");
+  });
+
+  it("aclara que el registro es autoinformado por el navegador del alumno", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "focus_lost")]);
+
+    render(<DetalleSesion examenId={3} sesion={SESION} onVencida={() => undefined} />);
+    await esperar();
+
+    expect(screen.getByText(/autoinformado por el navegador del alumno/)).toBeInTheDocument();
   });
 
   it("no muestra índice, riesgo ni alertas", async () => {

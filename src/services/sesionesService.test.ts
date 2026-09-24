@@ -30,7 +30,7 @@ describe("traerEventos", () => {
 
     expect(eventos).toEqual([{ seq: 1 }]);
     const [url, opciones] = fetch.mock.calls[0];
-    expect(url).toBe(`http://localhost:8080/monitored-quizzes/3/sessions/7/events?limit=${EVENTOS_POR_PAGINA}`);
+    expect(url).toBe(`http://localhost:8080/monitored-quizzes/3/sessions/7/events?limit=${EVENTOS_POR_PAGINA}&after_id=0`);
     expect(opciones.headers.Authorization).toBe("Bearer session-jwt");
   });
 
@@ -38,18 +38,20 @@ describe("traerEventos", () => {
     const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] });
     vi.stubGlobal("fetch", fetch);
 
-    await traerEventos(3, 7, 1790000000000441);
+    await traerEventos(3, 7, 441);
 
-    expect(fetch.mock.calls[0][0]).toContain("after_seq=1790000000000441");
+    expect(fetch.mock.calls[0][0]).toContain("after_id=441");
+    // El cursor es el orden de llegada: con after_seq se perdían los eventos que llegaban tarde.
+    expect(fetch.mock.calls[0][0]).not.toContain("after_seq");
   });
 
-  it("no manda after_seq la primera vez", async () => {
+  it("la primera vez pide desde el principio, con after_id en cero", async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] });
     vi.stubGlobal("fetch", fetch);
 
     await traerEventos(3, 7, 0);
 
-    expect(fetch.mock.calls[0][0]).not.toContain("after_seq");
+    expect(fetch.mock.calls[0][0]).toContain("after_id=0");
   });
 
   it("distingue la sesión vencida de cualquier otro fallo", async () => {

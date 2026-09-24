@@ -53,8 +53,16 @@ export interface Sesion {
  * una sesión, y la sesión es la que sabe de quién es.
  */
 export interface Evento {
-  /** Número creciente que arma el navegador; sirve para pedir solo lo nuevo. */
+  /**
+   * Orden de llegada al servidor. Es el cursor para pedir solo lo nuevo: con el
+   * `seq` (que arma el navegador) se perdían los eventos que llegaban tarde con
+   * un `seq` menor al último visto, y no volvían a aparecer.
+   */
+  id: number;
+  /** Número creciente que arma el navegador; ordena los eventos en pantalla. */
   seq: number;
+  /** Qué pestaña del navegador lo generó, si el complemento lo informó. */
+  context_id?: string;
   /** Qué pasó. Ver `describirEvento` para cómo se cuenta cada tipo. */
   type: string;
   /** Hora según el reloj del alumno. No es confiable: el reloj puede estar mal. */
@@ -143,21 +151,27 @@ export const SESIONES_POR_PAGINA = 50;
  */
 export function traerSesiones(examenId: number, limite = SESIONES_POR_PAGINA): Promise<Sesion[]> {
   return pedir<Sesion[]>(
-    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?limit=${limite}`
+    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?limit=${Math.min(limite, MAXIMO_SESIONES)}`
   );
 }
+
+/** Lo más que devuelve el backend por pedido: no tiene sentido pedir más. */
+export const MAXIMO_SESIONES = 1000;
 
 /**
  * Los eventos de una sesión, en el orden en que se generaron.
  *
- * `despuesDe` es el `seq` del último evento que ya se tiene: el panel vuelve a
+ * `despuesDeId` es el `id` del último evento que ya se tiene: el panel vuelve a
  * preguntar cada pocos segundos y así trae solo lo nuevo, en vez de repetir
  * todo lo que ya mostró. El examen tiene que ser del que salió la sesión: el
  * backend lo verifica, y responde 404 si la sesión es de otro examen.
  */
-export function traerEventos(examenId: number, sesionId: number, despuesDe = 0): Promise<Evento[]> {
-  const consulta = new URLSearchParams({ limit: String(EVENTOS_POR_PAGINA) });
-  if (despuesDe > 0) consulta.set("after_seq", String(despuesDe));
+export function traerEventos(examenId: number, sesionId: number, despuesDeId = 0): Promise<Evento[]> {
+  // after_id se manda siempre, aun en cero: es lo que pide el orden de llegada.
+  const consulta = new URLSearchParams({
+    limit: String(EVENTOS_POR_PAGINA),
+    after_id: String(despuesDeId),
+  });
 
   return pedir<Evento[]>(
     `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions/${sesionId}/events?${consulta}`
