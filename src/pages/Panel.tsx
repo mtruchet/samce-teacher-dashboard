@@ -87,7 +87,11 @@ export function Panel() {
   const sesionElegida = parametros.get("sesion");
 
   const [examenes, setExamenes] = useState<ExamenMonitoreado[]>([]);
+  // Solo las sesiones del examen que se está mirando: las de los demás no se
+  // piden. Antes se pedían las de todos los exámenes del docente, cada 5
+  // segundos, y el costo crecía con cada examen que se acumulaba.
   const [sesiones, setSesiones] = useState<SesionDeExamen[]>([]);
+  const [sesionesDe, setSesionesDe] = useState<number | null>(null);
   const [enlace, setEnlace] = useState<EstadoEnlace>("vivo");
   const [desde, setDesde] = useState(0);
   const [marca, setMarca] = useState(0);
@@ -110,19 +114,24 @@ export function Panel() {
   const consultar = useCallback(async () => {
     try {
       const lista = await traerExamenes();
-      const porExamen = await Promise.all(
-        lista.map(async (e) =>
-          (await traerSesiones(e.id)).map((s) => ({
+
+      // Las sesiones se piden solo del examen que la dirección tiene elegido, y
+      // solo si es de uno de los cursos del docente (la lista ya viene filtrada
+      // por el backend según su token).
+      const elegido = examenElegido ? lista.find((e) => String(e.id) === examenElegido) : undefined;
+      const delElegido = elegido
+        ? (await traerSesiones(elegido.id)).map((s) => ({
             ...s,
-            examenId: e.id,
-            cursoId: e.moodle_course_id,
-            examen: e.name,
-            curso: nombreDeCurso(e.moodle_course_id),
+            examenId: elegido.id,
+            cursoId: elegido.moodle_course_id,
+            examen: elegido.name,
+            curso: nombreDeCurso(elegido.moodle_course_id),
           }))
-        )
-      );
+        : [];
+
       setExamenes(lista);
-      setSesiones(porExamen.flat());
+      setSesiones(delElegido);
+      setSesionesDe(elegido ? elegido.id : null);
       setEnlace("vivo");
       setMarca((m) => m + 1);
       setDesde(0);
@@ -144,7 +153,7 @@ export function Panel() {
     } finally {
       setCargando(false);
     }
-  }, [nombreDeCurso]);
+  }, [nombreDeCurso, examenElegido]);
 
   useEffect(() => {
     if (vencida) return;
@@ -182,11 +191,15 @@ export function Panel() {
     });
   }
 
-  /** Cuántas sesiones hay, abiertas y cerradas, en un subconjunto. */
-  function contar(deLas: SesionDeExamen[]) {
+  /**
+   * Cuántas sesiones hay, en curso y finalizadas, en un conjunto de exámenes.
+   * Salen de los recuentos que el backend manda con cada examen. Una sesión
+   * abandonada (el intento venció sin entregarse) también está finalizada.
+   */
+  function contar(deLosExamenes: ExamenMonitoreado[]) {
     return {
-      enCurso: deLas.filter((s) => s.status === "open").length,
-      finalizadas: deLas.filter((s) => s.status === "closed").length,
+      enCurso: deLosExamenes.reduce((n, e) => n + e.open_sessions, 0),
+      finalizadas: deLosExamenes.reduce((n, e) => n + e.closed_sessions + e.abandoned_sessions, 0),
     };
   }
 
@@ -197,9 +210,9 @@ export function Panel() {
       (sesion?.courses ?? []).map((c) => ({
         clave: String(c.id),
         nombre: c.name,
-        ...contar(sesiones.filter((s) => s.cursoId === c.id)),
+        ...contar(examenes.filter((e) => e.moodle_course_id === c.id)),
       })),
-    [sesion?.courses, sesiones]
+    [sesion?.courses, examenes]
   );
 
   // La dirección se puede escribir a mano, quedar en un favorito o venir de
@@ -227,12 +240,17 @@ export function Panel() {
         .map((e) => ({
           clave: String(e.id),
           nombre: e.name,
-          ...contar(sesiones.filter((s) => s.examenId === e.id)),
+          ...contar([e]),
         })),
-    [examenes, sesiones, cursoActual]
+    [examenes, cursoActual]
   );
 
   const delExamen = numerarIntentos(sesiones.filter((s) => String(s.examenId) === examenElegido));
+  // Recién elegido un examen, sus sesiones todavía no llegaron: sin esto se ve
+  // un instante «no hay sesiones vigentes» que no es cierto.
+  const esperandoSesiones =
+    datosAlDia && Boolean(examenElegido) && sesionesDe !== Number(examenElegido) &&
+    examenes.some((e) => String(e.id) === examenElegido);
   const examenDelCurso = examenes.find(
     (e) => String(e.id) === examenElegido && e.moodle_course_id === cursoActual
   );
@@ -302,7 +320,7 @@ export function Panel() {
   if (vencida) return <SinSesion motivo="vencida" />;
 
   const enCurso = delExamen.filter((s) => s.status === "open");
-  const finalizadas = delExamen.filter((s) => s.status === "closed");
+  const finalizadas = delExamen.filter((s) => s.status !== "open");
 
   // La pantalla de escucha es para cuando no hay absolutamente nada que
   // recorrer. Con fichas para elegir, aunque estén en cero, el docente tiene
@@ -330,7 +348,7 @@ export function Panel() {
       />
 
       <main className="marco marco--panel panel" id="sesiones">
-        {cargando ? (
+        {cargando || esperandoSesiones ? (
           // El mismo pulso que ya estaba girando antes de que React montara. Un
           // dibujo nuevo acá se leería como que algo terminó y algo distinto
           // empezó, cuando en realidad es la misma espera.

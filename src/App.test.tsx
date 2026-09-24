@@ -202,8 +202,8 @@ describe("Enrutado y acceso", () => {
       }),
     );
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
-      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
-      { id: 2, moodle_course_id: 3, moodle_quiz_id: 9, name: "Final", created_at: "2026-08-26T14:00:00Z" },
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 1, closed_sessions: 0, abandoned_sessions: 0 },
+      { id: 2, moodle_course_id: 3, moodle_quiz_id: 9, name: "Final", created_at: "2026-08-26T14:00:00Z", open_sessions: 1, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
     vi.spyOn(sesionesService, "traerSesiones").mockImplementation(async (examenId: number) => [
       {
@@ -248,10 +248,36 @@ describe("Enrutado y acceso", () => {
     expect(await screen.findByRole("button", { name: /Bases de Datos/i })).toBeInTheDocument();
   });
 
+  it("solo pide las sesiones del examen que se está mirando, no las de todos", async () => {
+    guardarSesion();
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 1, closed_sessions: 0, abandoned_sessions: 0 },
+      { id: 2, moodle_course_id: 2, moodle_quiz_id: 2, name: "Segundo Parcial", created_at: "2026-08-27T14:00:00Z", open_sessions: 0, closed_sessions: 3, abandoned_sessions: 1 },
+    ]);
+    const traer = vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+      { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
+    ]);
+    window.history.pushState({}, "", "/panel");
+
+    render(<App />);
+
+    // En la lista de exámenes los recuentos vienen con cada examen: no hace
+    // falta pedir ninguna sesión. La abandonada cuenta como finalizada.
+    const segundo = await screen.findByRole("button", { name: /Segundo Parcial/i });
+    expect(segundo).toHaveTextContent(/4 entregadas/);
+    expect(traer).not.toHaveBeenCalled();
+
+    // Al entrar a uno se piden las de ese, y solo esas.
+    fireEvent.click(await screen.findByRole("button", { name: /Primer Parcial/i }));
+    expect(await screen.findByText("Ana Gómez")).toBeInTheDocument();
+    expect(traer).toHaveBeenCalledWith(1);
+    expect(traer).not.toHaveBeenCalledWith(2);
+  });
+
   it("desde un curso el encabezado ofrece todos sus cursos, y es un enlace al campus", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
-      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
       { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
@@ -278,7 +304,7 @@ describe("Enrutado y acceso", () => {
   it("lista las sesiones que devuelve el backend", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
-      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 1, closed_sessions: 1, abandoned_sessions: 0 },
     ]);
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
       { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
@@ -308,7 +334,7 @@ describe("Enrutado y acceso", () => {
   it("aclara con qué número de intento va cada alumno que rindió más de una vez", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
-      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
     // El 41 rindió dos veces. Los identificadores de Moodle vienen desordenados
     // y salteados a propósito: el número que se muestra no sale de ahí.
@@ -333,7 +359,7 @@ describe("Enrutado y acceso", () => {
   it("cae en el número del aula virtual cuando el nombre no llegó", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
-      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
     // Una sesión registrada antes de que el aula virtual empezara a mandar el
     // nombre. La fila tiene que seguir sirviendo: sin identificar al alumno no
@@ -355,7 +381,7 @@ describe("Enrutado y acceso", () => {
   it("desde una sesión se puede ver lo que pasó durante el intento", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
-      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
       { id: 5, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
@@ -383,7 +409,7 @@ describe("Enrutado y acceso", () => {
   it("mientras se ven los eventos, el reloj del panel no reinicia la consulta", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
-      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
       { id: 5, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
@@ -409,7 +435,7 @@ describe("Enrutado y acceso", () => {
   it("una sesión que no es del examen cae a la lista, sin pedirle nada al backend", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
-      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z" },
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
       { id: 5, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },

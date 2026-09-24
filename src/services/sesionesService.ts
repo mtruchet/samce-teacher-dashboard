@@ -17,6 +17,15 @@ export interface ExamenMonitoreado {
   moodle_quiz_id: number;
   name: string;
   created_at: string;
+  /**
+   * Cuántas sesiones tiene el examen, por estado. Las cuenta el backend en la
+   * misma consulta de la lista: el panel ya no pide las sesiones de cada examen
+   * solo para contarlas.
+   */
+  open_sessions: number;
+  closed_sessions: number;
+  /** Intentos que vencieron o se abandonaron sin entregarse. */
+  abandoned_sessions: number;
 }
 
 export interface Sesion {
@@ -30,7 +39,7 @@ export interface Sesion {
    * que el aula virtual empezara a mandarlo.
    */
   student_name: string;
-  status: "open" | "closed";
+  status: "open" | "closed" | "abandoned";
   started_at: string;
   closed_at?: string;
 }
