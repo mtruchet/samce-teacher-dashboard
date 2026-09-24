@@ -76,6 +76,29 @@ describe("DetalleSesion", () => {
     expect(filas[1]).toHaveTextContent("Copió");
   });
 
+  it("le explica al docente por qué una sesión no tuvo captura", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
+
+    render(
+      <DetalleSesion examenId={3} sesion={{ ...SESION, capture: { state: "none" } }} onVencida={() => undefined} />,
+    );
+    await esperar();
+
+    expect(screen.getByText(/no recibió eventos de la captura/)).toBeInTheDocument();
+    expect(screen.getByText(/Conviene revisarla con el alumno/)).toBeInTheDocument();
+  });
+
+  it("no dice nada de la captura cuando estuvo bien", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "focus_lost")]);
+
+    render(
+      <DetalleSesion examenId={3} sesion={{ ...SESION, capture: { state: "ok" } }} onVencida={() => undefined} />,
+    );
+    await esperar();
+
+    expect(screen.queryByText(/Sin captura/)).not.toBeInTheDocument();
+  });
+
   it("aclara que el registro es autoinformado por el navegador del alumno", async () => {
     vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "focus_lost")]);
 

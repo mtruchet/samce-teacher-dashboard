@@ -42,6 +42,23 @@ export interface Sesion {
   status: "open" | "closed" | "abandoned";
   started_at: string;
   closed_at?: string;
+  /** Si la captura de eventos estuvo funcionando. Sin el campo (un backend viejo) no se marca nada. */
+  capture?: Captura;
+}
+
+/**
+ * Cómo estuvo la captura en una sesión. Es una señal para el docente y no una
+ * prueba: puede haber un motivo técnico legítimo.
+ */
+export interface Captura {
+  /**
+   * ok; none (no llegó ningún evento); gap (un silencio largo mientras el examen
+   * seguía); js_disabled (una página se cargó con JavaScript apagado); no_start
+   * (se cargó una página y la captura no arrancó).
+   */
+  state: "ok" | "none" | "gap" | "js_disabled" | "no_start";
+  gap_minutes?: number;
+  last_event_at?: string;
 }
 
 /**

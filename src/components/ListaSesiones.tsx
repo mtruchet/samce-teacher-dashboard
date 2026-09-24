@@ -1,5 +1,6 @@
 import type { SesionNumerada } from "../services/sesionesService";
 import { Usuario } from "../iconos";
+import { avisoDeCaptura } from "../captura";
 import { Transcurrido } from "./Transcurrido";
 import "./ListaSesiones.css";
 
@@ -81,6 +82,13 @@ export function ListaSesiones({ titulo, sesiones, cerradas = false, vacio, onVer
                         {/* Sólo si rindió más de una vez: con un intento no hay
                             nada que aclarar, y el número sería ruido en todas
                             las filas. */}
+                        {/* La marca está o no está: sin puntajes ni colores de riesgo. El
+                            texto completo va en el detalle de la sesión. */}
+                        {avisoDeCaptura(s.capture) ? (
+                          <span className="alumno__captura" title={avisoDeCaptura(s.capture)!.detalle}>
+                            {avisoDeCaptura(s.capture)!.corto}
+                          </span>
+                        ) : null}
                         <span className="alumno__pie cifra">
                           {s.student_name ? `Alumno ${s.moodle_user_id}` : null}
                           {s.student_name && s.intentos > 1 ? " · " : null}

@@ -312,6 +312,27 @@ describe("Enrutado y acceso", () => {
     expect(await screen.findByText(/Se muestran las 1000 sesiones más recientes de 1200/)).toBeInTheDocument();
   });
 
+  it("marca «Sin captura» en la lista de sesiones que no la tuvieron, y no en las que sí", async () => {
+    guardarSesion();
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 2, closed_sessions: 0, abandoned_sessions: 0 },
+    ]);
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+      { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z", capture: { state: "ok" } },
+      { id: 2, moodle_attempt_id: 7002, moodle_user_id: 42, student_name: "Bruno Pérez", status: "open", started_at: "2026-08-26T14:01:00Z", capture: { state: "none" } },
+    ]);
+    window.history.pushState({}, "", "/panel?examen=1");
+
+    render(<App />);
+
+    expect(await screen.findByText("Ana Gómez")).toBeInTheDocument();
+    expect(screen.getAllByText("Sin captura")).toHaveLength(1);
+    const filaBruno = screen.getByText("Bruno Pérez").closest("tr")!;
+    expect(within(filaBruno).getByText("Sin captura")).toBeInTheDocument();
+    const filaAna = screen.getByText("Ana Gómez").closest("tr")!;
+    expect(within(filaAna).queryByText("Sin captura")).not.toBeInTheDocument();
+  });
+
   it("no ofrece «Ver más» si entraron todas", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([

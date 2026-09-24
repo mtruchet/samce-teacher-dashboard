@@ -147,4 +147,12 @@ describe("describirEvento", () => {
     expect(r.titulo).toBe("Pegó contenido que no es texto");
     expect(r.detalle).not.toMatch(/carácter/);
   });
+
+  it("el aviso del servidor de que la captura no estuvo se explica según el motivo", () => {
+    expect(de("capture_status", { state: "js_disabled" })).toEqual({
+      titulo: "La captura no estuvo activa",
+      detalle: "una página del examen se cargó con JavaScript desactivado",
+    });
+    expect(de("capture_status", { state: "no_start" }).detalle).toContain("la captura no arrancó");
+  });
 });
