@@ -97,7 +97,11 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
     case "visibility_hidden":
       return { titulo: "Dejó de ver la pestaña", detalle: "cambió de pestaña o minimizó" };
     case "visibility_visible":
-      return { titulo: "Volvió a ver la pestaña", detalle: afuera(d) };
+      // "unload" es la pestaña cerrándose de verdad (pasó a otra pregunta,
+      // por ejemplo), no un ocultamiento real que volvió: no hay "volvió".
+      return d.reason === "unload"
+        ? { titulo: "Cambió de página del examen", detalle: afuera(d) }
+        : { titulo: "Volvió a ver la pestaña", detalle: afuera(d) };
 
     case "key_activity": {
       const inserciones = numero(d.inserts) ?? 0;

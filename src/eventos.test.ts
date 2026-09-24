@@ -79,6 +79,14 @@ describe("describirEvento", () => {
     expect(de("consent_accepted")).toEqual({ titulo: "Aceptó el aviso de monitoreo", detalle: "" });
   });
 
+  it("distingue el cambio de página del examen de un ocultamiento real que volvió", () => {
+    expect(de("visibility_visible", { away_ms: 400, reason: "unload" })).toEqual({
+      titulo: "Cambió de página del examen",
+      detalle: "estuvo afuera menos de 1 s",
+    });
+    expect(de("visibility_visible", { away_ms: 4000 }).titulo).toBe("Volvió a ver la pestaña");
+  });
+
   it("cuenta el tamaño de la ventana y la conexión", () => {
     expect(de("resize", { w: 1920, h: 1080 }).detalle).toBe("1920 × 1080");
     expect(de("connection", { online: false }).titulo).toBe("Se perdió la conexión");
