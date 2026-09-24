@@ -75,6 +75,10 @@ describe("describirEvento", () => {
     });
   });
 
+  it("cuenta la aceptación del aviso de monitoreo (HU11)", () => {
+    expect(de("consent_accepted")).toEqual({ titulo: "Aceptó el aviso de monitoreo", detalle: "" });
+  });
+
   it("cuenta el tamaño de la ventana y la conexión", () => {
     expect(de("resize", { w: 1920, h: 1080 }).detalle).toBe("1920 × 1080");
     expect(de("connection", { online: false }).titulo).toBe("Se perdió la conexión");
