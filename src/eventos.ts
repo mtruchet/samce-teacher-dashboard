@@ -170,6 +170,9 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       };
     }
 
+    case "consent_accepted":
+      return { titulo: "Aceptó el aviso de monitoreo", detalle: "" };
+
     case "connection":
       return {
         titulo: d.online === true ? "Se recuperó la conexión" : "Se perdió la conexión",
