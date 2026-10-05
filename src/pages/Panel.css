@@ -25,9 +25,7 @@ body:has(.panel) {
 
 /* ==== El encabezado ==================================================== */
 
-/* El curso primero y siempre, haya un examen o diez: es lo que le dice al
-   docente en qué aula está parado, y hasta ahora desaparecía en cuanto había
-   un solo examen. De qué examen es cada sesión lo dice su propia fila. */
+/* Las migas y el título: dónde está parado el docente, en cualquier nivel. */
 .panel__cabecera {
   margin-bottom: var(--e2);
 }
@@ -51,8 +49,6 @@ body:has(.panel) {
   text-wrap: balance;
 }
 
-/* Vuelve al campus a buscar un token que abarque todos los cursos. Va discreto
-   porque es un cambio de alcance, no la acción principal de la pantalla. */
 /* ==== Cuando un bloque no tiene filas =================================== */
 
 .panel__vacio {
@@ -141,11 +137,7 @@ body:has(.panel) {
     padding-block: var(--e6) var(--e10);
   }
 
-  .panel__cabecera {
-  margin-bottom: var(--e2);
-}
-
-.panel__encabezado {
+  .panel__encabezado {
     align-items: flex-start;
   }
 
@@ -172,4 +164,13 @@ body:has(.panel) {
   border: 1px solid currentColor;
   border-radius: 6px;
   cursor: pointer;
+}
+
+/* El aviso de que la lista llegó al tope del servidor. Mismo tono que el aviso
+   de eventos truncados del detalle: es una aclaración del registro, no una
+   alerta sobre el examen. */
+.panel__tope {
+  margin: var(--e4) 0 0;
+  font-size: var(--panel-cuerpo);
+  color: var(--tinta-media);
 }

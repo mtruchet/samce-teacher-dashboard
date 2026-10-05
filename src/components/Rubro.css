@@ -50,7 +50,6 @@ th.rubro__propio {
   /* Apilado: cada fila pasa a ser un par, uno encima del otro, y la guía se
      mueve al costado del propio para que se siga leyendo cuál es cuál. */
   .rubro,
-  .rubro thead,
   .rubro tbody,
   .rubro tr,
   .rubro th,

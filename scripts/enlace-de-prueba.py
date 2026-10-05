@@ -8,6 +8,8 @@ El token vence a los 60 segundos, así que hay que usar el enlace enseguida.
 
 Uso:
     python scripts/enlace-de-prueba.py
+    python scripts/enlace-de-prueba.py --abrir
+    python scripts/enlace-de-prueba.py --env ../samce-backend/.env --abrir
     python scripts/enlace-de-prueba.py --usuario otro.docente --curso 5
 """
 
@@ -17,11 +19,14 @@ import hashlib
 import hmac
 import json
 import os
+import pathlib
 import time
+import webbrowser
 
 # El secreto no viaja en el repositorio, ni siquiera el de desarrollo: sale de
-# MOODLE_LAUNCH_SECRET o del parámetro --secreto. Tiene que ser el mismo que el
-# del .env del backend y el del ajuste launchsecret del complemento en Moodle.
+# MOODLE_LAUNCH_SECRET, del parámetro --secreto o del .env del backend que se
+# indique con --env. Tiene que ser el mismo que el del backend y el del ajuste
+# launchsecret del complemento en Moodle.
 PANEL_POR_DEFECTO = "http://localhost:5173/auth/callback"
 VIGENCIA_SEGUNDOS = 60
 
@@ -36,38 +41,56 @@ def firmar(claims: dict, secreto: str) -> str:
     return f"{base64url(payload)}.{base64url(firma)}"
 
 
+def secreto_del_env(ruta: str) -> str | None:
+    for linea in pathlib.Path(ruta).read_text(encoding="utf-8").splitlines():
+        if linea.strip().startswith("MOODLE_LAUNCH_SECRET"):
+            return linea.split("=", 1)[1].strip().strip('"').strip("'")
+    return None
+
+
 def main() -> None:
-    p = argparse.ArgumentParser(description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--usuario", default="docente.demo")
+    p.add_argument("--nombre", default="Docente de Prueba", help="el nombre que muestra el panel")
     p.add_argument("--curso", type=int, default=2)
+    p.add_argument("--nombre-curso", default="Sistemas de Información II")
     p.add_argument("--id-moodle", type=int, default=3)
     p.add_argument("--panel", default=PANEL_POR_DEFECTO)
     p.add_argument("--secreto", default=os.getenv("MOODLE_LAUNCH_SECRET"))
+    p.add_argument("--env", help="el .env del backend, de donde leer MOODLE_LAUNCH_SECRET")
+    p.add_argument("--abrir", action="store_true", help="abre el enlace en el navegador")
     p.add_argument("--vencido", action="store_true", help="genera un token ya vencido, para probar el error")
     args = p.parse_args()
 
-    if not args.secreto:
+    secreto = args.secreto or (secreto_del_env(args.env) if args.env else None)
+    if not secreto:
         p.error(
-            "falta el secreto de lanzamiento. Pasalo con --secreto o exportá "
+            "falta el secreto de lanzamiento. Pasalo con --secreto o --env, o exportá "
             "MOODLE_LAUNCH_SECRET con el mismo valor que usa el backend."
         )
 
     ahora = int(time.time())
     claims = {
+        # El backend rechaza un token sin tipo, aunque la firma sea correcta.
+        "token_type": "launch",
         "moodle_user_id": args.id_moodle,
         "username": args.usuario,
+        "display_name": args.nombre,
         "course_id": args.curso,
+        "course_name": args.nombre_curso,
         "role": "docente",
         "iat": ahora,
         "exp": ahora - 10 if args.vencido else ahora + VIGENCIA_SEGUNDOS,
     }
 
-    token = firmar(claims, args.secreto)
-    print(f"\n  {args.panel}?token={token}\n")
+    url = f"{args.panel}?token={firmar(claims, secreto)}"
+    print(f"\n  {url}\n")
     if args.vencido:
         print("  Token vencido a propósito: debe mostrar la pantalla de error.\n")
     else:
         print(f"  Válido {VIGENCIA_SEGUNDOS} segundos. Abrilo ahora.\n")
+    if args.abrir:
+        webbrowser.open(url)
 
 
 if __name__ == "__main__":

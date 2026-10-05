@@ -1,12 +1,14 @@
+import { horaCorta } from "./eventos";
 import type { Captura } from "./services/sesionesService";
 
 /**
  * Lo que se le muestra al docente cuando la captura de una sesión no estuvo
  * funcionando.
  *
- * Es una señal y no una prueba: puede haber un motivo técnico legítimo, y por eso
- * el texto siempre termina en que conviene revisarla con el alumno, sin acusar. No
- * hay ningún índice ni puntaje: es una marca que está o no está.
+ * Es una señal y no una prueba: puede haber un motivo técnico legítimo. Por eso
+ * el texto dice qué pasó y qué no quedó registrado, sin acusar ni sugerirle al
+ * docente qué hacer. No hay ningún índice ni puntaje: es una marca que está o
+ * no está.
  */
 
 export interface AvisoDeCaptura {
@@ -16,44 +18,42 @@ export interface AvisoDeCaptura {
   detalle: string;
 }
 
-function hora(iso: string) {
-  return new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
-}
-
 /** null cuando la captura estuvo bien: no hay nada que marcar. */
 export function avisoDeCaptura(captura: Captura | undefined): AvisoDeCaptura | null {
-  if (!captura || captura.state === "ok") return null;
-
-  switch (captura.state) {
+  switch (captura?.state) {
     case "none":
       return {
-        corto: "Sin captura",
+        corto: "Captura incompleta",
         detalle:
-          "Esta sesión no recibió eventos de la captura. Puede ser una falla técnica o que la captura se haya desactivado. Conviene revisarla con el alumno.",
+          "No quedó registrada ninguna actividad de esta sesión. Puede deberse a una falla técnica o a que la captura estaba desactivada.",
       };
     case "gap": {
       const minutos = captura.gap_minutes ?? 0;
-      const desde = captura.last_event_at ? new Date(captura.last_event_at) : null;
-      const rango =
-        desde && !Number.isNaN(desde.getTime())
-          ? `entre las ${hora(desde.toISOString())} y las ${hora(new Date(desde.getTime() + minutos * 60_000).toISOString())}`
-          : `durante ${minutos} minutos`;
+      const desde = captura.last_event_at ? Date.parse(captura.last_event_at) : NaN;
+      const rango = Number.isNaN(desde)
+        ? `durante ${minutos} minutos`
+        : `entre las ${horaCorta(captura.last_event_at!)} y las ${horaCorta(new Date(desde + minutos * 60_000).toISOString())}`;
       return {
-        corto: "Sin señales",
-        detalle: `No se recibieron señales ${rango} mientras el examen seguía en curso (${minutos} minutos). Puede ser una falla técnica o que la captura se haya desactivado. Conviene revisarla con el alumno.`,
+        corto: "Sin eventos recibidos",
+        detalle: `No se recibieron eventos ${rango} mientras el examen seguía en curso (${minutos} minutos). Puede deberse a una falla técnica o a que la captura estaba desactivada.`,
       };
     }
     case "js_disabled":
       return {
-        corto: "Sin captura",
+        corto: "Captura incompleta",
+        // Se nombra JavaScript porque es lo que quedó apagado y decirlo de otra
+        // forma sería impreciso; se aclara qué es, sin decir quién lo apagó. El
+        // evento no lo sabe: también lo apagan una política de la institución,
+        // una extensión o el perfil de una máquina de laboratorio. Y cierra con
+        // la misma salvedad que los otros tres estados.
         detalle:
-          "Una página del examen se cargó con JavaScript desactivado, así que la captura no pudo funcionar. Conviene revisarla con el alumno.",
+          "Una página del examen se abrió con JavaScript desactivado —una opción del navegador— y lo que el alumno hizo en esa página no quedó registrado. Puede deberse a una falla técnica, a una extensión o a la configuración del equipo.",
       };
     case "no_start":
       return {
-        corto: "Sin captura",
+        corto: "Captura incompleta",
         detalle:
-          "Una página del examen se cargó y la captura no llegó a arrancar. Puede ser una falla técnica o que se haya bloqueado. Conviene revisarla con el alumno.",
+          "Una página del examen se abrió y la captura no llegó a arrancar, así que lo que el alumno hizo en esa página no quedó registrado. Puede deberse a una falla técnica o a un bloqueo del navegador.",
       };
     default:
       return null;

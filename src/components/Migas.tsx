@@ -20,22 +20,23 @@ export interface Escalon {
 }
 
 export function Migas({ escalones }: { escalones: Escalon[] }) {
-  if (escalones.length < 2) return null;
+  // El escalón donde estás parado no se dibuja: el título de la pantalla lo
+  // dice justo debajo, y verlo dos veces seguidas obliga a leerlo dos veces
+  // para darse cuenta de que es lo mismo. Acá queda el camino de vuelta, que
+  // es lo que el título no puede dar.
+  const camino = escalones.filter((e) => e.volver);
+  if (camino.length === 0) return null;
 
   return (
     <nav className="migas" aria-label="Dónde estás">
       <ol>
-        {escalones.map((e, i) => (
+        {camino.map((e, i) => (
           <Fragment key={e.nombre}>
             {i > 0 ? <CaretRight size={11} weight="bold" aria-hidden="true" /> : null}
             <li>
-              {e.volver ? (
-                <button className="migas__volver" type="button" onClick={e.volver}>
-                  {e.nombre}
-                </button>
-              ) : (
-                <span aria-current="page">{e.nombre}</span>
-              )}
+              <button className="migas__volver" type="button" onClick={e.volver}>
+                {e.nombre}
+              </button>
             </li>
           </Fragment>
         ))}

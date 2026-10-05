@@ -6,9 +6,11 @@
  * allá porque tiene que estar disponible en el primer cuadro; acá solo está el
  * marcado, que no se puede compartir porque uno es HTML servido y el otro React.
  *
- * No dice «cargando». Un cartel que casi siempre aparece y desaparece en menos
- * de medio segundo se lee como un parpadeo, no como una frase, y la espera ya
- * la comunica el pulso.
+ * No dice «cargando» en pantalla. Un cartel que casi siempre aparece y
+ * desaparece en menos de medio segundo se lee como un parpadeo, no como una
+ * frase, y la espera ya la comunica el pulso. Sí lo dice a los lectores de
+ * pantalla: dentro del panel, que se están buscando las sesiones; en
+ * cualquier otra pantalla, que se está cargando.
  */
 /** Las mismas doce que la tira del panel; el recorrido lo hace el retardo de cada una. */
 const MARCAS = 12;
@@ -31,7 +33,7 @@ export function Arranque({ encajado = false }: Props) {
         ))}
       </div>
       <p className="arranque__marca">SAMCE</p>
-      <span className="solo-lectores">Buscando sesiones</span>
+      <span className="solo-lectores">{encajado ? "Buscando sesiones" : "Cargando"}</span>
     </div>
   );
 }

@@ -19,8 +19,7 @@ export interface ExamenMonitoreado {
   created_at: string;
   /**
    * Cuántas sesiones tiene el examen, por estado. Las cuenta el backend en la
-   * misma consulta de la lista: el panel ya no pide las sesiones de cada examen
-   * solo para contarlas.
+   * misma consulta de la lista.
    */
   open_sessions: number;
   closed_sessions: number;
@@ -65,18 +64,21 @@ export interface Captura {
  * Un evento de interacción del alumno durante un intento, tal como se guardó.
  *
  * El backend no lo interpreta ni le agrega nada: no trae índice de integridad,
- * nivel de riesgo ni alertas, y no viene ordenado por relevancia sino en el
- * orden en que se generaron. Tampoco lleva ningún dato del alumno: pertenece a
+ * nivel de riesgo ni alertas, y no viene ordenado por relevancia sino por orden
+ * de llegada. Tampoco lleva ningún dato del alumno: pertenece a
  * una sesión, y la sesión es la que sabe de quién es.
  */
 export interface Evento {
   /**
-   * Orden de llegada al servidor. Es el cursor para pedir solo lo nuevo: con el
-   * `seq` (que arma el navegador) se perdían los eventos que llegaban tarde con
-   * un `seq` menor al último visto, y no volvían a aparecer.
+   * Orden de llegada al servidor. Es el cursor para pedir solo lo nuevo: el
+   * `seq` no sirve para eso, porque un evento que llega tarde puede traer uno
+   * menor al último visto.
    */
   id: number;
-  /** Número creciente que arma el navegador; ordena los eventos en pantalla. */
+  /**
+   * Número creciente que arma el navegador, único dentro de la sesión. Ordena
+   * los eventos que llegaron juntos al servidor.
+   */
   seq: number;
   /** Qué pestaña del navegador lo generó, si el complemento lo informó. */
   context_id?: string;
@@ -90,8 +92,27 @@ export interface Evento {
   data: Record<string, unknown>;
 }
 
+/** Cada cuánto el panel y el registro de una sesión vuelven a preguntar. */
+export const CADENCIA_MS = 5000;
+
 /** Cuántos eventos se piden por vez. Es el máximo que acepta el backend. */
 export const EVENTOS_POR_PAGINA = 1000;
+
+/**
+ * Cuánto se espera una respuesta antes de darla por perdida.
+ *
+ * Un `fetch` sin plazo no falla nunca: si el servidor acepta la conexión y no
+ * contesta, la promesa queda colgada, el `catch` no corre y el panel sigue
+ * diciendo «En vivo» sobre datos viejos, con un pedido nuevo cada cinco
+ * segundos que tampoco va a volver.
+ *
+ * Cuatro ciclos y no dos: con diez segundos, un servidor vivo pero lento
+ * —once por pedido— aborta en cada vuelta y la pantalla diría «Sin conexión»
+ * de forma permanente sobre algo que está contestando, que es peor que el
+ * problema. Un backend que tarda más de veinte ya no sirve para una pantalla
+ * que se refresca cada cinco.
+ */
+const PLAZO = 20_000;
 
 /**
  * El backend rechazó el token de sesión.
@@ -115,6 +136,7 @@ async function pedir<T>(ruta: string): Promise<T> {
 
   const respuesta = await fetch(`${API_CONFIG.BASE_URL}${ruta}`, {
     headers: { Authorization: `Bearer ${sesion.token}` },
+    signal: AbortSignal.timeout(PLAZO),
   });
 
   if (respuesta.status === 401) {
@@ -129,15 +151,12 @@ async function pedir<T>(ruta: string): Promise<T> {
 }
 
 /**
- * Una sesión resuelta contra el examen y el curso de los que salió, para poder
- * listarlas todas juntas aunque vengan de cursos distintos.
+ * Una sesión junto con el examen del que salió: el registro de eventos se pide
+ * por examen y sesión, y el backend verifica que la sesión sea de ese examen.
  */
 export interface SesionDeExamen extends Sesion {
   /** Del examen monitoreado, no del cuestionario de Moodle. */
   examenId: number;
-  cursoId: number;
-  examen: string;
-  curso: string;
 }
 
 /**
@@ -161,22 +180,33 @@ export function traerExamenes(): Promise<ExamenMonitoreado[]> {
 export const SESIONES_POR_PAGINA = 50;
 
 /**
+ * Cuántas sesiones devuelve el backend como mucho, por más que se le pidan más
+ * (`maxSessionsLimit` en list_sessions.go).
+ *
+ * Está acá porque el panel tiene que saberlo: pedir 1050 y recibir 1000 sin
+ * ninguna marca de recorte hacía que el botón de «Ver más» siguiera apareciendo,
+ * trajera exactamente lo mismo que ya estaba, y recién ahí desapareciera. El
+ * docente apretaba y no pasaba nada.
+ */
+export const SESIONES_TOPE = 1000;
+
+/**
  * Las sesiones de un examen: las en curso primero y después las finalizadas,
  * cada grupo con las más recientes arriba. `limite` es cuántas pedir desde la
  * primera; el panel lo sube de a 50 con «Ver más» y sigue refrescando todo lo
  * que ya mostró.
  */
 export function traerSesiones(examenId: number, limite = SESIONES_POR_PAGINA): Promise<Sesion[]> {
+  // Nunca por encima del tope del backend: pedir de más no trae de más, y lo
+  // único que consigue es que la cuenta del panel no cierre.
+  const pedido = Math.min(limite, SESIONES_TOPE);
   return pedir<Sesion[]>(
-    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?limit=${Math.min(limite, MAXIMO_SESIONES)}`
+    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?limit=${pedido}`
   );
 }
 
-/** Lo más que devuelve el backend por pedido: no tiene sentido pedir más. */
-export const MAXIMO_SESIONES = 1000;
-
 /**
- * Los eventos de una sesión, en el orden en que se generaron.
+ * Los eventos de una sesión, por orden de llegada al servidor.
  *
  * `despuesDeId` es el `id` del último evento que ya se tiene: el panel vuelve a
  * preguntar cada pocos segundos y así trae solo lo nuevo, en vez de repetir
@@ -193,4 +223,23 @@ export function traerEventos(examenId: number, sesionId: number, despuesDeId = 0
   return pedir<Evento[]>(
     `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions/${sesionId}/events?${consulta}`
   );
+}
+
+/**
+ * Cómo se llama al alumno de una sesión en la pantalla.
+ *
+ * Tres casos. Si el backend pudo descifrar el nombre, va el nombre. Si solo
+ * pudo con el identificador, va «Alumno 41», que es el número del aula virtual.
+ * Y si no pudo con ninguno de los dos, manda un `moodle_user_id` negativo —un
+ * centinela, único por sesión, para que el panel no junte por error sesiones
+ * sin relación— y ahí no hay identidad que mostrar: decir «Alumno -29» sería
+ * enseñar un número interno como si fuera un legajo.
+ *
+ * La sesión aparece igual, a propósito: si no, el docente no tendría forma de
+ * saber que le falta alguien.
+ */
+export function nombreDeAlumno(sesion: Pick<Sesion, "student_name" | "moodle_user_id">): string {
+  if (sesion.student_name) return sesion.student_name;
+  if (sesion.moodle_user_id < 0) return "Alumno sin identificar";
+  return `Alumno ${sesion.moodle_user_id}`;
 }

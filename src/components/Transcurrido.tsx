@@ -18,14 +18,22 @@ const REVISION = 10000;
  * «14:46» junto a «14:43» se lee como otra hora.
  */
 
-function formatear(desde: Date, hasta: Date) {
+function formatear(desde: Date, hasta: Date, cerrada: boolean) {
   const total = Math.max(0, Math.floor((hasta.getTime() - desde.getTime()) / 1000));
-  if (total < 60) return "recién";
+  // El mismo número encabeza dos columnas distintas. En «Transcurrido», de una
+  // sesión abierta, «recién» dice que el intento arrancó hace nada. En
+  // «Duración», de una entregada, diría que terminó hace poco, que es otra
+  // cosa y además falsa: lo que pasó es que duró poco.
+  if (total < 60) return cerrada ? "menos de 1 min" : "recién";
 
   const minutos = Math.floor(total / 60);
   if (minutos < 60) return `${minutos} min`;
 
-  return `${Math.floor(minutos / 60)} h ${String(minutos % 60).padStart(2, "0")}`;
+  // «1 h 05» deja los minutos sin unidad y con un cero adelante, y así se lee
+  // como una hora del día, que es justo lo que la columna de al lado sí es.
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  return resto === 0 ? `${horas} h` : `${horas} h ${resto} min`;
 }
 
 interface Props {
@@ -49,5 +57,5 @@ export function Transcurrido({ inicio, cierre }: Props) {
   const desde = new Date(inicio);
   const hasta = cierre ? new Date(cierre) : ahora;
 
-  return <span className="cifra">{formatear(desde, hasta)}</span>;
+  return <span className="cifra">{formatear(desde, hasta, Boolean(cierre))}</span>;
 }

@@ -11,10 +11,8 @@ import "./BarraPanel.css";
  * Al lado de la marca va el atajo a todos sus cursos, y a la derecha el nombre
  * del docente, que llega en el token junto con la identidad.
  *
- * El atajo dice lo mismo se haya entrado por donde se haya entrado. Antes
- * mostraba el nombre de la materia cuando el docente venía desde un curso, y
- * ahí el encabezado repetía el título de la pantalla y encima no llevaba a
- * ninguna parte, porque ese ya era el primer escalón. Lo que cambia es cómo se
+ * El atajo dice lo mismo se haya entrado por donde se haya entrado: el nombre
+ * de la materia repetiría el título de la pantalla. Lo que cambia es cómo se
  * llega, no lo que dice: en el panel general es un salto interno, y desde un
  * curso hay que pasar de nuevo por el campus, porque ese token autoriza una
  * materia sola y quién da qué lo sabe Moodle.

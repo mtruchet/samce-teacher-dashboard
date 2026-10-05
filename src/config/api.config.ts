@@ -30,7 +30,6 @@ export const API_CONFIG = {
    */
   MOODLE_LAUNCH_GENERAL: "/local/samce/launch_global.php",
   ENDPOINTS: {
-    PING: "/ping",
     AUTH_MOODLE_VERIFY: "/auth/moodle/verify",
     MONITORED_QUIZZES: "/monitored-quizzes",
   },

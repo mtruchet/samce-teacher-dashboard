@@ -20,8 +20,6 @@
   width: auto;
 }
 
-/* El mismo tratamiento que la marca de la cabecera pública: peso 600 y
-   tracking de título, no de rótulo. */
 .barra__pantalla:hover {
   background: rgb(255 255 255 / 20%);
 }
@@ -35,6 +33,8 @@
   flex: none;
 }
 
+/* El mismo tratamiento que la marca de la cabecera pública: peso 600 y
+   tracking de título, no de rótulo. */
 .barra__marca {
   flex: none;
   font-size: var(--panel-cuerpo);
@@ -43,9 +43,6 @@
   color: var(--tinta-clara);
 }
 
-/* El orden de sacrificio cuando falta lugar: primero se va la descripción de
-   la pantalla, que es redundante con la marca; después se trunca el nombre.
-   Lo que nunca se va es el logotipo ni la salida. */
 .barra__contexto {
   display: flex;
   align-items: center;
@@ -96,12 +93,9 @@
   display: inline-flex;
   align-items: center;
   gap: var(--e2);
+  min-width: 0;
   font-size: var(--panel-nota);
   white-space: nowrap;
-}
-
-.barra__saludo {
-  min-width: 0;
   color: var(--tinta-clara-media);
 }
 
@@ -111,9 +105,6 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.barra__saludo b {
   font-weight: 600;
   color: var(--tinta-clara);
 }
@@ -144,20 +135,16 @@
   background: rgb(255 255 255 / 20%);
 }
 
-/* Cuando falta lugar, las cosas se van en este orden: primero la descripción
-   de la pantalla, que la marca ya implica; después el saludo entero, no solo
-   el nombre, porque un "Hola," suelto es peor que nada. El logotipo y la
-   salida no se van nunca. */
+/* Cuando falta lugar: el atajo pierde el rótulo y el nombre del docente se
+   recorta. El logotipo y la salida no se van nunca. */
 @media (max-width: 900px) {
   .barra__interna {
     gap: var(--e4);
   }
 
-  /* El atajo se queda, pero sin rótulo. Antes mostraba el nombre de la materia,
-     que en angosto era lo primero que sobraba porque el título de la pantalla ya
-     lo decía; ahora es el único camino a todos los cursos cuando se entró desde
-     uno, y esconderlo dejaría al docente sin salida. El nombre sigue en la
-     etiqueta del control. */
+  /* El atajo se queda, pero sin rótulo: es el único camino a todos los cursos
+     cuando se entró desde uno, y esconderlo dejaría al docente sin salida. El
+     nombre sigue en la etiqueta del control. */
   .barra__pantalla-rotulo {
     display: none;
   }

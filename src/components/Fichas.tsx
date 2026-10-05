@@ -1,4 +1,4 @@
-import { CaretRight, Entregado, Rindiendo, SinNada, type Icon } from "../iconos";
+import { CaretRight, Entregado, Rindiendo, SinEntregar, SinNada, type Icon } from "../iconos";
 import "./Fichas.css";
 
 /**
@@ -19,18 +19,21 @@ export interface Ficha {
   clave: string;
   nombre: string;
   enCurso: number;
-  finalizadas: number;
+  entregadas: number;
+  /**
+   * Los intentos que vencieron o se dejaron sin entregar. Iban sumados a las
+   * entregadas y la ficha decía «3 entregadas» contando las que justamente no
+   * se entregaron, que es lo único que una pantalla de registro no puede hacer.
+   */
+  sinEntregar: number;
 }
 
 /**
- * Los dos estados, cada uno con su icono.
- *
- * Iban separados por un punto medio, que es un separador de texto corrido y
- * dejaba los dos números pegados en un mismo renglón gris. Con un icono cada
- * uno se leen como dos cosas distintas sin tener que leerlos.
+ * Los estados, cada uno con su icono: así se leen como cosas distintas sin
+ * tener que leerlos, en vez de números pegados en un mismo renglón gris.
  */
 function Recuento({ ficha }: { ficha: Ficha }) {
-  if (ficha.enCurso === 0 && ficha.finalizadas === 0) {
+  if (ficha.enCurso === 0 && ficha.entregadas === 0 && ficha.sinEntregar === 0) {
     return (
       <span className="ficha__estado ficha__estado--nada">
         <span className="ficha__cuenta">
@@ -53,12 +56,21 @@ function Recuento({ ficha }: { ficha: Ficha }) {
       {/* El espacio va en el texto y no sólo en el hueco entre cajas: sin él,
           quien lee la página con un lector de pantalla escucha «2 rindiendo1
           entregada» de corrido. */}
-      {ficha.enCurso > 0 && ficha.finalizadas > 0 ? " " : null}
+      {ficha.enCurso > 0 && ficha.entregadas > 0 ? " " : null}
 
-      {ficha.finalizadas > 0 ? (
+      {ficha.entregadas > 0 ? (
         <span className="ficha__cuenta">
           <Entregado size={15} weight="bold" aria-hidden="true" />
-          {ficha.finalizadas === 1 ? "1 entregada" : `${ficha.finalizadas} entregadas`}
+          {ficha.entregadas === 1 ? "1 entregada" : `${ficha.entregadas} entregadas`}
+        </span>
+      ) : null}
+
+      {(ficha.enCurso > 0 || ficha.entregadas > 0) && ficha.sinEntregar > 0 ? " " : null}
+
+      {ficha.sinEntregar > 0 ? (
+        <span className="ficha__cuenta">
+          <SinEntregar size={15} weight="bold" aria-hidden="true" />
+          {ficha.sinEntregar === 1 ? "1 sin entregar" : `${ficha.sinEntregar} sin entregar`}
         </span>
       ) : null}
     </span>
@@ -72,12 +84,10 @@ interface Props {
   /** Qué es cada ficha, para que los lectores de pantalla lo anuncien. */
   rotulo: string;
   onElegir: (clave: string) => void;
-  vacio: React.ReactNode;
 }
 
-export function Fichas({ fichas, icono: Icono, rotulo, onElegir, vacio }: Props) {
-  if (fichas.length === 0) return <>{vacio}</>;
-
+/** Quien la usa decide qué mostrar sin fichas: acá siempre llega al menos una. */
+export function Fichas({ fichas, icono: Icono, rotulo, onElegir }: Props) {
   return (
     <ul className="fichas" aria-label={rotulo}>
       {fichas.map((f) => (

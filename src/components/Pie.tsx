@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { API_CONFIG } from "../config/api.config";
 import "./Pie.css";
 
 /**
@@ -34,7 +35,7 @@ export function Pie({ children, ancho = "publico" }: Props) {
             alt="Universidad Tecnológica Nacional, Facultad Regional San Francisco"
           />
           <p className="pie__nombre">
-            Sistema de Monitoreo de Comportamiento de Exámenes
+            Sistema Agéntico de Monitoreo de Comportamiento de Exámenes
           </p>
           <p className="pie__descripcion">Proyecto final de carrera.</p>
         </div>
@@ -72,7 +73,7 @@ export function Pie({ children, ancho = "publico" }: Props) {
               </a>
             </li>
             <li>
-              <a href="https://samce-entorno-moodle-production.up.railway.app" target="_blank" rel="noreferrer">
+              <a href={API_CONFIG.MOODLE_URL} target="_blank" rel="noreferrer">
                 Campus Virtual
               </a>
             </li>

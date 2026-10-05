@@ -3,8 +3,12 @@
    columnas menos la primera, pensado para una columna de nombres y dos de
    tiempos, y acá la que se lleva el espacio es la última. */
 
+/* El mismo alto que `.lista__marco`, a propósito. Las dos tablas viven a un
+   clic de distancia y el scroll interno existe para que la barra quede siempre
+   en el mismo lugar: con dos altos distintos el ojo la tiene que volver a
+   buscar cada vez que se entra a una sesión. */
 .eventos__marco {
-  max-height: min(60vh, 640px);
+  max-height: min(52vh, 520px);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -30,11 +34,15 @@
 }
 
 .eventos td {
-  padding: var(--e2) var(--e4);
+  /* Altura por relleno y no por `height`: una fila con el detalle envuelto
+     tiene que poder crecer, y con la altura fija el texto se montaba sobre la
+     fila de abajo. El relleno deja el mismo paso que la tabla de sesiones en
+     el caso normal, que es de una línea. */
+  padding: var(--e3) var(--e4);
   font-size: var(--panel-fila);
   line-height: 20px;
   color: var(--tinta-media);
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .eventos tbody tr {
@@ -55,10 +63,75 @@
   white-space: nowrap;
 }
 
+/* El detalle va en su propia columna. Estuvo un rato compartiendo celda con el
+   título, empujado a la derecha, y ahí cada fila lo arrancaba en un lugar
+   distinto según lo largo que fuera: la lista se leía en zigzag. Simularlo con
+   un ancho mínimo alineaba, pero sólo mientras el título entrara; una columna
+   de tabla alinea siempre. */
 .eventos__que {
   width: 30%;
+}
+
+/* El flex va en un envoltorio y no en la celda: un `td` con `display: flex`
+   deja de ser celda de tabla, y con él se va el ancho de la columna entera.
+   El encabezado tuvo el mismo problema unas líneas más abajo. */
+.eventos__tipo {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+}
+
+.eventos__tipo > svg {
+  flex: none;
+  color: var(--tinta-media);
+}
+
+/* El encabezado se queda en table-cell: un `th` que deja de ser celda lo
+   envuelve una celda anónima, y contra ella el `sticky` no tiene recorrido, así
+   que el rótulo se iba de pantalla al desplazar la tabla de costado. */
+th.eventos__que {
+  display: table-cell;
+}
+
+/* Lo que pasó pesa; el resto de la fila lo acompaña. */
+.eventos__titulo {
   font-weight: 600;
   color: var(--tinta);
+}
+
+.eventos__detalle {
+  color: var(--tinta-media);
+}
+
+/* ==== Un rato sin que llegara nada ===================================== */
+
+/* No es un evento: es un corte entre dos. Por eso cruza la fila entera, sin
+   repartirse en las columnas de los demás, y se apoya en un escalón de
+   superficie, que es como este sistema separa sin líneas. El escalón no dice
+   gravedad, dice corte. Pesa menos que cualquier evento porque no es algo que
+   pasó, es algo que no se recibió.
+
+   Sin esto el ojo lee dos horas seguidas y supone que son contiguas, o sea que
+   la pantalla miente sin querer. */
+.eventos tbody tr.eventos__hueco:hover,
+.eventos__hueco {
+  background: var(--sup-2);
+}
+
+.eventos__hueco td {
+  padding-block: var(--e2);
+  font-weight: 400;
+  font-style: italic;
+  text-align: center;
+  color: var(--tinta-suave);
+}
+
+/* Pegado al texto y del mismo tono: acompaña la frase, no la encabeza como
+   hacen los iconos de las filas de evento. */
+.eventos__hueco svg {
+  vertical-align: text-bottom;
+  margin-right: var(--e2);
+  color: var(--tinta-suave);
 }
 
 @media (max-width: 760px) {
@@ -66,6 +139,8 @@
     max-height: none;
   }
 
+  /* Sin ancho que repartir, la columna de lo que pasó se lleva lo que necesite
+     y el detalle envuelve debajo. */
   .eventos__que {
     width: 38%;
   }
