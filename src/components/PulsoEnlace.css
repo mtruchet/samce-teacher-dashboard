@@ -26,11 +26,10 @@
   background: var(--celeste);
 }
 
-/* Cuando el canal no está vivo, la tira se apaga entera: no hay marca viva que
-   sugiera que sigue llegando algo. */
-.enlace--demorado .enlace__marca--viva,
+/* Cuando el canal no está vivo, o el registro que se mira ya no se pide, la
+   tira se apaga entera: no hay marca viva que sugiera que sigue llegando algo. */
 .enlace--sin-conexion .enlace__marca--viva,
-.enlace--pausado .enlace__marca--viva {
+.enlace--quieto .enlace__marca--viva {
   background: var(--tinta-tenue);
 }
 

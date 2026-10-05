@@ -24,5 +24,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: "./src/setupTests.ts",
+    // Un `fetch` falso de una prueba no puede quedar vivo en la siguiente.
+    unstubGlobals: true,
   },
 });

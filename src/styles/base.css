@@ -100,7 +100,11 @@ a {
   border-radius: var(--radio-chip);
 }
 
-.sup-5 :focus-visible {
+/* Sobre las superficies oscuras (la barra, el pie y el bloque de decisiones de
+   la portada) el anillo separa con el mismo fondo oscuro, no con el claro. */
+.barra :focus-visible,
+.pie :focus-visible,
+.decision :focus-visible {
   box-shadow:
     0 0 0 2px var(--sup-5),
     0 0 0 4px var(--celeste);
@@ -170,9 +174,7 @@ a {
   margin-top: var(--e3);
 }
 
-/* Sin consumidor en la página pública desde que se rehízo el gráfico del
-   motor. Se queda porque cualquier figura accesible la necesita, y reponerla
-   mal es más caro que estas ocho líneas. */
+/* Texto solo para lectores de pantalla. */
 .solo-lectores {
   position: absolute;
   width: 1px;

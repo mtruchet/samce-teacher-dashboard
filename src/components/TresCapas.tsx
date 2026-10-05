@@ -2,12 +2,10 @@ import { WaveSine, Brain, Link as Cadena } from "../iconos";
 import "./TresCapas.css";
 
 /**
- * Las tres capas del sistema.
- *
- * Reemplaza a la lista de señales, que hacía parecer chico al proyecto: era
- * un inventario de eventos del navegador cuando lo que hay detrás es un
- * pipeline con un motor de aprendizaje automático y trazabilidad
- * criptográfica.
+ * Las tres capas del sistema: lo que se observa, cómo se analiza y cómo se
+ * conserva. Un inventario de eventos del navegador haría parecer chico al
+ * proyecto, cuando lo que hay detrás es un motor de aprendizaje automático y
+ * trazabilidad criptográfica.
  */
 
 const CAPAS = [

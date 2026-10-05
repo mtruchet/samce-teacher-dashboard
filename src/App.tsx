@@ -17,8 +17,7 @@ const Panel = lazy(() => import("./pages/Panel").then((m) => ({ default: m.Panel
 const SinSesion = lazy(() => import("./pages/SinSesion").then((m) => ({ default: m.SinSesion })));
 
 /**
- * Impide llegar al área privada sin sesión. Es el mecanismo que van a
- * reutilizar todas las pantallas de supervisión que se sumen más adelante.
+ * Impide llegar al área privada sin sesión.
  *
  * Sin sesión no redirige de una: muestra una pantalla que explica qué pasó y
  * adónde va. Llegar acá sin sesión es más común de lo que parece —un favorito,

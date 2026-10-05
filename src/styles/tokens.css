@@ -90,7 +90,6 @@
   /* ---- Espacio: tres niveles con nombre funcional ------------------------ */
   /* La proporción entre el nivel de sección y el de bloque es lo que produce
      la sensación de rigor. Aire generoso entre bloques, escaso adentro. */
-  --stack-texto: 0.75em;
   --stack-bloque: 2.5rem;
   --stack-seccion: clamp(4.5rem, 9vw, 8rem);
 
@@ -107,7 +106,6 @@
   --e20: 80px;
 
   /* ---- Radios: anidados, exterior = interior + padding ------------------- */
-  --radio-interior: 8px;
   --radio-chip: 6px;
   --radio-ficha: 12px;
   --radio-lamina: 16px;
@@ -133,9 +131,7 @@
 
   /* ---- Medidas ----------------------------------------------------------- */
   --ancho-total: 1200px;
-  --ancho-lectura: 680px;
   --medida: 68ch;
-  --cabecera-alta: 100px;
   --cabecera-baja: 56px;
 
   /* ---- Movimiento: presupuesto corto y explícito -------------------------- */
@@ -146,8 +142,8 @@
   /* ---- El panel: el mismo sistema en otro paso -------------------------- */
   /* La landing se lee, el panel se trabaja. El cuerpo baja de 19px a 14px,
      pero las interlíneas siguen siendo múltiplos de 5: un solo ritmo vertical
-     para toda la aplicación. Lo que no cambia es la identidad — las mismas dos
-     familias tipográficas, el mismo celeste con su rol único, la misma
+     para toda la aplicación. Lo que no cambia es la identidad — la misma
+     familia tipográfica, el mismo celeste con su rol único, la misma
      escalera de superficies y la misma prohibición de líneas horizontales. */
   --panel-cuerpo: 14px;
   --panel-fila: 13px;
@@ -159,7 +155,6 @@
   --ancho-panel: 1080px;
 
   --panel-barra: 52px;
-  --panel-franja: 48px;
   --fila-curso: 40px;
 }
 

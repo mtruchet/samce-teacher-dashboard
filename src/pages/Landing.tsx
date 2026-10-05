@@ -80,9 +80,12 @@ export function Landing() {
                 aparece una alerta. Y viene explicada, para que sepas qué se vio y cuándo.
               </p>
             </div>
-            <div>
+            {/* El gráfico es ilustrativo, igual que la alerta de muestra del
+                panel, y lleva el mismo pie: sin él se lee como un examen real. */}
+            <figure className="panel-vista__pieza">
               <RitmoExamen />
-            </div>
+              <figcaption className="procedencia">Datos de ejemplo</figcaption>
+            </figure>
           </div>
         </section>
 

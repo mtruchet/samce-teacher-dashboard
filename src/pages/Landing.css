@@ -303,15 +303,15 @@
   }
 }
 
-/* El otro camino de entrada. Va separado del cierre por el escalón de arriba y
+/* El otro camino de entrada. Va separado del cierre por el aire de arriba y
    con el icono al costado, para que se lea como una alternativa y no como la
-   continuación del párrafo anterior. */
+   continuación del párrafo anterior. El aire hace el mismo trabajo que hacía
+   la línea, que este sistema tiene vedada: 40px es exactamente lo que sumaban
+   el margen y el relleno que estaban. */
 .acceso__otra {
   display: flex;
   gap: var(--e3);
-  margin-top: var(--e5);
-  padding-top: var(--e5);
-  border-top: 1px solid rgb(255 255 255 / 0.12);
+  margin-top: var(--e10);
   font-size: var(--paso-cuerpo);
   line-height: var(--alto-cuerpo);
   color: var(--tinta-clara-media);

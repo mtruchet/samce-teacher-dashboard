@@ -26,8 +26,8 @@ El resto del panel es el mismo.
 Se recorre por niveles, y cada pantalla responde una sola pregunta:
 
 ```
-Todos mis cursos  ›  Sistemas de Información II  ›  Primer Parcial
-     (cursos)              (exámenes)                 (alumnos)
+Todos mis cursos  ›  Sistemas de Información II  ›  Primer Parcial  ›  Ana Gómez
+     (cursos)              (exámenes)                 (alumnos)        (eventos)
 ```
 
 Cada ficha adelanta lo que hay adentro, para no tener que abrirlas una por una,
@@ -42,6 +42,14 @@ cada consulta y vive sólo mientras la pantalla está abierta. Si la sesión es
 anterior a que el aula virtual empezara a mandarlo, la fila cae en el número, que
 alcanza para identificar a quien está rindiendo. Y si rindió más de una vez el
 mismo examen, aclara en cuál va, por orden de comienzo.
+
+Desde cada sesión se abre su registro: lo que pasó durante el intento, un evento
+por fila, con su hora, qué pasó y el detalle, del más reciente al más antiguo.
+Se actualiza mientras el alumno rinde y unos minutos después de la entrega,
+porque lo último del intento llega con retraso. El registro cuenta y no juzga:
+no tiene índice de integridad, nivel de riesgo, alertas ni orden por relevancia,
+que son del análisis. La lista marca las sesiones cuya captura quedó incompleta,
+y el registro explica qué no quedó registrado.
 
 Los exámenes aparecen solos: nadie los da de alta. Cuando un alumno abre el
 cuestionario, el complemento avisa al backend y la sesión se registra sin que
@@ -81,11 +89,13 @@ enlace firmado igual que el complemento:
 
 ```bash
 MOODLE_LAUNCH_SECRET="el-mismo-del-backend" python scripts/enlace-de-prueba.py
+python scripts/enlace-de-prueba.py --env ../samce-backend/.env --abrir
 ```
 
-El token vence a los sesenta segundos, así que el enlace se usa enseguida. El
-secreto no está en el repositorio: sale de la variable de entorno o de
-`--secreto`, y tiene que coincidir con el del backend y el del complemento.
+El token vence a los sesenta segundos, así que el enlace se usa enseguida
+(`--abrir` lo abre en el navegador). El secreto no está en el repositorio: sale
+de la variable de entorno, de `--secreto` o del `.env` del backend que se pase
+con `--env`, y tiene que coincidir con el del backend y el del complemento.
 
 ## Comandos
 
@@ -103,11 +113,19 @@ componentes: el sistema visual es propio y vive en `src/styles/tokens.css`.
 
 ```
 src/
-  pages/       una pantalla cada uno: portada, traspaso, panel, salida
-  components/  las piezas del panel y de la portada
-  services/    lo que habla con el backend
-  styles/      tokens y estilos base
-  iconos.ts    los iconos, importados de a uno
+  pages/        una pantalla cada una: portada, traspaso, panel, sin sesión
+  components/   las piezas del panel y de la portada
+  services/     lo que habla con el backend
+  config/       las direcciones del backend y del campus
+  styles/       tokens y estilos base
+  eventos.ts    cómo se cuenta cada evento en el registro
+  huecos.ts     los silencios entre eventos
+  captura.ts    el aviso de una captura incompleta
+  secciones.ts  las secciones de la portada
+  iconos.ts     los iconos, importados de a uno
+  test/         datos de prueba compartidos
+scripts/        el enlace de prueba para entrar sin Moodle
+docs/           notas de diseño
 ```
 
 Los iconos se importan uno por uno y no desde el índice del paquete: ese índice
@@ -118,4 +136,5 @@ pantalla, además, se descarga cuando alguien la pide.
 
 Pensado para Vercel, con `vercel.json` reescribiendo las rutas al `index.html`
 para que funcionen las direcciones profundas. Hay que definir `VITE_API_URL` y
-`VITE_MOODLE_URL` en el proyecto. Todavía no está desplegado.
+`VITE_MOODLE_URL` en el proyecto. Está desplegado en Vercel, que publica solo
+cada vez que algo entra en `main`.

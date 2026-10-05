@@ -1,6 +1,7 @@
-import type { SesionNumerada } from "../services/sesionesService";
+import { nombreDeAlumno, type SesionNumerada } from "../services/sesionesService";
 import { Usuario } from "../iconos";
 import { avisoDeCaptura } from "../captura";
+import { horaCorta } from "../eventos";
 import { Transcurrido } from "./Transcurrido";
 import "./ListaSesiones.css";
 
@@ -18,30 +19,53 @@ import "./ListaSesiones.css";
  * lista ordenada por índice es un ranking, y su primer puesto es una acusación.
  */
 
-function hora(iso: string) {
-  return new Date(iso).toLocaleTimeString("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+/**
+ * Cuándo empezó. La hora sola si fue hoy; si fue otro día, con la fecha
+ * adelante, porque en «Finalizadas» conviven intentos de días distintos y dos
+ * «16:04» no se distinguen.
+ */
+function comienzo(iso: string) {
+  const d = new Date(iso);
+  const hora = horaCorta(iso);
+  if (d.toDateString() === new Date().toDateString()) return hora;
+  return `${d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" })} ${hora}`;
+}
+
+/**
+ * El renglón chico debajo del nombre: qué número de intento es, y si quedó sin
+ * entregar. Los dos son datos de la sesión y ninguno está siempre.
+ *
+ * Con un solo intento el número no aclara nada y sería ruido en todas las filas.
+ */
+function pie(s: SesionNumerada): string {
+  const partes: string[] = [];
+  if (s.intentos > 1) partes.push(`intento ${s.intento} de ${s.intentos}`);
+  if (s.status === "abandoned") partes.push("sin entregar");
+  return partes.join(", ");
 }
 
 interface Props {
   titulo: string;
   sesiones: SesionNumerada[];
+  /** Cuántas tiene el grupo en total, aunque no estén todas cargadas. */
+  total?: number;
   /** Las cerradas no llevan un reloj corriendo sino una duración. */
   cerradas?: boolean;
   vacio?: React.ReactNode;
-  /** Abre lo que pasó durante el intento. Sin esto la columna no aparece. */
-  onVerEventos?: (sesion: SesionNumerada) => void;
+  /** Abre lo que pasó durante el intento. */
+  onVerEventos: (sesion: SesionNumerada) => void;
 }
 
-export function ListaSesiones({ titulo, sesiones, cerradas = false, vacio, onVerEventos }: Props) {
+export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio, onVerEventos }: Props) {
+  // «50 de 80» cuando la lista está cortada, para que el número coincida con el
+  // de la ficha del examen y se note que faltan filas por traer.
+  const cuenta =
+    total !== undefined && total > sesiones.length ? `${sesiones.length} de ${total}` : String(sesiones.length);
   return (
     <section className="lista">
       <header className="lista__encabezado">
         <h2 className="lista__titulo">{titulo}</h2>
-        <span className="lista__cuenta cifra">{sesiones.length}</span>
+        <span className="lista__cuenta cifra">{cuenta}</span>
       </header>
 
       {sesiones.length === 0 ? (
@@ -50,8 +74,8 @@ export function ListaSesiones({ titulo, sesiones, cerradas = false, vacio, onVer
         <div className="lista__marco">
           <table className="tabla">
             <caption className="solo-lectores">
-              {titulo}. Cada fila es la sesión de un alumno, con su nombre y su número del
-              aula virtual.
+              {titulo}. Cada fila es la sesión de un alumno: cuándo empezó, cuánto lleva o
+              cuánto duró, y el acceso a sus eventos.
             </caption>
             <thead>
               <tr>
@@ -60,65 +84,74 @@ export function ListaSesiones({ titulo, sesiones, cerradas = false, vacio, onVer
                 <th scope="col" className="tabla__der">
                   {cerradas ? "Duración" : "Transcurrido"}
                 </th>
-                {onVerEventos ? (
-                  <th scope="col" className="tabla__der tabla__eventos">Eventos</th>
-                ) : null}
+                <th scope="col" className="tabla__der tabla__eventos">Eventos</th>
               </tr>
             </thead>
             <tbody>
-              {sesiones.map((s) => (
-                <tr key={s.id}>
-                  <td>
-                    <span className="alumno">
-                      <Usuario size={18} weight="duotone" aria-hidden="true" />
-                      <span className="alumno__datos">
-                        {/* El nombre es lo que el docente reconoce. El número
-                            del aula virtual queda igual, más chico: es el
-                            puente para buscarlo en el campus, y lo único que
-                            hay si el nombre no llegó. */}
-                        <span className="alumno__nombre">
-                          {s.student_name || `Alumno ${s.moodle_user_id}`}
-                        </span>
-                        {/* Sólo si rindió más de una vez: con un intento no hay
-                            nada que aclarar, y el número sería ruido en todas
-                            las filas. */}
-                        {/* La marca está o no está: sin puntajes ni colores de riesgo. El
-                            texto completo va en el detalle de la sesión. */}
-                        {avisoDeCaptura(s.capture) ? (
-                          <span className="alumno__captura" title={avisoDeCaptura(s.capture)!.detalle}>
-                            {avisoDeCaptura(s.capture)!.corto}
+              {sesiones.map((s) => {
+                const aviso = avisoDeCaptura(s.capture);
+                const renglon = pie(s);
+                return (
+                  <tr key={s.id}>
+                    <td>
+                      <span className="alumno">
+                        <Usuario size={18} weight="duotone" aria-hidden="true" />
+                        <span className="alumno__datos">
+                          {/* El nombre es lo que el docente reconoce. Sin nombre,
+                              `nombreDeAlumno` pone el número del aula virtual. */}
+                          <span className="alumno__nombre">
+                            {nombreDeAlumno(s)}
                           </span>
-                        ) : null}
-                        <span className="alumno__pie cifra">
-                          {s.student_name ? `Alumno ${s.moodle_user_id}` : null}
-                          {s.student_name && s.intentos > 1 ? " · " : null}
-                          {s.intentos > 1 ? `intento ${s.intento} de ${s.intentos}` : null}
+                          {/* La marca está o no está: sin puntajes ni colores de riesgo. El
+                              texto completo va en el detalle de la sesión. */}
+                          {aviso ? (
+                            <span className="alumno__captura" title={aviso.detalle}>
+                              {aviso.corto}
+                            </span>
+                          ) : null}
+                          {/* «abandoned» es el intento que venció o se dejó sin
+                              entregar. Va acá y no como una tercera lista: el
+                              docente ya tiene dos donde mirar, y lo que cambia
+                              es esta fila y no el grupo entero. Dice que no se
+                              entregó, que es el hecho, y no por qué. */}
+                          {renglon ? (
+                            <span className="alumno__pie cifra">{renglon}</span>
+                          ) : null}
                         </span>
                       </span>
-                    </span>
-                  </td>
-                  <td className="tabla__der tabla__hora">
-                    <span className="cifra">{hora(s.started_at)}</span>
-                  </td>
-                  <td className="tabla__der">
-                    <Transcurrido inicio={s.started_at} cierre={s.closed_at ?? null} />
-                  </td>
-                  {onVerEventos ? (
+                    </td>
+                    <td className="tabla__der tabla__hora">
+                      <span className="cifra">{comienzo(s.started_at)}</span>
+                    </td>
+                    <td className="tabla__der">
+                      {/* Un intento sin entregar no tiene una duración que el panel
+                          conozca: el cierre es cuando Moodle procesó el abandono,
+                          que puede ser mucho después de que el alumno dejó de
+                          rendir. La fila ya dice «sin entregar». */}
+                      {s.status === "abandoned" ? (
+                        <span className="cifra">
+                          <span aria-hidden="true">—</span>
+                          <span className="solo-lectores">duración desconocida</span>
+                        </span>
+                      ) : (
+                        <Transcurrido inicio={s.started_at} cierre={s.closed_at ?? null} />
+                      )}
+                    </td>
                     <td className="tabla__der tabla__eventos">
                       <button
                         className="tabla__accion"
                         type="button"
                         onClick={() => onVerEventos(s)}
-                        aria-label={`Ver los eventos de ${s.student_name || `Alumno ${s.moodle_user_id}`}${
+                        aria-label={`Ver los eventos de ${nombreDeAlumno(s)}${
                           s.intentos > 1 ? `, intento ${s.intento} de ${s.intentos}` : ""
                         }`}
                       >
                         Ver
                       </button>
                     </td>
-                  ) : null}
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

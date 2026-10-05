@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { StrictMode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import App from "./App";
 import * as authService from "./services/authService";
@@ -22,11 +23,12 @@ describe("Enrutado y acceso", () => {
     sessionStorage.clear();
     window.history.pushState({}, "", "/");
     vi.restoreAllMocks();
-    // Sin estos dos, el panel sale a buscar de verdad contra localhost:8080 y
-    // la prueba pasa o falla según si el backend está levantado en la máquina
-    // de quien la corre. Cada prueba que necesite otra respuesta la pisa.
+    // Sin estos, el panel sale a buscar de verdad contra localhost:8080 y la
+    // prueba pasa o falla según si el backend está levantado en la máquina de
+    // quien la corre. Cada prueba que necesite otra respuesta la pisa.
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([]);
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([]);
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
   });
 
   it("muestra la página pública en la raíz", async () => {
@@ -74,6 +76,80 @@ describe("Enrutado y acceso", () => {
       ).toBeInTheDocument();
     });
     expect(authService.verifyMoodleLaunch).toHaveBeenCalledWith("un-token-de-lanzamiento");
+  });
+
+  // Como corre de verdad: main.tsx monta la app dentro de <StrictMode>, y ahí
+  // React hace setup, cleanup y setup de cada efecto. El resto de las pruebas
+  // monta <App /> pelado, así que no veía que el canje quedara sin nadie
+  // escuchando su resultado y la pantalla clavada en «Verificando el acceso».
+  it("dentro de StrictMode el traspaso entra igual al panel, y el token se canjea una sola vez", async () => {
+    window.history.pushState({}, "", "/auth/callback?token=un-token-de-lanzamiento");
+    vi.spyOn(authService, "verifyMoodleLaunch").mockImplementation(async () => {
+      guardarSesion();
+      return SESION;
+    });
+
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: /Escuchando el aula virtual/i })
+      ).toBeInTheDocument();
+    });
+    expect(authService.verifyMoodleLaunch).toHaveBeenCalledTimes(1);
+  });
+
+  it("dentro de StrictMode un traspaso rechazado muestra el error y no se queda verificando", async () => {
+    window.history.pushState({}, "", "/auth/callback?token=un-token-invalido");
+    vi.spyOn(authService, "verifyMoodleLaunch").mockRejectedValue(new Error("401"));
+
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/No pudimos validar el acceso/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Verificando el acceso/i)).not.toBeInTheDocument();
+  });
+
+  // El docente se arrepiente y se va mientras el canje sigue en vuelo: cuando el
+  // servidor por fin contesta, no tiene que empujarlo al panel. Se desmonta el
+  // árbol y no se usa `history.back()` a propósito: volver atrás en jsdom mueve
+  // la dirección pero no desmonta la pantalla, así que no ejercita la guarda.
+  it("si se sale de la pantalla antes de que el canje conteste, no entra al panel solo", async () => {
+    window.history.pushState({}, "", "/auth/callback?token=un-token-de-lanzamiento");
+    let contestar: (() => void) | undefined;
+    vi.spyOn(authService, "verifyMoodleLaunch").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          contestar = () => {
+            guardarSesion();
+            resolve(SESION);
+          };
+        })
+    );
+
+    const { unmount } = render(
+      <StrictMode>
+        <App />
+      </StrictMode>
+    );
+    await waitFor(() => {
+      expect(screen.getByText(/Verificando el acceso/i)).toBeInTheDocument();
+    });
+
+    unmount();
+    contestar!();
+    await waitFor(() => expect(authService.verifyMoodleLaunch).toHaveBeenCalled());
+
+    expect(window.location.pathname).toBe("/auth/callback");
   });
 
   it("explica en castellano qué hacer cuando el traspaso falla, sin mostrar el error técnico", async () => {
@@ -179,9 +255,24 @@ describe("Enrutado y acceso", () => {
 
     expect(await screen.findByRole("heading", { name: /Tu sesión venció/i })).toBeInTheDocument();
     // No se queda diciendo que es un problema de red sobre una lista congelada.
-    expect(screen.queryByText(/Sin conexión/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No se pudo actualizar/i)).not.toBeInTheDocument();
     // Y la sesión que ya no vale no queda guardada en el navegador.
     expect(sessionStorage.getItem("samce_session")).toBeNull();
+  });
+
+  it("si el servidor no contesta al entrar, no afirma que no hay exámenes", async () => {
+    guardarSesion();
+    vi.spyOn(sesionesService, "traerExamenes").mockRejectedValue(new Error("sin red"));
+    window.history.pushState({}, "", "/panel");
+
+    render(<App />);
+
+    expect(
+      await screen.findByText(/Todavía no se pudo traer la información del servidor/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /Escuchando el aula virtual/i })
+    ).not.toBeInTheDocument();
   });
 
   it("con el lanzamiento general muestra todos los cursos y de cuál es cada fila", async () => {
@@ -248,6 +339,29 @@ describe("Enrutado y acceso", () => {
     expect(await screen.findByRole("button", { name: /Bases de Datos/i })).toBeInTheDocument();
   });
 
+  it("marca en la fila la sesión que quedó sin entregar", async () => {
+    guardarSesion();
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
+      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 1, abandoned_sessions: 1 },
+    ]);
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+      { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "closed", started_at: "2026-08-26T14:02:00Z", closed_at: "2026-08-26T15:00:00Z" },
+      { id: 2, moodle_attempt_id: 7002, moodle_user_id: 42, student_name: "Bruno Pérez", status: "abandoned", started_at: "2026-08-26T14:03:00Z", closed_at: "2026-08-26T15:10:00Z" },
+    ]);
+    window.history.pushState({}, "", "/panel");
+
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: /Primer Parcial/i }));
+
+    // Las dos están finalizadas y van en la misma lista: lo que cambia es la
+    // fila, no el grupo. Y la que entregó no lleva ninguna marca, porque la
+    // entrega es lo que se espera y no hay nada que aclarar.
+    const bruno = (await screen.findByText("Bruno Pérez")).closest("tr");
+    expect(bruno).toHaveTextContent(/sin entregar/);
+    const ana = (await screen.findByText("Ana Gómez")).closest("tr");
+    expect(ana).not.toHaveTextContent(/sin entregar/);
+  });
+
   it("solo pide las sesiones del examen que se está mirando, no las de todos", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
@@ -262,16 +376,22 @@ describe("Enrutado y acceso", () => {
     render(<App />);
 
     // En la lista de exámenes los recuentos vienen con cada examen: no hace
-    // falta pedir ninguna sesión. La abandonada cuenta como finalizada.
+    // falta pedir ninguna sesión.
+    //
+    // Las tres entregadas y la abandonada se cuentan por separado. Sumadas
+    // decían «4 entregadas», y la cuarta es justamente la que no se entregó:
+    // un número redondo a costa de afirmar en pantalla algo que no pasó.
     const segundo = await screen.findByRole("button", { name: /Segundo Parcial/i });
-    expect(segundo).toHaveTextContent(/4 entregadas/);
+    expect(segundo).toHaveTextContent(/3 entregadas/);
+    expect(segundo).toHaveTextContent(/1 sin entregar/);
+    expect(segundo).not.toHaveTextContent(/4 entregadas/);
     expect(traer).not.toHaveBeenCalled();
 
     // Al entrar a uno se piden las de ese, y solo esas.
     fireEvent.click(await screen.findByRole("button", { name: /Primer Parcial/i }));
     expect(await screen.findByText("Ana Gómez")).toBeInTheDocument();
     expect(traer).toHaveBeenCalledWith(1, 50);
-    expect(traer).not.toHaveBeenCalledWith(2);
+    expect(traer.mock.calls.every(([examen]) => examen === 1)).toBe(true);
   });
 
   it("pide las sesiones de a 50 y «Ver más» pide otras 50", async () => {
@@ -309,10 +429,10 @@ describe("Enrutado y acceso", () => {
 
     render(<App />);
 
-    expect(await screen.findByText(/Se muestran las 1000 sesiones más recientes de 1200/)).toBeInTheDocument();
+    expect(await screen.findByText(/Se muestran las 1\.000 sesiones más recientes de 1\.200/)).toBeInTheDocument();
   });
 
-  it("marca «Sin captura» en la lista de sesiones que no la tuvieron, y no en las que sí", async () => {
+  it("marca «Captura incompleta» en la lista de sesiones que no la tuvieron, y no en las que sí", async () => {
     guardarSesion();
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 2, closed_sessions: 0, abandoned_sessions: 0 },
@@ -326,11 +446,11 @@ describe("Enrutado y acceso", () => {
     render(<App />);
 
     expect(await screen.findByText("Ana Gómez")).toBeInTheDocument();
-    expect(screen.getAllByText("Sin captura")).toHaveLength(1);
+    expect(screen.getAllByText("Captura incompleta")).toHaveLength(1);
     const filaBruno = screen.getByText("Bruno Pérez").closest("tr")!;
-    expect(within(filaBruno).getByText("Sin captura")).toBeInTheDocument();
+    expect(within(filaBruno).getByText("Captura incompleta")).toBeInTheDocument();
     const filaAna = screen.getByText("Ana Gómez").closest("tr")!;
-    expect(within(filaAna).queryByText("Sin captura")).not.toBeInTheDocument();
+    expect(within(filaAna).queryByText("Captura incompleta")).not.toBeInTheDocument();
   });
 
   it("no ofrece «Ver más» si entraron todas", async () => {
@@ -449,8 +569,10 @@ describe("Enrutado y acceso", () => {
 
     expect(await screen.findByText("Alumno 41")).toBeInTheDocument();
     expect(screen.getByText("Bruno Pérez")).toBeInTheDocument();
-    // Y el que sí tiene nombre no pierde su número, que es el puente al campus.
-    expect(screen.getByText(/Alumno 42/)).toBeInTheDocument();
+    // Y el que sí tiene nombre no arrastra su número del campus: el docente no
+    // conoce los identificadores internos de Moodle, y el panel no enlaza a
+    // ellos, así que ahí abajo no decía nada.
+    expect(screen.queryByText(/Alumno 42/)).not.toBeInTheDocument();
   });
 
   it("desde una sesión se puede ver lo que pasó durante el intento", async () => {
@@ -470,7 +592,7 @@ describe("Enrutado y acceso", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /Ver los eventos de Ana Gómez/i }));
 
-    expect(await screen.findByText("Salió de la ventana")).toBeInTheDocument();
+    expect(await screen.findByText("Pasó a otra ventana")).toBeInTheDocument();
     // Se pide por el examen y la sesión que se eligieron, y la dirección lo recuerda.
     expect(traerEventos).toHaveBeenCalledWith(1, 5, 0);
     expect(window.location.search).toContain("sesion=5");
@@ -479,32 +601,6 @@ describe("Enrutado y acceso", () => {
     fireEvent.click(screen.getByRole("button", { name: "Primer Parcial" }));
     expect(await screen.findByRole("heading", { name: /En curso/i })).toBeInTheDocument();
     expect(window.location.search).not.toContain("sesion");
-  });
-
-  it("mientras se ven los eventos, el reloj del panel no reinicia la consulta", async () => {
-    guardarSesion();
-    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
-      { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 0, abandoned_sessions: 0 },
-    ]);
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
-      { id: 5, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
-    ]);
-    const traerEventos = vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
-      { id: 1, seq: 1, type: "focus_lost", occurred_at: "2026-08-26T14:03:00Z", received_at: "2026-08-26T14:03:01Z", data: {} },
-    ]);
-    window.history.pushState({}, "", "/panel?examen=1&sesion=5");
-
-    render(<App />);
-    expect(await screen.findByText("Salió de la ventana")).toBeInTheDocument();
-
-    // El panel se redibuja cada segundo por su reloj. Esperar un par de
-    // segundos alcanza para que lo haga dos veces, y todavía falta para la
-    // próxima consulta, que es cada cinco.
-    await new Promise((resolve) => setTimeout(resolve, 2300));
-
-    expect(screen.getByText("Salió de la ventana")).toBeInTheDocument();
-    expect(screen.queryByText(/Cargando los eventos/)).not.toBeInTheDocument();
-    expect(traerEventos).toHaveBeenCalledTimes(1);
   });
 
   it("una sesión que no es del examen cae a la lista, sin pedirle nada al backend", async () => {
@@ -524,11 +620,11 @@ describe("Enrutado y acceso", () => {
     expect(traerEventos).not.toHaveBeenCalled();
   });
 
-  it("redirige al inicio cualquier dirección desconocida", () => {
+  it("redirige al inicio cualquier dirección desconocida", async () => {
     window.history.pushState({}, "", "/una-ruta-que-no-existe");
 
     render(<App />);
 
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/sin vigilar a nadie/i);
+    expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent(/sin vigilar a nadie/i);
   });
 });

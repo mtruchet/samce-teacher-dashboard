@@ -81,7 +81,9 @@
 }
 
 .ficha__estado--nada {
-  color: var(--tinta-tenue);
+  /* Tinta suave y no tenue: esto es texto. El propio token lo dice, que a
+     2,28:1 sobre lámina no alcanza y que el texto atenuado va en suave. */
+  color: var(--tinta-suave);
 }
 
 .ficha svg {

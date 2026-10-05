@@ -4,10 +4,8 @@ import "./Cadena.css";
 /**
  * La cadena, dibujada.
  *
- * La versión anterior mostraba dos huellas iguales en una tabla y no decía
- * nada: para quien no es técnico, dos códigos idénticos son dos códigos.
- *
- * Acá la idea se cuenta en dos movimientos. Primero se ve dónde queda la
+ * Dos huellas iguales en una tabla no dicen nada: para quien no es técnico,
+ * dos códigos idénticos son dos códigos. Acá la idea se cuenta en dos movimientos. Primero se ve dónde queda la
  * evidencia: un eslabón entre otros, encadenado a los que vinieron antes.
  * Después se ve la comprobación, que es lo único que al docente le importa:
  * el código de aquel día y el de hoy, y si dan igual.
@@ -16,7 +14,7 @@ import "./Cadena.css";
  * códigos coinciden no prueba nada para quien no sabe qué es un código: recién
  * al ver el caso roto al lado se entiende que la coincidencia significaba algo.
  *
- * La frase del final nombra a los tres que no pueden reescribirlo, y se incluye
+ * La nota de abajo nombra a los tres que no pueden reescribirlo, y se incluye
  * a sí misma en la lista. Es lo que convierte una promesa en una propiedad.
  */
 
@@ -81,13 +79,13 @@ export function Cadena() {
             <dl className="caso__pares">
               <div>
                 <dt>aquel día</dt>
-                <dd >
+                <dd className="cifra">
                   <b>{INTACTO.cabeza}</b>{INTACTO.cola}
                 </dd>
               </div>
               <div>
                 <dt>hoy</dt>
-                <dd >
+                <dd className="cifra">
                   <b>{INTACTO.cabeza}</b>{INTACTO.cola}
                 </dd>
               </div>
@@ -103,7 +101,7 @@ export function Cadena() {
             <dl className="caso__pares">
               <div>
                 <dt>aquel día</dt>
-                <dd >
+                <dd className="cifra">
                   <b>{INTACTO.cabeza}</b>{INTACTO.cola}
                 </dd>
               </div>

@@ -96,32 +96,6 @@
   white-space: nowrap;
 }
 
-/* El curso pesa como el examen: los dos dicen de dónde salió la sesión, y
-   ninguno compite con el alumno ni con las cifras de la derecha. */
-.tabla th.tabla__curso,
-.tabla td.tabla__curso {
-  width: 22%;
-  white-space: normal;
-}
-
-.tabla td.tabla__curso {
-  color: var(--tinta-media);
-}
-
-/* El examen es contexto de la fila, no su dato principal: pesa menos que el
-   alumno y no compite con las cifras de la derecha. Lleva ancho declarado y
-   se le permite envolver porque, si lo decide su contenido, las dos tablas
-   del panel dejan de compartir grilla y el ojo pierde la columna al bajar. */
-.tabla th.tabla__examen,
-.tabla td.tabla__examen {
-  width: 24%;
-  white-space: normal;
-}
-
-.tabla td.tabla__examen {
-  color: var(--tinta-media);
-}
-
 /* ==== Ver los eventos de una sesión ==================================== */
 
 /* Es un botón de texto: el docente ya está mirando una fila y lo único que
@@ -153,25 +127,8 @@
   outline-offset: 2px;
 }
 
-/* La línea con el alumno arriba del detalle de una sesión. */
-.detalle__alumno {
-  display: flex;
-  align-items: center;
-  gap: var(--e2);
-  margin-bottom: var(--e4);
-  font-size: var(--panel-nota);
-  color: var(--tinta-media);
-}
-
-.detalle__alumno svg {
-  flex: none;
-  color: var(--tinta-tenue);
-}
-
 /* ==== El alumno ======================================================== */
 
-/* El id de Moodle es el puente hacia el campus: el panel no guarda nombres, y
-   el docente ya tiene permiso para verlos allá. */
 .alumno svg {
   flex: none;
   color: var(--tinta-tenue);
@@ -190,8 +147,8 @@
   min-width: 0;
 }
 
-/* El número del aula virtual y la aclaración del reintento pesan menos que el
-   nombre: son precisiones, no el dato de la fila. */
+/* El número de intento y el «sin entregar» pesan menos que el nombre: son
+   precisiones, no el dato de la fila. */
 .alumno__pie {
   font-size: var(--panel-nota);
   color: var(--tinta-media);
@@ -204,10 +161,27 @@
   color: var(--tinta);
 }
 
+/* La marca de una captura incompleta: está o no está, sin color de riesgo. */
+.alumno__captura {
+  display: inline-block;
+  width: fit-content;
+  margin-top: 2px;
+  padding: 1px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+}
 
 @media (max-width: 760px) {
   .lista {
     padding-inline: var(--e4);
+  }
+
+  /* Los extremos del registro bajan a su propio renglón en vez de apretar el
+     título contra la cuenta. */
+  .lista__encabezado {
+    flex-wrap: wrap;
   }
 
   /* La hora de comienzo se va: el transcurrido dice lo mismo y ocupa menos.
@@ -223,41 +197,12 @@
     width: 96px;
   }
 
-  /* El examen se queda con lo que necesite y envuelve si hace falta. */
-  .tabla th.tabla__examen,
-  .tabla td.tabla__examen {
-    width: 38%;
+  /* Un nombre largo baja de renglón antes que empujar la tabla de costado. */
+  .alumno__nombre {
+    overflow-wrap: anywhere;
   }
-
-  /* «Alumno 6» es una unidad: partido en dos renglones deja de leerse de un
-     vistazo, que es lo único que se le pide a esta columna. */
-  .alumno__nombre,
 
   .lista__marco {
     max-height: none;
   }
-}
-
-.detalle__nota {
-  margin: 0 0 0.75rem;
-  font-size: 0.85rem;
-  opacity: 0.75;
-}
-
-.alumno__captura {
-  display: inline-block;
-  width: fit-content;
-  margin-top: 2px;
-  padding: 1px 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-}
-
-.detalle__captura {
-  margin: 0 0 0.75rem;
-  padding: 0.6rem 0.9rem;
-  border-left: 3px solid currentColor;
-  font-size: 0.9rem;
 }

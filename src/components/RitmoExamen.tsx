@@ -14,11 +14,15 @@ import "./RitmoExamen.css";
 
 const DURACION = 52;
 
-/* Actividad de escritura por minuto. Los valores vienen del intento de ejemplo
-   que la landing usa en todas sus piezas. */
+/* Actividad de escritura por minuto. Son datos de ejemplo, no de un examen
+   real, y la portada lo dice al pie del gráfico. Siguen el intento de ejemplo
+   que la landing usa en todas sus piezas: la alerta de muestra es del minuto
+   34 al 37, así que el tramo que se sale es ese mismo. Los textos del gráfico
+   tienen que poder comprobarse contra estos números: todo el intento va dentro
+   del corredor (de 32 a 88) salvo los minutos 34 a 37. */
 const ACTIVIDAD = [
-  30, 45, 52, 58, 55, 60, 48, 62, 58, 65, 60, 57, 63, 59, 66, 61, 58, 64, 60,
-  44, 58, 62, 59, 64, 60, 57, 63, 61, 58, 62, 59, 65, 60, 56, 8, 118, 104, 72,
+  41, 45, 52, 58, 55, 60, 48, 62, 58, 65, 60, 57, 63, 59, 66, 61, 58, 64, 60,
+  44, 58, 62, 59, 64, 60, 57, 63, 61, 58, 62, 59, 65, 60, 56, 8, 118, 104, 94,
   60, 57, 63, 59, 62, 58, 64, 60, 57, 46, 61, 58, 63, 59, 55,
 ];
 
@@ -39,7 +43,7 @@ const trazo = (desde: number, hasta: number) =>
     .map((v, i) => `${i === 0 ? "M" : "L"} ${x(desde + i).toFixed(1)} ${y(v).toFixed(1)}`)
     .join(" ");
 
-const FUERA = [34, 35, 36];
+const FUERA = [34, 35, 36, 37];
 
 /* Las tres señales sueltas del intento. Quedan adentro del corredor, y por eso
    hay que dibujarlas: sin ellas, la afirmación central de la sección no se ve. */
@@ -61,8 +65,8 @@ export function RitmoExamen() {
       >
         <title id="ritmo-descripcion">
           Actividad de escritura durante un examen de 52 minutos. El intento se mantiene dentro
-          del ritmo que el modelo esperaba, salvo entre el minuto 34 y el 37, donde primero cae a
-          cero y después se dispara muy por encima. Las señales de los minutos 6, 19 y 47 quedan
+          del ritmo que el modelo esperaba, salvo entre el minuto 34 y el 37, donde primero cae casi
+          a cero y después se dispara muy por encima. Las señales de los minutos 6, 19 y 47 quedan
           dentro de ese ritmo y no disparan ninguna alerta.
         </title>
 

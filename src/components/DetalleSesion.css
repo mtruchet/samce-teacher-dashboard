@@ -1,0 +1,95 @@
+/* La pantalla de una sesión: la línea de datos, los avisos y el registro,
+   uno abajo del otro. */
+.detalle {
+  display: grid;
+  gap: var(--e4);
+}
+
+/* La línea de datos de la sesión, arriba de la pila. No repite el nombre del
+   alumno, que ya está en el título de la pantalla y en las migas: lleva lo que
+   allá no entra, y el estado apartado a la derecha porque es lo único que
+   cambia solo mientras la pantalla está abierta. Va afuera de la lámina porque
+   describe la sesión entera, y sangrada como el contenido de adentro para
+   arrancar en la misma columna que todo lo demás. */
+.detalle__sesion {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e4);
+  padding-inline: var(--e6);
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+}
+
+/* Los datos se separan con aire y no con un carácter: un separador dibujado
+   compite con el texto y hay que leerlo para descartarlo. */
+.detalle__datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2) var(--e5);
+  min-width: 0;
+}
+
+/* Hasta dónde llega el registro. Pesa como la cuenta de al lado y se va al
+   final del encabezado: es una precisión sobre lo que se está mirando, no el
+   asunto de la lámina. */
+.detalle__extremos {
+  margin-left: auto;
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+  white-space: nowrap;
+}
+
+/* El celeste en su rol de siempre, que es marcar estado activo, y nunca
+   decoración. Mientras el alumno rinde el estado es celeste, y cuando entregó
+   pasa a tinta: el cambio de color dice que algo cambió, no que algo esté mal. */
+.detalle__estado {
+  flex: none;
+  font-size: var(--panel-rotulo);
+  font-weight: 600;
+  letter-spacing: var(--track-rotulo);
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+.detalle__estado--vivo {
+  color: var(--celeste-hondo);
+}
+
+/* Los dos avisos de la vista de eventos. Comparten la forma del vacío del
+   panel y se separan entre sí por superficie, que es como este sistema separa:
+   el que espera se apoya en la lámina y el que avisa de un problema sube un
+   escalón, sin línea ni borde de color. */
+.detalle__cargando,
+.detalle__aviso {
+  padding: var(--e4) var(--e5);
+  border-radius: max(0px, calc(var(--radio-panel) - var(--e5)));
+  font-size: var(--panel-cuerpo);
+  color: var(--tinta-media);
+}
+
+.detalle__cargando {
+  background: var(--sup-2);
+}
+
+.detalle__aviso {
+  margin-bottom: var(--e3);
+  background: var(--nivel-1-fondo);
+  box-shadow: inset 0 0 0 1px var(--nivel-1-borde);
+  color: var(--nivel-1-tinta);
+}
+
+/* La explicación de una captura incompleta. */
+.detalle__captura {
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 3px solid currentColor;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 760px) {
+  /* El alumno sigue al ras del contenido de la lámina, que acá se angosta. */
+  .detalle__sesion {
+    padding-inline: var(--e4);
+  }
+}

@@ -93,11 +93,6 @@
   }
 }
 
-/* El panel es más ancho que la página pública. */
-.pie .marco--panel {
-  max-width: var(--ancho-panel);
-}
-
 /* El cargo va arriba y en chico, y el nombre debajo en su propio renglón: los
    dos nombres son largos y en una sola línea la etiqueta y la persona se leían
    como una frase sola. */
@@ -107,6 +102,6 @@
   font-size: var(--panel-rotulo);
   letter-spacing: var(--track-rotulo);
   text-transform: uppercase;
-  color: var(--tinta-clara-tenue, var(--tinta-clara-media));
+  color: var(--tinta-clara-media);
 }
 

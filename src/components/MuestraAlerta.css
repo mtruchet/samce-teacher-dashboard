@@ -16,8 +16,9 @@
   justify-content: space-between;
   gap: var(--e4);
   padding: var(--e3) var(--e4);
+  /* El escalón de superficie ya separa: sup-2 sobre sup-1. La línea era la
+     segunda forma de decir lo mismo, y es la que el sistema no usa. */
   background: var(--sup-2);
-  border-bottom: 1px solid var(--guia);
 }
 
 .alerta__contexto {
@@ -52,8 +53,6 @@
   }
 }
 
-/* Radio interno = externo menos el padding. Poner el mismo radio adentro y
-   afuera hace que se vea mal aunque nadie sepa decir por qué. */
 .alerta__cuerpo {
   padding: var(--e6);
 }

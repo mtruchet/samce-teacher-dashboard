@@ -6,14 +6,13 @@ import "./SinSesion.css";
 /**
  * Cuando alguien llega al panel sin sesión.
  *
- * Antes esto era un redirect instantáneo a la página pública, y el docente
- * terminaba en otra pantalla sin entender qué había pasado. Pasa seguido: el
- * enlace del panel guardado en favoritos, una pestaña vieja recuperada al
- * abrir el navegador, o volver atrás después de haber salido.
- *
- * Ahora se explica qué pasó y adónde va, y recién después se lo lleva. La
- * espera es corta pero suficiente para leer una línea, y el enlace está ahí
- * para quien no quiera esperar o tenga la redirección bloqueada.
+ * Pasa seguido: el enlace del panel guardado en favoritos, una pestaña vieja
+ * recuperada al abrir el navegador, o volver atrás después de haber salido. Un
+ * salto directo a la página pública lo dejaría en otra pantalla sin entender
+ * qué pasó, así que primero se explica qué pasó y adónde va, y recién después
+ * se lo lleva. La espera es corta pero suficiente para leer una línea, y el
+ * enlace está ahí para quien no quiera esperar o tenga la redirección
+ * bloqueada.
  */
 
 /** Lo que tarda en leerse una oración, sin llegar a impacientar. */

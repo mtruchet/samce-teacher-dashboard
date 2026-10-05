@@ -22,32 +22,51 @@ export function AuthCallback() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const [estado, setEstado] = useState<Estado>("validando");
-  const yaIntentado = useRef(false);
+  // El canje, no un «ya intenté». El token es de un solo uso, así que el pedido
+  // tiene que salir una sola vez aunque el efecto corra dos veces; pero el
+  // resultado hay que volver a escucharlo en cada pasada. Con un booleano, en
+  // desarrollo —donde React hace setup, cleanup y setup— la segunda pasada
+  // cortaba antes de enganchar nada y el cleanup de la primera ya había anulado
+  // su propio aviso: la promesa resolvía sin que nadie la escuchara y la
+  // pantalla quedaba clavada en «Verificando el acceso», tanto si el canje salía
+  // bien como si el servidor lo rechazaba.
+  const canje = useRef<Promise<unknown> | null>(null);
 
   useEffect(() => {
-    // El token es de un solo uso: en desarrollo React monta dos veces y el
-    // segundo intento fallaría contra un token ya consumido.
-    if (yaIntentado.current) {
-      return;
+    // Si el docente navega lejos de esta pantalla mientras la verificación sigue
+    // en vuelo (por ejemplo, con el botón Atrás), esta promesa no tiene que
+    // empujarlo de vuelta al panel ni tocar el estado de un componente que ya no
+    // está montado.
+    let vigente = true;
+
+    if (!canje.current) {
+      const token = params.get("token");
+
+      // Se saca de la barra apenas se lee, antes de cualquier espera. Si se
+      // esperara al resultado, el token quedaría a la vista durante toda la
+      // validación, y para siempre si falla: que es justo cuando el docente
+      // saca una captura para pedir ayuda.
+      window.history.replaceState({}, "", window.location.pathname);
+
+      if (!token) {
+        setEstado("error");
+        return;
+      }
+
+      canje.current = verifyMoodleLaunch(token);
     }
-    yaIntentado.current = true;
 
-    const token = params.get("token");
+    canje.current
+      .then(() => {
+        if (vigente) navigate("/panel", { replace: true });
+      })
+      .catch(() => {
+        if (vigente) setEstado("error");
+      });
 
-    // Se saca de la barra apenas se lee, antes de cualquier espera. Si se
-    // esperara al resultado, el token quedaría a la vista durante toda la
-    // validación, y para siempre si falla: que es justo cuando el docente
-    // saca una captura para pedir ayuda.
-    window.history.replaceState({}, "", window.location.pathname);
-
-    if (!token) {
-      setEstado("error");
-      return;
-    }
-
-    verifyMoodleLaunch(token)
-      .then(() => navigate("/panel", { replace: true }))
-      .catch(() => setEstado("error"));
+    return () => {
+      vigente = false;
+    };
   }, [params, navigate]);
 
   if (estado === "validando") {
