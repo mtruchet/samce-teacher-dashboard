@@ -10,7 +10,9 @@ import {
   type SesionNumerada,
 } from "../services/sesionesService";
 import { horaExacta } from "../eventos";
+import { recienCerrada } from "../seguimiento";
 
+import { AnalisisSesion } from "./AnalisisSesion";
 import { ListaEventos } from "./ListaEventos";
 import "./ListaSesiones.css";
 import "./DetalleSesion.css";
@@ -26,27 +28,19 @@ import "./DetalleSesion.css";
  * marcada con una página sin captura cuyo aviso todavía no está en el
  * registro: ahí se sigue preguntando hasta que llegue (ver `esperaElAviso`).
  *
- * Solo muestra lo que se guardó. No calcula nada: la página no tiene índice de
- * integridad, nivel de riesgo ni alertas, y no las tiene porque todavía no
- * existen, no porque falten en la pantalla.
+ * El registro solo muestra lo que se guardó y no calcula nada. Las alertas y el
+ * estado del análisis van en su propio apartado («Análisis de la sesión»,
+ * `AnalisisSesion`), arriba del registro y con su propia consulta: la de eventos
+ * no trae alertas, y mezclarlas haría pasar un cálculo por un dato guardado.
  *
  * Se monta una vez por sesión (el panel le pone `key` con el id de la sesión):
  * al pasar a otra sesión arranca de cero, sin arrastrar nada de la anterior.
  */
 
-/**
- * Cuánto se sigue preguntando después de que la sesión se cerró. El aviso de
- * que una página corrió sin captura lo manda Moodle en una tarea programada
- * que corre después de la entrega, así que llega tarde por construcción.
- */
-const TRAS_EL_CIERRE_MS = 10 * 60 * 1000;
-
-/** Si una sesión cerrada todavía puede recibir lo que Moodle manda tarde. */
-function recienCerrada(closedAt: string | undefined): boolean {
-  if (!closedAt) return false;
-  const cierre = Date.parse(closedAt);
-  return !Number.isNaN(cierre) && Date.now() - cierre < TRAS_EL_CIERRE_MS;
-}
+/* Cuánto se sigue preguntando después de que la sesión se cerró (`recienCerrada`) está en
+   `seguimiento.ts`: el aviso de que una página corrió sin captura lo manda Moodle en una
+   tarea programada que corre después de la entrega, así que llega tarde por construcción,
+   y el apartado del análisis comparte la regla. */
 
 /**
  * Si la sesión dice que una página corrió sin captura, pero el aviso que lo
@@ -284,6 +278,8 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
             : "No se pudo actualizar el registro. Lo que se ve es lo último que llegó. Volvé a entrar a la sesión para pedirlo de nuevo."}
         </p>
       ) : null}
+
+      <AnalisisSesion sesion={sesion} onVencida={onVencida} />
 
       <section className="lista">
         <header className="lista__encabezado">

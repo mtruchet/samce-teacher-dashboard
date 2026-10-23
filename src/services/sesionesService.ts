@@ -226,6 +226,50 @@ export function traerEventos(examenId: number, sesionId: number, despuesDeId = 0
 }
 
 /**
+ * Cómo está el análisis de una sesión (SAMCE-36).
+ *
+ * not_analyzed: todavía no hay ningún cálculo. analyzed: se analizó, con alertas o sin
+ * ellas. insufficient_evidence: no tuvo evidencia suficiente (poca actividad o captura
+ * incompleta). unavailable: el motor no pudo analizarla, por ejemplo sin modelo cargado.
+ */
+export type EstadoDelAnalisis = "not_analyzed" | "analyzed" | "insufficient_evidence" | "unavailable";
+
+/**
+ * Una alerta vigente de la sesión. A lo sumo hay una de cada origen. Es una señal para
+ * revisar y no una conclusión: la explicación describe lo observado sin atribuir intención.
+ */
+export interface AlertaDeSesion {
+  /** model: el índice de integridad bajó del umbral. event: un solo evento, el pegado de un bloque largo. */
+  origin: "model" | "event";
+  level: "low" | "medium" | "high";
+  explanation: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * El análisis de una sesión: su estado, la hora del último cálculo y sus alertas.
+ *
+ * Es la versión mínima: el backend no manda el índice de integridad, las métricas, el
+ * historial ni la cronología, y el panel no los muestra.
+ */
+export interface Analisis {
+  state: EstadoDelAnalisis;
+  /** Por qué no hay índice (poca actividad, sin modelo...). Nulo si se analizó o todavía no. */
+  reason: string | null;
+  /** Hora del último cálculo. Nulo si todavía no se analizó. */
+  calculated_at: string | null;
+  alerts: AlertaDeSesion[];
+}
+
+/** El análisis de una sesión: su estado, el último cálculo y las alertas vigentes. */
+export function traerAnalisis(examenId: number, sesionId: number): Promise<Analisis> {
+  return pedir<Analisis>(
+    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions/${sesionId}/analysis`
+  );
+}
+
+/**
  * Cómo se llama al alumno de una sesión en la pantalla.
  *
  * Tres casos. Si el backend pudo descifrar el nombre, va el nombre. Si solo
