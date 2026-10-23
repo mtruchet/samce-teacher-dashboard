@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { horaExacta } from "../eventos";
+import { ordenarExplicacion } from "../explicacion";
 import { recienCerrada } from "../seguimiento";
 import {
   CADENCIA_MS,
@@ -24,7 +25,12 @@ import "./AnalisisSesion.css";
  * aparecer o subir de nivel mientras el docente mira.
  *
  * Una alerta es una señal para revisar, no una conclusión sobre el alumno: la explicación
- * describe lo observado sin atribuir intención, y el apartado lo aclara cuando hay alertas.
+ * describe lo observado sin atribuir intención y termina diciéndolo.
+ *
+ * La explicación llega del motor con un renglón por cosa y acá se ordena (`ordenarExplicacion`):
+ * el titular, las variables que más pesaron en una tabla chica —qué se midió, qué pasó en esta
+ * sesión y qué se espera— y la aclaración al final, más discreta. Una explicación sin ese
+ * formato se muestra entera como párrafo.
  */
 
 const NIVELES: Record<AlertaDeSesion["level"], string> = {
@@ -42,6 +48,62 @@ interface Props {
   sesion: SesionNumerada;
   /** El token dejó de valer: no se arregla reintentando, lo resuelve el panel. */
   onVencida: () => void;
+}
+
+function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
+  const e = ordenarExplicacion(alerta.explanation);
+  const hayLista = e.variables.length > 0 || e.viñetasSinForma.length > 0;
+  // Una explicación sin estructura (una alerta guardada en un solo párrafo) no tiene un titular: se
+  // muestra como texto común y no en grande y en negrita.
+  const sinEstructura = e.detalle.length === 0 && !hayLista && e.despues.length === 0 && e.cierre === null;
+  return (
+    <li className={`analisis__alerta analisis__alerta--${alerta.level}`}>
+      <div className="analisis__cabeza">
+        <span className={`analisis__nivel analisis__nivel--${alerta.level}`}>{NIVELES[alerta.level]}</span>
+        <span className="analisis__origen">{ORIGENES[alerta.origin]}</span>
+      </div>
+
+      <p className={sinEstructura ? "analisis__detalle" : "analisis__titular"}>{e.titular}</p>
+      {e.detalle.map((renglon) => (
+        <p className="analisis__detalle" key={renglon}>{renglon}</p>
+      ))}
+
+      {hayLista ? (
+        <div className="analisis__lista">
+          {e.encabezadoDeLista ? <p className="analisis__leyenda">{e.encabezadoDeLista}</p> : null}
+          {e.variables.length > 0 ? (
+            <table className="analisis__tabla">
+              <thead>
+                <tr>
+                  <th scope="col">Qué se midió</th>
+                  <th scope="col">En esta sesión</th>
+                  <th scope="col">Lo esperado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {e.variables.map((v) => (
+                  <tr key={v.etiqueta}>
+                    <th scope="row">{v.etiqueta}</th>
+                    <td className="cifra">{v.observado}</td>
+                    <td className="cifra">{v.esperado}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <ul className="analisis__viñetas">
+              {e.viñetasSinForma.map((v) => <li key={v}>{v}</li>)}
+            </ul>
+          )}
+        </div>
+      ) : null}
+
+      {e.despues.map((renglon) => (
+        <p className="analisis__detalle" key={renglon}>{renglon}</p>
+      ))}
+      {e.cierre ? <p className="analisis__cierre">{e.cierre}</p> : null}
+    </li>
+  );
 }
 
 function Estado({ analisis }: { analisis: Analisis }) {
@@ -146,21 +208,16 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
           {analisis.alerts.length > 0 ? (
             <>
               <ul className="analisis__alertas">
-                {analisis.alerts.map((alerta) => (
-                  <li key={alerta.origin} className={`analisis__alerta analisis__alerta--${alerta.level}`}>
-                    <div className="analisis__cabeza">
-                      <span className={`analisis__nivel analisis__nivel--${alerta.level}`}>
-                        {NIVELES[alerta.level]}
-                      </span>
-                      <span className="analisis__origen">{ORIGENES[alerta.origin]}</span>
-                    </div>
-                    <p className="analisis__explicacion">{alerta.explanation}</p>
-                  </li>
-                ))}
+                {analisis.alerts.map((alerta) => <Alerta key={alerta.origin} alerta={alerta} />)}
               </ul>
-              <p className="analisis__nota">
-                Una alerta señala algo para revisar; no es una conclusión sobre el alumno.
-              </p>
+              {/* Cada explicación nueva termina aclarando que describe lo observado y no atribuye
+                  intención. Si alguna no lo dice (una alerta guardada antes del formato nuevo), la
+                  aclaración va acá, para que nunca falte. */}
+              {analisis.alerts.some((a) => ordenarExplicacion(a.explanation).cierre === null) ? (
+                <p className="analisis__nota">
+                  Una alerta señala algo para revisar; no es una conclusión sobre el alumno.
+                </p>
+              ) : null}
             </>
           ) : null}
         </>

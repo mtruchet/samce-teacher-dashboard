@@ -94,6 +94,77 @@ describe("AnalisisSesion", () => {
     expect(alertas[1]).toHaveTextContent("Se pegó un bloque de 4.370 caracteres");
   });
 
+  it("ordena la explicación: titular, variables en una tabla y la aclaración al final, discreta", async () => {
+    const texto = [
+      "Esta sesión se aparta levemente de lo habitual.",
+      "Su índice es 99,5 de 100: menos del 5 % de las sesiones esperadas se comporta así.",
+      "Lo que más pesó:",
+      "• Mayor hueco sin eventos: 45 segundos (lo esperado: 20 segundos)",
+      "• Velocidad de tecleo máxima: 10,8 caracteres por segundo (lo esperado: 5,6 caracteres por segundo)",
+      "Esto describe lo observado y no atribuye intención: la revisión es del docente.",
+    ].join("\n");
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
+      analisis({ alerts: [alerta({ level: "low", explanation: texto })] })
+    );
+    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
+    await esperar();
+
+    expect(screen.getByText("Esta sesión se aparta levemente de lo habitual.")).toBeInTheDocument();
+    expect(screen.getByText(/Su índice es 99,5 de 100/)).toBeInTheDocument();
+    const tabla = screen.getByRole("table");
+    expect(within(tabla).getAllByRole("columnheader").map((c) => c.textContent)).toEqual([
+      "Qué se midió", "En esta sesión", "Lo esperado",
+    ]);
+    const filas = within(tabla).getAllByRole("row").slice(1);
+    expect(filas).toHaveLength(2);
+    expect(within(filas[0]).getByRole("rowheader")).toHaveTextContent("Mayor hueco sin eventos");
+    expect(within(filas[0]).getAllByRole("cell").map((c) => c.textContent)).toEqual(["45 segundos", "20 segundos"]);
+    expect(within(filas[1]).getAllByRole("cell").map((c) => c.textContent)).toEqual([
+      "10,8 caracteres por segundo", "5,6 caracteres por segundo",
+    ]);
+    // La aclaración está una sola vez y no se repite como nota general.
+    expect(screen.getAllByText(/no atribuye intención/)).toHaveLength(1);
+    expect(screen.queryByText(/no es una conclusión sobre el alumno/)).not.toBeInTheDocument();
+    // Ya no se lee como un párrafo corrido: no queda ningún signo de viñeta suelto.
+    expect(screen.queryByText(/•/)).not.toBeInTheDocument();
+  });
+
+  it("una alerta de evento no tiene tabla: titular, aclaración y cierre", async () => {
+    const texto = [
+      "Se pegó un bloque de 4.370 caracteres en una respuesta en la que no se había escrito nada antes.",
+      "En las sesiones esperadas, el pegado más largo no pasó de 90 caracteres.",
+      "Esto describe lo observado y no atribuye intención: la revisión es del docente.",
+    ].join("\n");
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
+      analisis({ alerts: [alerta({ origin: "event", level: "high", explanation: texto })] })
+    );
+    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
+    await esperar();
+
+    expect(screen.getByText(/Se pegó un bloque de 4.370 caracteres/)).toBeInTheDocument();
+    expect(screen.getByText(/no pasó de 90 caracteres/)).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("una alerta guardada con el formato viejo, en un párrafo, se lee entera y la aclaración general no falta", async () => {
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
+      analisis({
+        alerts: [alerta({
+          explanation: "El índice de la sesión es 60 de 100: su comportamiento se parece al de menos del 1 % de las sesiones esperadas.",
+        })],
+      })
+    );
+    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
+    await esperar();
+
+    const texto = screen.getByText(/El índice de la sesión es 60 de 100/);
+    expect(texto).toBeInTheDocument();
+    // Sin estructura no hay titular: se muestra como texto común y no en grande y en negrita.
+    expect(texto).not.toHaveClass("analisis__titular");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByText(/no es una conclusión sobre el alumno/)).toBeInTheDocument();
+  });
+
   it("cada nivel se nombra: bajo, medio y alto", async () => {
     vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis({ alerts: [alerta({ level: "low" })] }));
     render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
