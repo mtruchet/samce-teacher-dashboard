@@ -104,10 +104,87 @@
   opacity: 0.85;
 }
 
-.analisis__explicacion {
+/* El titular es lo primero que se lee: pesa más que el resto de la tarjeta. */
+.analisis__titular {
+  margin: 0;
+  font-size: var(--panel-pieza);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.analisis__detalle {
   margin: 0;
   font-size: var(--panel-cuerpo);
   line-height: 1.5;
+}
+
+/* Las variables que más pesaron, en una tabla chica: qué se midió, qué pasó en esta sesión y qué
+   se espera. Sin bordes pesados: una línea fina entre filas, con el color del texto de la tarjeta
+   atenuado, para que funcione igual en los tres niveles. */
+.analisis__lista {
+  display: grid;
+  gap: var(--e2);
+  margin-top: var(--e1);
+}
+
+.analisis__leyenda {
+  margin: 0;
+  font-size: var(--panel-rotulo);
+  font-weight: 700;
+  letter-spacing: var(--track-rotulo);
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.analisis__tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--panel-fila);
+}
+
+.analisis__tabla th,
+.analisis__tabla td {
+  padding: var(--e2) var(--e3) var(--e2) 0;
+  text-align: left;
+  vertical-align: baseline;
+  border-top: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.analisis__tabla thead th {
+  padding-top: 0;
+  border-top: 0;
+  font-size: var(--panel-rotulo);
+  font-weight: 600;
+  letter-spacing: var(--track-rotulo);
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+/* El nombre de la variable es el rótulo de la fila; lo observado va resaltado y lo esperado, atenuado. */
+.analisis__tabla tbody th {
+  font-weight: 500;
+}
+
+.analisis__tabla td:nth-child(2) {
+  font-weight: 700;
+}
+
+.analisis__tabla td:nth-child(3) {
+  opacity: 0.85;
+}
+
+.analisis__viñetas {
+  margin: 0;
+  padding-left: var(--e5);
+  font-size: var(--panel-cuerpo);
+  line-height: 1.5;
+}
+
+/* La aclaración de que describe lo observado y no atribuye intención: discreta, al final. */
+.analisis__cierre {
+  margin: var(--e1) 0 0;
+  font-size: var(--panel-nota);
+  opacity: 0.85;
 }
 
 .analisis__nota {
