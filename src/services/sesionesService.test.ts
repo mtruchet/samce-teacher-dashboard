@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { EVENTOS_POR_PAGINA, SESIONES_TOPE, SesionVencida, nombreDeAlumno, traerEventos, traerSesiones } from "./sesionesService";
+import {
+  EVENTOS_POR_PAGINA, SESIONES_TOPE, SesionVencida, nombreDeAlumno, traerAnalisis, traerEventos, traerSesiones,
+} from "./sesionesService";
 
 function guardarSesion() {
   sessionStorage.setItem(
@@ -107,5 +109,42 @@ describe("traerSesiones", () => {
 
     expect(fetch.mock.calls[0][0]).toBe("http://localhost:8080/monitored-quizzes/3/sessions?limit=100");
     expect(fetch.mock.calls[1][0]).toContain(`limit=${SESIONES_TOPE}`);
+  });
+});
+
+describe("traerAnalisis", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    sessionStorage.clear();
+    guardarSesion();
+  });
+
+  it("pide el análisis de la sesión del examen, con la sesión del panel", async () => {
+    const cuerpo = { state: "analyzed", reason: null, calculated_at: "2026-10-23T14:30:05.123Z", alerts: [] };
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => cuerpo });
+    vi.stubGlobal("fetch", fetch);
+
+    const analisis = await traerAnalisis(3, 7);
+
+    expect(analisis).toEqual(cuerpo);
+    const [url, opciones] = fetch.mock.calls[0];
+    expect(url).toBe("http://localhost:8080/monitored-quizzes/3/sessions/7/analysis");
+    expect(opciones.headers.Authorization).toBe("Bearer session-jwt");
+  });
+
+  it("distingue una sesión vencida de cualquier otro fallo", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 401 }));
+    await expect(traerAnalisis(3, 7)).rejects.toBeInstanceOf(SesionVencida);
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    await expect(traerAnalisis(3, 7)).rejects.toThrow("respondió 500");
+  });
+
+  it("sin sesión guardada no llega a pedir nada", async () => {
+    sessionStorage.clear();
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    await expect(traerAnalisis(3, 7)).rejects.toBeInstanceOf(SesionVencida);
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

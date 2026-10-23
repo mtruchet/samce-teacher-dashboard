@@ -11,6 +11,10 @@ const nada = () => undefined;
 describe("DetalleSesion", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    // El apartado «Análisis de la sesión» hace su propia consulta; acá solo importa el registro.
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue({
+      state: "not_analyzed", reason: null, calculated_at: null, alerts: [],
+    });
   });
 
   afterEach(() => {
@@ -38,6 +42,32 @@ describe("DetalleSesion", () => {
     expect(screen.queryByText("Ana Gómez")).not.toBeInTheDocument();
     expect(screen.queryByText(/Alumno 41/)).not.toBeInTheDocument();
     expect(screen.getByText("rindiendo ahora")).toBeInTheDocument();
+  });
+
+  it("el análisis de la sesión va en su apartado, aparte del registro de eventos", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "focus_lost")]);
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue({
+      state: "analyzed",
+      reason: null,
+      calculated_at: "2026-10-23T14:30:05.123Z",
+      alerts: [{
+        origin: "event", level: "high", explanation: "Se pegó un bloque de 4.370 caracteres.",
+        created_at: "2026-10-23T14:00:00.000Z", updated_at: "2026-10-23T14:30:05.123Z",
+      }],
+    });
+
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    const analisis = screen.getByRole("region", { name: "Análisis de la sesión" });
+    expect(analisis).toHaveTextContent("Nivel alto");
+    expect(analisis).toHaveTextContent("Se pegó un bloque de 4.370 caracteres.");
+    // El registro sigue siendo solo lo que pasó: la alerta no entra en su tabla.
+    const registro = screen.getByRole("heading", { name: "Registro de eventos" }).closest("section");
+    expect(registro).not.toBeNull();
+    expect(registro).not.toContainElement(analisis);
+    expect(registro).not.toHaveTextContent("Se pegó un bloque de 4.370 caracteres.");
+    expect(sesionesService.traerAnalisis).toHaveBeenCalledWith(3, 7);
   });
 
   it("pide por orden de llegada y muestra el evento tardío donde llegó", async () => {

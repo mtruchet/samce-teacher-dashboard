@@ -47,9 +47,21 @@ Desde cada sesión se abre su registro: lo que pasó durante el intento, un even
 por fila, con su hora, qué pasó y el detalle, del más reciente al más antiguo.
 Se actualiza mientras el alumno rinde y unos minutos después de la entrega,
 porque lo último del intento llega con retraso. El registro cuenta y no juzga:
-no tiene índice de integridad, nivel de riesgo, alertas ni orden por relevancia,
-que son del análisis. La lista marca las sesiones cuya captura quedó incompleta,
-y el registro explica qué no quedó registrado.
+no tiene índice de integridad, nivel de riesgo, alertas ni orden por relevancia.
+La lista marca las sesiones cuya captura quedó incompleta, y el registro explica
+qué no quedó registrado.
+
+Arriba del registro, el apartado **«Análisis de la sesión»** muestra lo que el
+análisis encontró: si la sesión todavía no se analizó, si se analizó (con o sin
+alertas), si no tuvo evidencia suficiente o si el análisis no está disponible, la
+hora del último cálculo y las **alertas vigentes**, cada una con su nivel (bajo,
+medio o alto, escrito) y su explicación en lenguaje llano. Es la versión mínima: no
+muestra el índice de integridad, las métricas, el historial ni la cronología, y no
+cambia la lista de sesiones. Una alerta señala algo para revisar y no una
+conclusión sobre el alumno. Se actualiza igual que el registro, mientras el alumno
+rinde y unos minutos después de la entrega, y lo pide a
+`GET /monitored-quizzes/{id}/sessions/{sessionId}/analysis`, que tiene el mismo
+control de acceso que el registro de eventos.
 
 Los exámenes aparecen solos: nadie los da de alta. Cuando un alumno abre el
 cuestionario, el complemento avisa al backend y la sesión se registra sin que
