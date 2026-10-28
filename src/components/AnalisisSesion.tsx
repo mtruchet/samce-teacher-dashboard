@@ -201,7 +201,7 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
         <h2 className="analisis__titulo" id="analisis-titulo">Análisis de la sesión</h2>
         {analisis?.calculated_at ? (
           <span className="analisis__calculo cifra">
-            último cálculo a las {horaExacta(analisis.calculated_at)}
+            último cálculo a las <time dateTime={analisis.calculated_at}>{horaExacta(analisis.calculated_at)}</time>
           </span>
         ) : null}
       </header>
@@ -217,7 +217,9 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
       {analisis === null ? (
         sinConexion ? null : <p className="analisis__estado" role="status">Cargando el análisis…</p>
       ) : (
-        <>
+        // Región viva: un lector de pantalla anuncia la alerta que aparece o sube de nivel mientras se mira. Lleva
+        // nombre porque el componente ya tiene otros dos `role="status"` (el aviso sin conexión y «Cargando»).
+        <div role="status" aria-live="polite" aria-label="Alertas de la sesión">
           <Estado analisis={analisis} />
           {analisis.alerts.length > 0 ? (
             <>
@@ -234,7 +236,7 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
               ) : null}
             </>
           ) : null}
-        </>
+        </div>
       )}
     </section>
   );

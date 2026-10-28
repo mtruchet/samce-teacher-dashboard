@@ -63,11 +63,14 @@ describe("AnalisisSesion", () => {
 
   it("una sesión analizada sin alertas dice que no tiene, con la hora del último cálculo", async () => {
     vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis());
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
+    const { container } = render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
     await esperar();
 
     expect(screen.getByText("La sesión se analizó y no tiene alertas.")).toBeInTheDocument();
-    expect(screen.getByText(`último cálculo a las ${horaExacta(CALCULO)}`)).toBeInTheDocument();
+    expect(screen.getByText(/último cálculo a las/)).toBeInTheDocument();
+    const hora = container.querySelector(".analisis__calculo time") as HTMLTimeElement;
+    expect(hora.dateTime).toBe(CALCULO);
+    expect(hora).toHaveTextContent(horaExacta(CALCULO));
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
   });
 
@@ -274,6 +277,10 @@ describe("AnalisisSesion", () => {
     await esperar(sesionesService.CADENCIA_MS);
     expect(screen.getByText("Nivel alto")).toBeInTheDocument();
     expect(screen.queryByText("Nivel bajo")).not.toBeInTheDocument();
+    // La alerta nueva queda dentro de la región viva con nombre, para que un lector de pantalla la anuncie.
+    const region = screen.getByRole("status", { name: "Alertas de la sesión" });
+    expect(region).toHaveAttribute("aria-live", "polite");
+    expect(within(region).getByText("Nivel alto")).toBeInTheDocument();
   });
 
   it("una sesión entregada hace mucho no sigue preguntando", async () => {
