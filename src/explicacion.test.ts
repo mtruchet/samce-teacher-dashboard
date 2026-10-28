@@ -3,9 +3,9 @@ import { ordenarExplicacion } from "./explicacion";
 
 const DEL_MOTOR = [
   "Esta sesión se aparta levemente de lo habitual.",
-  "Su índice es 99,5 de 100: menos del 5 % de las sesiones esperadas se comporta así.",
+  "Menos del 5 % de las sesiones esperadas llega a comportarse así.",
   "Lo que más pesó:",
-  "• Mayor hueco sin eventos: 45 segundos (lo esperado: 20 segundos)",
+  "• Mayor tiempo sin recibir datos del examen: 45 segundos (lo esperado: 20 segundos)",
   "• Pausa más larga al teclear: 0 segundos (lo esperado: 3,73 segundos)",
   "• Velocidad de tecleo máxima: 10,8 caracteres por segundo (lo esperado: 5,6 caracteres por segundo)",
   "Esto describe lo observado y no atribuye intención: la revisión es del docente.",
@@ -16,10 +16,10 @@ describe("ordenarExplicacion", () => {
     const e = ordenarExplicacion(DEL_MOTOR);
 
     expect(e.titular).toBe("Esta sesión se aparta levemente de lo habitual.");
-    expect(e.detalle).toEqual(["Su índice es 99,5 de 100: menos del 5 % de las sesiones esperadas se comporta así."]);
+    expect(e.detalle).toEqual(["Menos del 5 % de las sesiones esperadas llega a comportarse así."]);
     expect(e.encabezadoDeLista).toBe("Lo que más pesó:");
     expect(e.variables).toEqual([
-      { etiqueta: "Mayor hueco sin eventos", observado: "45 segundos", esperado: "20 segundos" },
+      { etiqueta: "Mayor tiempo sin recibir datos del examen", observado: "45 segundos", esperado: "20 segundos" },
       { etiqueta: "Pausa más larga al teclear", observado: "0 segundos", esperado: "3,73 segundos" },
       { etiqueta: "Velocidad de tecleo máxima", observado: "10,8 caracteres por segundo", esperado: "5,6 caracteres por segundo" },
     ]);
@@ -52,6 +52,7 @@ describe("ordenarExplicacion", () => {
       "Esto describe lo observado y no atribuye intención: la revisión es del docente.",
     ].join("\n"));
 
+    expect(e.detalle).toEqual([]); // el renglón del índice de una alerta vieja no se muestra
     expect(e.variables).toHaveLength(1);
     expect(e.despues).toEqual([
       "Ninguna de estas variables se aparta por sí sola de lo esperado, pero la combinación de variables es poco habitual.",
@@ -65,10 +66,44 @@ describe("ordenarExplicacion", () => {
       "Lo que más pesó: tecleo; mouse. Esto describe lo observado y no atribuye intención: la revisión es del docente.";
     const e = ordenarExplicacion(vieja);
 
-    expect(e.titular).toBe(vieja);
+    expect(e.titular).toBe(
+      "Su comportamiento se parece al de menos del 1 % de las sesiones esperadas. " +
+      "Lo que más pesó: tecleo; mouse. Esto describe lo observado y no atribuye intención: la revisión es del docente."
+    );
     expect(e.detalle).toEqual([]);
     expect(e.variables).toEqual([]);
     expect(e.cierre).toBeNull();
+  });
+
+  it("nunca muestra el índice: el renglón propio de una alerta vieja se descarta", () => {
+    const e = ordenarExplicacion([
+      "Esta sesión se aparta levemente de lo habitual.",
+      "Su índice es 99,5 de 100: menos del 5 % de las sesiones esperadas se comporta así.",
+      "Esto describe lo observado y no atribuye intención: la revisión es del docente.",
+    ].join("\n"));
+    expect(e.titular).toBe("Esta sesión se aparta levemente de lo habitual.");
+    expect(e.detalle).toEqual([]);
+    expect(e.cierre).toContain("no atribuye intención");
+  });
+
+  it("en una alerta vieja de un solo renglón se quita la cláusula del índice y queda la frase con mayúscula", () => {
+    const e = ordenarExplicacion("Su índice es 99,5 de 100: menos del 1 % de las sesiones esperadas se comporta así.");
+    expect(e.titular).toBe("Menos del 1 % de las sesiones esperadas se comporta así.");
+    expect(ordenarExplicacion("El índice de la sesión es 60 de 100: su comportamiento se parece al de menos del 1 % de las sesiones esperadas.").titular)
+      .toBe("Su comportamiento se parece al de menos del 1 % de las sesiones esperadas.");
+  });
+
+  it("un solo renglón nuevo, sin índice, no se toca", () => {
+    const nuevo = "Menos del 1 % de las sesiones esperadas llega a comportarse así.";
+    expect(ordenarExplicacion(nuevo).titular).toBe(nuevo);
+  });
+
+  it("titular, renglón del índice y cierre dejan titular y cierre", () => {
+    const e = ordenarExplicacion(
+      "Esta sesión se aparta de lo habitual.\nSu índice es 60 de 100: menos del 1 % de las sesiones esperadas se comporta así.\nEsto describe lo observado y no atribuye intención: la revisión es del docente."
+    );
+    expect(e.detalle).toEqual([]);
+    expect(e.cierre).not.toBeNull();
   });
 
   it("si alguna viñeta no tiene la forma esperada no se pierde ninguna: todas salen como lista", () => {
