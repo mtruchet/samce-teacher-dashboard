@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as sesionesService from "../services/sesionesService";
 import { esperar, evento, sesionNumerada } from "../test/fabricas";
@@ -260,13 +260,15 @@ describe("DetalleSesion", () => {
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
   });
 
-  it("no muestra índice, riesgo ni alertas", async () => {
+  it("el registro de eventos no muestra índice, riesgo ni alertas", async () => {
     vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "focus_lost")]);
 
     render(<DetalleSesion sesion={SESION} onVencida={nada} />);
     await esperar();
 
-    expect(screen.queryByText(/índice|riesgo|alerta|integridad|sospech/i)).not.toBeInTheDocument();
+    // Solo el registro: el apartado «Análisis de la sesión» (con sus alertas) es otra región.
+    const registro = within(screen.getByRole("region", { name: /registro de eventos/i }));
+    expect(registro.queryByText(/índice|riesgo|alerta|integridad|sospech/i)).not.toBeInTheDocument();
   });
 
   it("no le dice «entregó» a un intento que quedó sin entregar", async () => {
