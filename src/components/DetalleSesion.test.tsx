@@ -52,7 +52,7 @@ describe("DetalleSesion", () => {
       calculated_at: "2026-10-23T14:30:05.123Z",
       alerts: [{
         origin: "event", level: "high", explanation: "Se pegó un bloque de 4.370 caracteres.",
-        created_at: "2026-10-23T14:00:00.000Z", updated_at: "2026-10-23T14:30:05.123Z",
+        level_since: "2026-10-23T14:10:00.000Z", created_at: "2026-10-23T14:00:00.000Z", updated_at: "2026-10-23T14:30:05.123Z",
       }],
     });
 

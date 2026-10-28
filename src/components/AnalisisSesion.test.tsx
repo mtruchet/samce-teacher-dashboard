@@ -18,6 +18,7 @@ function alerta(cambios: Partial<AlertaDeSesion> = {}): AlertaDeSesion {
     origin: "model",
     level: "medium",
     explanation: "El índice de la sesión es 60 de 100: su comportamiento se parece al de menos del 1 % de las sesiones esperadas.",
+    level_since: "2026-10-23T14:10:00.000Z",
     created_at: "2026-10-23T14:00:00.000Z",
     updated_at: CALCULO,
     ...cambios,
@@ -91,6 +92,12 @@ describe("AnalisisSesion", () => {
     expect(alertas[0]).toHaveTextContent("Su comportamiento se parece al de menos del 1 % de las sesiones esperadas.");
     expect(alertas[0]).not.toHaveTextContent(/índice/i);
     expect(within(alertas[1]).getByText("Nivel alto")).toBeInTheDocument();
+    // «Nivel X desde las HH:MM»: la hora en que la alerta llegó a ese nivel, aparte del nivel.
+    const desde = alertas[0].querySelector(".analisis__desde") as HTMLElement;
+    expect(desde).toHaveTextContent("desde las");
+    const hora = desde.querySelector("time") as HTMLTimeElement;
+    expect(hora.dateTime).toBe("2026-10-23T14:10:00.000Z");
+    expect(hora).toHaveTextContent(horaExacta("2026-10-23T14:10:00.000Z"));
     expect(within(alertas[1]).getByText("Por un solo hecho puntual")).toBeInTheDocument();
     expect(alertas[1]).toHaveTextContent("Se pegó un bloque de 4.370 caracteres");
   });
@@ -115,7 +122,7 @@ describe("AnalisisSesion", () => {
     expect(screen.queryByText(/índice/i)).not.toBeInTheDocument();
     const tabla = screen.getByRole("table");
     expect(within(tabla).getAllByRole("columnheader").map((c) => c.textContent)).toEqual([
-      "Qué se midió", "En esta sesión", "Lo esperado",
+      "Qué se midió", "En el momento más marcado", "Lo esperado",
     ]);
     const filas = within(tabla).getAllByRole("row").slice(1);
     expect(filas).toHaveLength(2);

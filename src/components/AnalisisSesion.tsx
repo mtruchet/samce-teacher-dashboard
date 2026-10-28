@@ -60,6 +60,9 @@ function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
     <li className={`analisis__alerta analisis__alerta--${alerta.level}`}>
       <div className="analisis__cabeza">
         <span className={`analisis__nivel analisis__nivel--${alerta.level}`}>{NIVELES[alerta.level]}</span>
+        <span className="analisis__desde">
+          desde las <time dateTime={alerta.level_since}>{horaExacta(alerta.level_since)}</time>
+        </span>
         <span className="analisis__origen">{ORIGENES[alerta.origin]}</span>
       </div>
 
@@ -76,7 +79,7 @@ function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
               <thead>
                 <tr>
                   <th scope="col">Qué se midió</th>
-                  <th scope="col">En esta sesión</th>
+                  <th scope="col">En el momento más marcado</th>
                   <th scope="col">Lo esperado</th>
                 </tr>
               </thead>
