@@ -68,18 +68,21 @@
 }
 
 .analisis__alerta--low {
+  --atenuada: var(--analisis-tinta-atenuada-low);
   background: var(--nivel-1-fondo);
   box-shadow: inset 0 0 0 1px var(--nivel-1-borde);
   color: var(--nivel-1-tinta);
 }
 
 .analisis__alerta--medium {
+  --atenuada: var(--analisis-tinta-atenuada-medium);
   background: var(--nivel-2-fondo);
   box-shadow: inset 0 0 0 1px var(--nivel-2-borde);
   color: var(--nivel-2-tinta);
 }
 
 .analisis__alerta--high {
+  --atenuada: var(--analisis-tinta-atenuada-high);
   background: var(--nivel-3-fondo);
   box-shadow: inset 0 0 0 1px var(--nivel-3-borde);
   color: var(--nivel-3-tinta);
@@ -101,7 +104,7 @@
 
 .analisis__origen {
   font-size: var(--panel-nota);
-  opacity: 0.85;
+  color: var(--atenuada);
 }
 
 /* El titular es lo primero que se lee: pesa más que el resto de la tarjeta. */
@@ -133,7 +136,7 @@
   font-weight: 700;
   letter-spacing: var(--track-rotulo);
   text-transform: uppercase;
-  opacity: 0.85;
+  color: var(--atenuada);
 }
 
 .analisis__tabla {
@@ -157,7 +160,7 @@
   font-weight: 600;
   letter-spacing: var(--track-rotulo);
   text-transform: uppercase;
-  opacity: 0.75;
+  color: var(--atenuada);
 }
 
 /* El nombre de la variable es el rótulo de la fila; lo observado va resaltado y lo esperado, atenuado. */
@@ -170,7 +173,7 @@
 }
 
 .analisis__tabla td:nth-child(3) {
-  opacity: 0.85;
+  color: var(--atenuada);
 }
 
 .analisis__viñetas {
@@ -184,11 +187,11 @@
 .analisis__cierre {
   margin: var(--e1) 0 0;
   font-size: var(--panel-nota);
-  opacity: 0.85;
+  color: var(--atenuada);
 }
 
 .analisis__nota {
   margin: 0;
   font-size: var(--panel-nota);
-  color: var(--tinta-media);
+  color: var(--analisis-tinta-atenuada);
 }
