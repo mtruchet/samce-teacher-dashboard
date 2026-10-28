@@ -60,6 +60,14 @@
   --nivel-3-borde: var(--pizarra-honda);
   --nivel-3-tinta: #ffffff;
 
+  /* ---- Texto atenuado del análisis de la sesión -------------------------- */
+  /* Reemplazan a `opacity` (que dejaba varios textos por debajo de 4,5:1). Solo hay tema claro. Cada par se
+     comprueba en AnalisisSesion.contraste.test.ts; la relación va al lado. */
+  --analisis-tinta-atenuada: var(--tinta-media); /* sobre --sup-1: 8,1:1 */
+  --analisis-tinta-atenuada-low: #2a6371; /* sobre --nivel-1-fondo: 5,8:1 */
+  --analisis-tinta-atenuada-medium: #85541f; /* sobre --nivel-2-fondo: 4,8:1 */
+  --analisis-tinta-atenuada-high: #d8e6eb; /* sobre --nivel-3-fondo: 7,4:1 */
+
   /* ---- Tipografía -------------------------------------------------------- */
   /* Una sola familia en todo el sistema. Los datos y los códigos se alinean
      con las cifras tabulares de IBM Plex Sans, que no necesita una segunda

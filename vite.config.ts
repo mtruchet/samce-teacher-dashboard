@@ -26,5 +26,8 @@ export default defineConfig({
     setupFiles: "./src/setupTests.ts",
     // Un `fetch` falso de una prueba no puede quedar vivo en la siguiente.
     unstubGlobals: true,
+    // Vitest reemplaza los CSS por texto vacío, también con `?raw`. La prueba de contraste lee los tokens de
+    // color como texto, así que este archivo (y solo este) tiene que llegar tal cual.
+    css: { include: [/styles\/tokens\.css/] },
   },
 });
