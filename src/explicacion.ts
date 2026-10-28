@@ -8,7 +8,9 @@
  *
  * Una explicación que no tiene ese formato (las alertas guardadas antes de que existiera, que
  * son un solo párrafo) no se pierde: sale entera como titular. Nunca se descarta ni se corta
- * un renglón por no entenderlo.
+ * un renglón por no entenderlo, con una única excepción: el panel no muestra nunca el índice de
+ * integridad, así que se quita la cláusula «el índice … es N de 100» de las alertas viejas que la
+ * traen (las nuevas ya no la escriben).
  */
 
 export interface VariableExplicada {
@@ -41,15 +43,34 @@ export interface ExplicacionOrdenada {
 const VIÑETA = "•";
 const FORMA = /^•\s+(.+?):\s+(.+?)\s+\(lo esperado:\s+(.+)\)$/;
 
+// Sin `\b` delante de la «í»: en JavaScript `\b` es ASCII y entre un espacio y la «í» no hay límite de palabra.
+const CLAUSULA_DEL_INDICE = /índice[^\n]*\bde 100\b/i;
+
+/** Quita el renglón del índice, o la cláusula del índice de una explicación de un solo renglón. */
+function sinElIndice(renglones: string[]): string[] {
+  if (renglones.length >= 2) {
+    return renglones.filter((r) => !CLAUSULA_DEL_INDICE.test(r));
+  }
+  if (renglones.length === 1 && CLAUSULA_DEL_INDICE.test(renglones[0])) {
+    const dosPuntos = renglones[0].indexOf(":");
+    if (dosPuntos === -1) return renglones;
+    const resto = renglones[0].slice(dosPuntos + 1).trim();
+    return resto ? [resto.charAt(0).toUpperCase() + resto.slice(1)] : [];
+  }
+  return renglones;
+}
+
 function esCierre(renglon: string): boolean {
   return renglon.includes("no atribuye intención");
 }
 
 export function ordenarExplicacion(texto: string): ExplicacionOrdenada {
-  const renglones = texto
-    .split(/\r?\n/)
-    .map((r) => r.trim())
-    .filter((r) => r.length > 0);
+  const renglones = sinElIndice(
+    texto
+      .split(/\r?\n/)
+      .map((r) => r.trim())
+      .filter((r) => r.length > 0)
+  );
 
   const vacia: ExplicacionOrdenada = {
     titular: "",

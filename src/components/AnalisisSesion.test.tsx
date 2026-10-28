@@ -88,7 +88,8 @@ describe("AnalisisSesion", () => {
     // El nivel va escrito, no solo en el color.
     expect(within(alertas[0]).getByText("Nivel medio")).toBeInTheDocument();
     expect(within(alertas[0]).getByText("Por el comportamiento de toda la sesión")).toBeInTheDocument();
-    expect(alertas[0]).toHaveTextContent("El índice de la sesión es 60 de 100");
+    expect(alertas[0]).toHaveTextContent("Su comportamiento se parece al de menos del 1 % de las sesiones esperadas.");
+    expect(alertas[0]).not.toHaveTextContent(/índice/i);
     expect(within(alertas[1]).getByText("Nivel alto")).toBeInTheDocument();
     expect(within(alertas[1]).getByText("Por un solo hecho puntual")).toBeInTheDocument();
     expect(alertas[1]).toHaveTextContent("Se pegó un bloque de 4.370 caracteres");
@@ -97,9 +98,9 @@ describe("AnalisisSesion", () => {
   it("ordena la explicación: titular, variables en una tabla y la aclaración al final, discreta", async () => {
     const texto = [
       "Esta sesión se aparta levemente de lo habitual.",
-      "Su índice es 99,5 de 100: menos del 5 % de las sesiones esperadas se comporta así.",
+      "Menos del 5 % de las sesiones esperadas llega a comportarse así.",
       "Lo que más pesó:",
-      "• Mayor hueco sin eventos: 45 segundos (lo esperado: 20 segundos)",
+      "• Mayor tiempo sin recibir datos del examen: 45 segundos (lo esperado: 20 segundos)",
       "• Velocidad de tecleo máxima: 10,8 caracteres por segundo (lo esperado: 5,6 caracteres por segundo)",
       "Esto describe lo observado y no atribuye intención: la revisión es del docente.",
     ].join("\n");
@@ -110,14 +111,15 @@ describe("AnalisisSesion", () => {
     await esperar();
 
     expect(screen.getByText("Esta sesión se aparta levemente de lo habitual.")).toBeInTheDocument();
-    expect(screen.getByText(/Su índice es 99,5 de 100/)).toBeInTheDocument();
+    expect(screen.getByText(/Menos del 5 % de las sesiones esperadas/)).toBeInTheDocument();
+    expect(screen.queryByText(/índice/i)).not.toBeInTheDocument();
     const tabla = screen.getByRole("table");
     expect(within(tabla).getAllByRole("columnheader").map((c) => c.textContent)).toEqual([
       "Qué se midió", "En esta sesión", "Lo esperado",
     ]);
     const filas = within(tabla).getAllByRole("row").slice(1);
     expect(filas).toHaveLength(2);
-    expect(within(filas[0]).getByRole("rowheader")).toHaveTextContent("Mayor hueco sin eventos");
+    expect(within(filas[0]).getByRole("rowheader")).toHaveTextContent("Mayor tiempo sin recibir datos del examen");
     expect(within(filas[0]).getAllByRole("cell").map((c) => c.textContent)).toEqual(["45 segundos", "20 segundos"]);
     expect(within(filas[1]).getAllByRole("cell").map((c) => c.textContent)).toEqual([
       "10,8 caracteres por segundo", "5,6 caracteres por segundo",
@@ -157,7 +159,7 @@ describe("AnalisisSesion", () => {
     render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
     await esperar();
 
-    const texto = screen.getByText(/El índice de la sesión es 60 de 100/);
+    const texto = screen.getByText(/Su comportamiento se parece al de menos del 1 %/);
     expect(texto).toBeInTheDocument();
     // Sin estructura no hay titular: se muestra como texto común y no en grande y en negrita.
     expect(texto).not.toHaveClass("analisis__titular");
@@ -209,7 +211,10 @@ describe("AnalisisSesion", () => {
   });
 
   it("no muestra el índice de integridad ni las métricas, aunque el servidor los mandara", async () => {
-    const conDeMas = { ...analisis({ alerts: [alerta()] }), index: 38.5, integrity_index: 38.5, variables: { largest_paste_chars: 1240 } };
+    const conDeMas = {
+      ...analisis({ alerts: [alerta({ explanation: "Su índice es 38,5 de 100: menos del 1 % de las sesiones esperadas se comporta así." })] }),
+      index: 38.5, integrity_index: 38.5, variables: { largest_paste_chars: 1240 },
+    };
     vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(conDeMas as Analisis);
     render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
     await esperar();
