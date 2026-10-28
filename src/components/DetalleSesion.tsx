@@ -281,9 +281,9 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
 
       <AnalisisSesion sesion={sesion} onVencida={onVencida} />
 
-      <section className="lista">
+      <section className="lista" aria-labelledby="registro-de-eventos-titulo">
         <header className="lista__encabezado">
-          <h2 className="lista__titulo">Registro de eventos</h2>
+          <h2 className="lista__titulo" id="registro-de-eventos-titulo">Registro de eventos</h2>
           {recibido ? <span className="lista__cuenta cifra">{eventos.length}</span> : null}
           {/* Los dos extremos son las marcas temporales de las filas de las
               puntas, no una medida de la sesión: dicen hasta dónde llega el
