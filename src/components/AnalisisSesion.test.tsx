@@ -212,9 +212,37 @@ describe("AnalisisSesion", () => {
     render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
     await esperar();
 
-    expect(screen.getByText(/El análisis de esta sesión no está disponible/)).toBeInTheDocument();
-    expect(screen.getByText(/No hay un modelo cargado/)).toBeInTheDocument();
+    expect(screen.getByText(/El análisis del comportamiento de toda la sesión no está disponible, pero se detectó lo siguiente/)).toBeInTheDocument();
+    expect(screen.queryByText(/No hay un modelo cargado/)).not.toBeInTheDocument();
     expect(screen.getByText(/Se pegó un bloque de 250 caracteres/)).toBeInTheDocument();
+  });
+
+  it("sin evidencia suficiente pero con una alerta de un solo evento, dice qué falta y que igual se detectó algo", async () => {
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
+      analisis({
+        state: "insufficient_evidence",
+        reason: "Hay muy poca actividad registrada para analizar la sesión.",
+        alerts: [alerta({ origin: "event", level: "high", explanation: "Se pegó un bloque de 4.370 caracteres." })],
+      })
+    );
+    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
+    await esperar();
+
+    expect(screen.getByText(/No hay actividad suficiente para analizar el comportamiento de toda la sesión, pero se detectó lo siguiente/)).toBeInTheDocument();
+    expect(screen.queryByText(/Hay muy poca actividad registrada/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No hay evidencia suficiente para analizar esta sesión/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Se pegó un bloque de 4.370 caracteres/)).toBeInTheDocument();
+  });
+
+  it("no disponible y sin alertas dice solo que no está disponible por ahora, sin el motivo técnico", async () => {
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
+      analisis({ state: "unavailable", reason: "No hay un modelo cargado: MODEL_PATH no está configurado." })
+    );
+    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
+    await esperar();
+
+    expect(screen.getByText("El análisis de esta sesión no está disponible por ahora.")).toBeInTheDocument();
+    expect(screen.queryByText(/MODEL_PATH|modelo cargado/)).not.toBeInTheDocument();
   });
 
   it("no muestra el índice de integridad ni las métricas, aunque el servidor los mandara", async () => {

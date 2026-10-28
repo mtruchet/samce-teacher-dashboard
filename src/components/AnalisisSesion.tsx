@@ -123,6 +123,15 @@ function Estado({ analisis }: { analisis: Analisis }) {
         </p>
       );
     case "insufficient_evidence":
+      // Con una alerta de un solo evento (el caso típico de abrir, pegar y entregar) la frase no puede
+      // sonar a que no hay nada que mirar: se dice qué falta y que igual se detectó algo.
+      if (hayAlertas) {
+        return (
+          <p className="analisis__estado">
+            No hay actividad suficiente para analizar el comportamiento de toda la sesión, pero se detectó lo siguiente:
+          </p>
+        );
+      }
       return (
         <p className="analisis__estado">
           No hay evidencia suficiente para analizar esta sesión.
@@ -130,10 +139,12 @@ function Estado({ analisis }: { analisis: Analisis }) {
         </p>
       );
     default:
+      // El motivo de «no disponible» es técnico (el modelo, un archivo...) y no se le muestra al docente.
       return (
         <p className="analisis__estado">
-          El análisis de esta sesión no está disponible.
-          {analisis.reason ? <span className="analisis__motivo"> {analisis.reason}</span> : null}
+          {hayAlertas
+            ? "El análisis del comportamiento de toda la sesión no está disponible, pero se detectó lo siguiente:"
+            : "El análisis de esta sesión no está disponible por ahora."}
         </p>
       );
   }
