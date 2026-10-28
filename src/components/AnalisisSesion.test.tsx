@@ -18,6 +18,7 @@ function alerta(cambios: Partial<AlertaDeSesion> = {}): AlertaDeSesion {
     origin: "model",
     level: "medium",
     explanation: "El índice de la sesión es 60 de 100: su comportamiento se parece al de menos del 1 % de las sesiones esperadas.",
+    level_since: "2026-10-23T14:10:00.000Z",
     created_at: "2026-10-23T14:00:00.000Z",
     updated_at: CALCULO,
     ...cambios,
@@ -62,11 +63,14 @@ describe("AnalisisSesion", () => {
 
   it("una sesión analizada sin alertas dice que no tiene, con la hora del último cálculo", async () => {
     vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis());
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
+    const { container } = render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
     await esperar();
 
     expect(screen.getByText("La sesión se analizó y no tiene alertas.")).toBeInTheDocument();
-    expect(screen.getByText(`último cálculo a las ${horaExacta(CALCULO)}`)).toBeInTheDocument();
+    expect(screen.getByText(/último cálculo a las/)).toBeInTheDocument();
+    const hora = container.querySelector(".analisis__calculo time") as HTMLTimeElement;
+    expect(hora.dateTime).toBe(CALCULO);
+    expect(hora).toHaveTextContent(horaExacta(CALCULO));
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
   });
 
@@ -91,6 +95,12 @@ describe("AnalisisSesion", () => {
     expect(alertas[0]).toHaveTextContent("Su comportamiento se parece al de menos del 1 % de las sesiones esperadas.");
     expect(alertas[0]).not.toHaveTextContent(/índice/i);
     expect(within(alertas[1]).getByText("Nivel alto")).toBeInTheDocument();
+    // «Nivel X desde las HH:MM»: la hora en que la alerta llegó a ese nivel, aparte del nivel.
+    const desde = alertas[0].querySelector(".analisis__desde") as HTMLElement;
+    expect(desde).toHaveTextContent("desde las");
+    const hora = desde.querySelector("time") as HTMLTimeElement;
+    expect(hora.dateTime).toBe("2026-10-23T14:10:00.000Z");
+    expect(hora).toHaveTextContent(horaExacta("2026-10-23T14:10:00.000Z"));
     expect(within(alertas[1]).getByText("Por un solo hecho puntual")).toBeInTheDocument();
     expect(alertas[1]).toHaveTextContent("Se pegó un bloque de 4.370 caracteres");
   });
@@ -115,7 +125,7 @@ describe("AnalisisSesion", () => {
     expect(screen.queryByText(/índice/i)).not.toBeInTheDocument();
     const tabla = screen.getByRole("table");
     expect(within(tabla).getAllByRole("columnheader").map((c) => c.textContent)).toEqual([
-      "Qué se midió", "En esta sesión", "Lo esperado",
+      "Qué se midió", "En el momento más marcado", "Lo esperado",
     ]);
     const filas = within(tabla).getAllByRole("row").slice(1);
     expect(filas).toHaveLength(2);
@@ -205,9 +215,37 @@ describe("AnalisisSesion", () => {
     render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
     await esperar();
 
-    expect(screen.getByText(/El análisis de esta sesión no está disponible/)).toBeInTheDocument();
-    expect(screen.getByText(/No hay un modelo cargado/)).toBeInTheDocument();
+    expect(screen.getByText(/El análisis del comportamiento de toda la sesión no está disponible, pero se detectó lo siguiente/)).toBeInTheDocument();
+    expect(screen.queryByText(/No hay un modelo cargado/)).not.toBeInTheDocument();
     expect(screen.getByText(/Se pegó un bloque de 250 caracteres/)).toBeInTheDocument();
+  });
+
+  it("sin evidencia suficiente pero con una alerta de un solo evento, dice qué falta y que igual se detectó algo", async () => {
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
+      analisis({
+        state: "insufficient_evidence",
+        reason: "Hay muy poca actividad registrada para analizar la sesión.",
+        alerts: [alerta({ origin: "event", level: "high", explanation: "Se pegó un bloque de 4.370 caracteres." })],
+      })
+    );
+    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
+    await esperar();
+
+    expect(screen.getByText(/No hay actividad suficiente para analizar el comportamiento de toda la sesión, pero se detectó lo siguiente/)).toBeInTheDocument();
+    expect(screen.queryByText(/Hay muy poca actividad registrada/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No hay evidencia suficiente para analizar esta sesión/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Se pegó un bloque de 4.370 caracteres/)).toBeInTheDocument();
+  });
+
+  it("no disponible y sin alertas dice solo que no está disponible por ahora, sin el motivo técnico", async () => {
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
+      analisis({ state: "unavailable", reason: "No hay un modelo cargado: MODEL_PATH no está configurado." })
+    );
+    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
+    await esperar();
+
+    expect(screen.getByText("El análisis de esta sesión no está disponible por ahora.")).toBeInTheDocument();
+    expect(screen.queryByText(/MODEL_PATH|modelo cargado/)).not.toBeInTheDocument();
   });
 
   it("no muestra el índice de integridad ni las métricas, aunque el servidor los mandara", async () => {
@@ -239,6 +277,10 @@ describe("AnalisisSesion", () => {
     await esperar(sesionesService.CADENCIA_MS);
     expect(screen.getByText("Nivel alto")).toBeInTheDocument();
     expect(screen.queryByText("Nivel bajo")).not.toBeInTheDocument();
+    // La alerta nueva queda dentro de la región viva con nombre, para que un lector de pantalla la anuncie.
+    const region = screen.getByRole("status", { name: "Alertas de la sesión" });
+    expect(region).toHaveAttribute("aria-live", "polite");
+    expect(within(region).getByText("Nivel alto")).toBeInTheDocument();
   });
 
   it("una sesión entregada hace mucho no sigue preguntando", async () => {

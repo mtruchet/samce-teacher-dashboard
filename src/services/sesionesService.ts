@@ -243,6 +243,8 @@ export interface AlertaDeSesion {
   origin: "model" | "event";
   level: "low" | "medium" | "high";
   explanation: string;
+  /** Desde cuándo la alerta está en su nivel actual (sube cuando el nivel sube). */
+  level_since: string;
   created_at: string;
   updated_at: string;
 }

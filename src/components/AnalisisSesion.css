@@ -102,6 +102,12 @@
   text-transform: uppercase;
 }
 
+/* «desde las HH:MM»: junto al nivel, para que se vea que el texto de la alerta es de ese momento. */
+.analisis__desde {
+  font-size: var(--panel-nota);
+  font-weight: 600;
+}
+
 .analisis__origen {
   font-size: var(--panel-nota);
   color: var(--atenuada);

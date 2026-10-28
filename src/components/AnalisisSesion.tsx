@@ -52,6 +52,8 @@ interface Props {
 
 function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
   const e = ordenarExplicacion(alerta.explanation);
+  // Un backend que todavía no manda `level_since` (aún no desplegado) no rompe el render: se usa la hora de creación.
+  const desde = alerta.level_since ?? alerta.created_at;
   const hayLista = e.variables.length > 0 || e.viñetasSinForma.length > 0;
   // Una explicación sin estructura (una alerta guardada en un solo párrafo) no tiene un titular: se
   // muestra como texto común y no en grande y en negrita.
@@ -60,6 +62,9 @@ function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
     <li className={`analisis__alerta analisis__alerta--${alerta.level}`}>
       <div className="analisis__cabeza">
         <span className={`analisis__nivel analisis__nivel--${alerta.level}`}>{NIVELES[alerta.level]}</span>
+        <span className="analisis__desde">
+          desde las <time dateTime={desde}>{horaExacta(desde)}</time>
+        </span>
         <span className="analisis__origen">{ORIGENES[alerta.origin]}</span>
       </div>
 
@@ -76,7 +81,7 @@ function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
               <thead>
                 <tr>
                   <th scope="col">Qué se midió</th>
-                  <th scope="col">En esta sesión</th>
+                  <th scope="col">En el momento más marcado</th>
                   <th scope="col">Lo esperado</th>
                 </tr>
               </thead>
@@ -120,6 +125,15 @@ function Estado({ analisis }: { analisis: Analisis }) {
         </p>
       );
     case "insufficient_evidence":
+      // Con una alerta de un solo evento (el caso típico de abrir, pegar y entregar) la frase no puede
+      // sonar a que no hay nada que mirar: se dice qué falta y que igual se detectó algo.
+      if (hayAlertas) {
+        return (
+          <p className="analisis__estado">
+            No hay actividad suficiente para analizar el comportamiento de toda la sesión, pero se detectó lo siguiente:
+          </p>
+        );
+      }
       return (
         <p className="analisis__estado">
           No hay evidencia suficiente para analizar esta sesión.
@@ -127,10 +141,12 @@ function Estado({ analisis }: { analisis: Analisis }) {
         </p>
       );
     default:
+      // El motivo de «no disponible» es técnico (el modelo, un archivo...) y no se le muestra al docente.
       return (
         <p className="analisis__estado">
-          El análisis de esta sesión no está disponible.
-          {analisis.reason ? <span className="analisis__motivo"> {analisis.reason}</span> : null}
+          {hayAlertas
+            ? "El análisis del comportamiento de toda la sesión no está disponible, pero se detectó lo siguiente:"
+            : "El análisis de esta sesión no está disponible por ahora."}
         </p>
       );
   }
@@ -187,7 +203,7 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
         <h2 className="analisis__titulo" id="analisis-titulo">Análisis de la sesión</h2>
         {analisis?.calculated_at ? (
           <span className="analisis__calculo cifra">
-            último cálculo a las {horaExacta(analisis.calculated_at)}
+            último cálculo a las <time dateTime={analisis.calculated_at}>{horaExacta(analisis.calculated_at)}</time>
           </span>
         ) : null}
       </header>
@@ -203,7 +219,9 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
       {analisis === null ? (
         sinConexion ? null : <p className="analisis__estado" role="status">Cargando el análisis…</p>
       ) : (
-        <>
+        // Región viva: un lector de pantalla anuncia la alerta que aparece o sube de nivel mientras se mira. Lleva
+        // nombre porque el componente ya tiene otros dos `role="status"` (el aviso sin conexión y «Cargando»).
+        <div role="status" aria-live="polite" aria-label="Alertas de la sesión">
           <Estado analisis={analisis} />
           {analisis.alerts.length > 0 ? (
             <>
@@ -220,7 +238,7 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
               ) : null}
             </>
           ) : null}
-        </>
+        </div>
       )}
     </section>
   );
