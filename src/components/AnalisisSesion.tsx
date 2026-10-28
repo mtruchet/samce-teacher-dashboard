@@ -52,6 +52,8 @@ interface Props {
 
 function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
   const e = ordenarExplicacion(alerta.explanation);
+  // Un backend que todavía no manda `level_since` (aún no desplegado) no rompe el render: se usa la hora de creación.
+  const desde = alerta.level_since ?? alerta.created_at;
   const hayLista = e.variables.length > 0 || e.viñetasSinForma.length > 0;
   // Una explicación sin estructura (una alerta guardada en un solo párrafo) no tiene un titular: se
   // muestra como texto común y no en grande y en negrita.
@@ -61,7 +63,7 @@ function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
       <div className="analisis__cabeza">
         <span className={`analisis__nivel analisis__nivel--${alerta.level}`}>{NIVELES[alerta.level]}</span>
         <span className="analisis__desde">
-          desde las <time dateTime={alerta.level_since}>{horaExacta(alerta.level_since)}</time>
+          desde las <time dateTime={desde}>{horaExacta(desde)}</time>
         </span>
         <span className="analisis__origen">{ORIGENES[alerta.origin]}</span>
       </div>
