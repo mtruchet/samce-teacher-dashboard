@@ -37,7 +37,7 @@ const EXAMEN: sesionesService.ExamenMonitoreado = {
 };
 
 const EN_VIVO = /En vivo, se actualiza en/;
-const QUIETO = "Esta pantalla ya no se actualiza";
+const QUIETO = "Examen terminado";
 const SIN_CONEXION = "No se pudo actualizar esta pantalla. Reintentando.";
 
 /** Una sesión que se entregó hace una hora: el registro se pide una vez y listo. */
@@ -103,6 +103,9 @@ describe("El pulso del panel en el registro de un intento", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Ana Gómez");
     expect(screen.getByText(QUIETO)).toBeInTheDocument();
     expect(screen.queryByText(EN_VIVO)).not.toBeInTheDocument();
+    // Sin la tira de rayitas, que apagada parecía un código de barras.
+    expect(document.querySelector(".enlace--quieto .enlace__tira")).toBeNull();
+    expect(screen.queryByText("Esta pantalla ya no se actualiza")).not.toBeInTheDocument();
   });
 
   // Volver a un enlace guardado, o apretar F5, sobre una sesión que ya no entra

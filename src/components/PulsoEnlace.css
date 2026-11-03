@@ -33,6 +33,13 @@
   background: var(--tinta-tenue);
 }
 
+/* «Examen terminado»: sin tira, y en un tamaño y un contraste que se leen. */
+.enlace--quieto {
+  font-size: var(--panel-cuerpo);
+  font-weight: 500;
+  color: var(--tinta-media);
+}
+
 .enlace__texto--alerta {
   color: var(--nivel-2-tinta);
   font-weight: 500;
