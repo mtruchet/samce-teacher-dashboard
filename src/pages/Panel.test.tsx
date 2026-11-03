@@ -85,6 +85,10 @@ describe("El pulso del panel en el registro de un intento", () => {
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([EXAMEN]);
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([entregadaHaceRato(), rindiendo]);
     vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
+    // El apartado «Análisis de la sesión» hace su propia consulta: sin esta simulación sale a buscar al backend de verdad.
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue({
+      state: "not_analyzed", reason: null, calculated_at: null, alerts: [],
+    });
   });
 
   afterEach(() => {
