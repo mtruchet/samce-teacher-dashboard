@@ -4,13 +4,14 @@
  * El motor escribe cada explicación para el docente, en lenguaje llano, con un renglón por cosa
  * (ver el docstring de `alertas.py`):
  *
- * 1. El primer renglón es el hecho: «Esta sesión se rindió de una forma un poco distinta a lo
- *    común en un examen.» o «Pegó de una sola vez un texto largo en una respuesta que todavía
- *    estaba vacía, algo poco común en un examen.».
- * 2. Un renglón que termina en «:» abre la lista («Lo que más llamó la atención:»).
- * 3. Los renglones que empiezan con «• » son las viñetas de esa lista.
- * 4. Cualquier otro renglón es una nota y sale tal cual («Ninguna de estas cosas llama la
- *    atención por sí sola…», el aviso de la conexión).
+ * 1. El primer renglón es el hecho: «Este examen se rindió de una forma un poco distinta a lo
+ *    habitual.» o «En la pregunta 3, pegó de una sola vez un texto largo en una respuesta que
+ *    todavía estaba vacía, algo poco común en un examen.».
+ * 2. Un renglón que termina en «:» abre la lista («En qué se diferenció de lo habitual:»).
+ * 3. Los renglones que empiezan con «• » son las viñetas de esa lista («Pegó texto una sola vez:
+ *    el texto largo de la pregunta 3 que describe la otra alerta.»).
+ * 4. Cualquier otro renglón es una nota y sale tal cual («Ninguna de estas cosas es rara por sí
+ *    sola…», el aviso de la conexión).
  *
  * El panel no traduce nada: si el motor cambia una frase, en pantalla se lee la frase nueva.
  * Nunca se descarta un renglón por no entenderlo, con dos excepciones que solo tocan a las
@@ -24,7 +25,7 @@ export interface ExplicacionOrdenada {
   hecho: string;
   /** Las notas escritas entre el hecho y la lista. Solo las alertas viejas las traen. */
   notasAntes: string[];
-  /** El rótulo de la lista sin los dos puntos («Lo que más llamó la atención»), o null. */
+  /** El rótulo de la lista sin los dos puntos («En qué se diferenció de lo habitual»), o null. */
   encabezadoDeLista: string | null;
   /** Las viñetas, sin el «• » de adelante y con el texto tal cual. */
   viñetas: string[];

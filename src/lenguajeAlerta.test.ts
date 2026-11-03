@@ -34,22 +34,27 @@ describe("ordenarAlertas", () => {
 });
 
 describe("horaDeLaAlerta", () => {
-  it("«Apareció a las» si el nivel no cambió desde que apareció", () => {
-    const h = horaDeLaAlerta({ created_at: "2026-11-03T12:36:55.872Z", level_since: "2026-11-03T12:36:56.500Z" });
-    expect(h.texto).toBe("Apareció a las");
-    expect(h.hora).toBe(horaCorta("2026-11-03T12:36:56.500Z"));
-    expect(h.hora).not.toMatch(/:\d\d:\d\d/);
+  it("la alerta de toda la sesión no lleva hora", () => {
+    expect(
+      horaDeLaAlerta({ origin: "model", created_at: "2026-11-03T12:42:50.906Z", level_since: "2026-11-03T12:42:50.906Z" })
+    ).toBeNull();
   });
 
-  it("«Con este nivel desde las» si el nivel subió", () => {
-    const h = horaDeLaAlerta({ created_at: "2026-11-03T12:36:00.000Z", level_since: "2026-11-03T12:42:00.000Z" });
-    expect(h.texto).toBe("Con este nivel desde las");
-    expect(h.iso).toBe("2026-11-03T12:42:00.000Z");
+  it("la de un momento dice «Se detectó a las», sin segundos, y nunca «Pasó» ni «Apareció»", () => {
+    const h = horaDeLaAlerta({ origin: "event", created_at: "2026-11-03T12:36:55.872Z", level_since: "2026-11-03T12:36:55.872Z" });
+    expect(h?.texto).toBe("Se detectó a las");
+    expect(h?.hora).toBe(horaCorta("2026-11-03T12:36:55.872Z"));
+    expect(h?.hora).not.toMatch(/:\d\d:\d\d/);
+  });
+
+  it("si el nivel subió, la hora es desde cuándo tiene este nivel", () => {
+    const h = horaDeLaAlerta({ origin: "event", created_at: "2026-11-03T12:36:00.000Z", level_since: "2026-11-03T12:42:00.000Z" });
+    expect(h?.texto).toBe("Se detectó a las");
+    expect(h?.iso).toBe("2026-11-03T12:42:00.000Z");
   });
 
   it("sin `level_since` usa la hora de creación", () => {
-    const h = horaDeLaAlerta({ created_at: "2026-11-03T12:36:00.000Z", level_since: undefined as unknown as string });
-    expect(h.texto).toBe("Apareció a las");
-    expect(h.iso).toBe("2026-11-03T12:36:00.000Z");
+    const h = horaDeLaAlerta({ origin: "event", created_at: "2026-11-03T12:36:00.000Z", level_since: undefined as unknown as string });
+    expect(h?.iso).toBe("2026-11-03T12:36:00.000Z");
   });
 });

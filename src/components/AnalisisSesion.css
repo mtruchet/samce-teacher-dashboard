@@ -59,19 +59,31 @@
 
 /* ==== El veredicto ===================================================== */
 
-/* Una frase grande con su ícono de trazo fino. Nunca el color de un nivel: el veredicto no es el
-   nivel de la sesión (HU03). */
+/* Una frase grande con su ícono en un cuadro, con la misma forma en todos los estados: con alertas,
+   sin alertas y sin poder analizar se reconocen de un vistazo y pesan lo mismo. Nunca el color de un
+   nivel: el veredicto no es el nivel de la sesión (HU03). Neutro, sin verde ni rojo: el tilde dice que
+   se miró, no que el alumno «aprobó». */
 .veredicto {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: var(--e3);
+  align-items: center;
+  gap: var(--e4);
 }
 
 .veredicto__icono {
   display: inline-flex;
-  margin-top: 2px;
-  color: var(--pizarra);
+  justify-content: center;
+  align-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radio-ficha);
+  background: var(--sup-3);
+  color: var(--tinta-media);
+}
+
+.veredicto__icono svg {
+  width: 36px;
+  height: 36px;
 }
 
 .veredicto__texto {
@@ -95,29 +107,6 @@
   color: var(--tinta-media);
 }
 
-/* Sin alertas, el ícono va grande y en su cuadro: el estado se reconoce de un vistazo. Neutro, sin
-   verde ni rojo: el tilde dice que se miró, no que el alumno «aprobó». */
-.veredicto--grande {
-  align-items: center;
-  gap: var(--e4);
-}
-
-.veredicto--grande .veredicto__icono {
-  justify-content: center;
-  align-items: center;
-  width: 56px;
-  height: 56px;
-  margin-top: 0;
-  border-radius: var(--radio-ficha);
-  background: var(--sup-3);
-  color: var(--tinta-media);
-}
-
-.veredicto--grande .veredicto__icono svg {
-  width: 40px;
-  height: 40px;
-}
-
 /* ==== Las alertas ====================================================== */
 
 .analisis__alertas {
@@ -128,18 +117,17 @@
   list-style: none;
 }
 
-/* El mismo fondo claro en los tres niveles: el nivel no depende del fondo, se lee en la palabra,
-   en el medidor, en el borde izquierdo y en el ícono de origen. Así ninguna tarjeta grita más que
-   las otras. */
+/* El nivel se lee en la palabra, en el medidor y en el borde izquierdo. El tono sube en calidez y en
+   intensidad con el nivel (arena apagada, ámbar, terracota), así la alerta alta es la que más se ve, y
+   la de nivel alto suma un fondo apenas tibio y un borde más grueso. La palabra va siempre escrita al
+   lado, en --tinta, para no depender del color. */
 .analisis__alerta {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  align-items: start;
   gap: var(--e4);
   padding: var(--e6);
   border-left: 4px solid var(--tono);
   border-radius: var(--radio-ficha);
-  background: var(--sup-2);
+  background: var(--fondo, var(--sup-2));
   color: var(--tinta);
 }
 
@@ -153,18 +141,8 @@
 
 .analisis__alerta--high {
   --tono: var(--alerta-tono-high);
-}
-
-/* De dónde sale la alerta, dibujado: capas para toda la sesión, alfiler para un momento. */
-.analisis__origen-icono {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--sup-3);
-  color: var(--tono);
+  --fondo: var(--alerta-fondo-high);
+  border-left-width: 6px;
 }
 
 .analisis__cuerpo {
@@ -211,8 +189,8 @@
 }
 
 .medidor__segmento {
-  width: 14px;
-  height: 8px;
+  width: 16px;
+  height: 10px;
   border-radius: 2px;
   box-shadow: inset 0 0 0 1px var(--alerta-segmento-vacio);
 }
@@ -246,16 +224,18 @@
   color: var(--tinta);
 }
 
-/* Las viñetas, con un punto igual para todas: sin íconos elegidos por palabras del texto. */
+/* Las viñetas, con un punto igual para todas: sin íconos elegidos por palabras del texto. Un punto
+   más chicas que el hecho y con el interlineado más junto: acompañan al hecho, no son otro bloque del
+   mismo peso. */
 .analisis__lista {
   display: grid;
-  gap: var(--e3);
+  gap: var(--e2);
   max-width: var(--medida);
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: var(--paso-cuerpo);
-  line-height: 1.5;
+  font-size: 1.0625rem;
+  line-height: 1.4;
 }
 
 .analisis__lista li {
@@ -304,9 +284,8 @@
 }
 
 @media (max-width: 640px) {
-  /* El ícono de origen sube a la cabecera para que el texto use todo el ancho; la hora baja. */
+  /* La hora baja a su propio renglón. */
   .analisis__alerta {
-    grid-template-columns: minmax(0, 1fr);
     gap: var(--e3);
     padding: var(--e4);
   }

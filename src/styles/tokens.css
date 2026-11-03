@@ -67,13 +67,15 @@
   --analisis-tinta-atenuada: var(--tinta-media); /* sobre --sup-1: 8,1:1; sobre --sup-2: 7,8:1 */
 
   /* ---- El nivel de una alerta -------------------------------------------- */
-  /* Un solo tono (ocre), de claro a hondo: intensidad y no semáforo, como los niveles de atención. No reemplazan
-     a los --nivel-*, que usan otros cinco componentes. Son trazos y rellenos (el borde de la tarjeta, el medidor
-     y el ícono de origen), nunca texto: el nivel siempre va escrito al lado, en --tinta. Piden 3:1 sobre
-     --sup-2 (WCAG 1.4.11); se comprueba en AnalisisSesion.contraste.test.ts. */
-  --alerta-tono-low: #b07d3a; /* 3,45:1 (sobre --sup-3, el cuadro del ícono de origen: 3,26:1) */
-  --alerta-tono-medium: #8a5a1c; /* 5,66:1 */
-  --alerta-tono-high: #5a360c; /* 10,25:1 */
+  /* De apagado a intenso y de frío a cálido: arena gris, ámbar y terracota. Antes eran tres ocres de claro a
+     hondo, y el alto (marrón oscuro) se veía menos que el bajo (dorado): a simple vista las tarjetas parecían
+     iguales. No reemplazan a los --nivel-*, que usan otros cinco componentes. Son trazos y rellenos (el borde
+     de la tarjeta y el medidor), nunca texto: el nivel siempre va escrito al lado, en --tinta. Piden 3:1
+     sobre su fondo (WCAG 1.4.11); se comprueba en AnalisisSesion.contraste.test.ts. */
+  --alerta-tono-low: #8f8676; /* 3,45:1 sobre --sup-2 */
+  --alerta-tono-medium: #b4650f; /* 4,19:1 */
+  --alerta-tono-high: #a8321a; /* 6,43:1; sobre --alerta-fondo-high: 6,13:1 */
+  --alerta-fondo-high: #fdf3ee; /* el fondo apenas tibio de la tarjeta de nivel alto */
   --alerta-segmento-vacio: var(--tinta-suave); /* contorno del segmento vacío del medidor: 4,78:1 */
 
   /* ---- Tipografía -------------------------------------------------------- */

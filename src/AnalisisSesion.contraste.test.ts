@@ -59,6 +59,9 @@ describe("contraste del texto atenuado y de los trazos del análisis", () => {
     ["--tinta-media", "--sup-2"],
     ["--tinta-media", "--sup-3"],
     ["--celeste-hondo", "--sup-1"],
+    // La tarjeta de nivel alto tiene su propio fondo tibio.
+    ["--tinta", "--alerta-fondo-high"],
+    ["--tinta-media", "--alerta-fondo-high"],
   ];
 
   it.each(pares)("%s sobre %s tiene al menos 4,5:1", (tinta, fondo) => {
@@ -66,22 +69,21 @@ describe("contraste del texto atenuado y de los trazos del análisis", () => {
   });
 
   // Trazos y rellenos que dicen el nivel (WCAG 1.4.11, 3:1): el borde de la tarjeta y el medidor sobre la tarjeta
-  // (--sup-2), y el ícono de origen sobre su cuadro (--sup-3).
+  // (--sup-2, o el fondo tibio de la de nivel alto).
   const graficos: Array<[string, string]> = [
     ["--alerta-tono-low", "--sup-2"],
     ["--alerta-tono-medium", "--sup-2"],
     ["--alerta-tono-high", "--sup-2"],
     ["--alerta-segmento-vacio", "--sup-2"],
-    ["--alerta-tono-low", "--sup-3"],
-    ["--alerta-tono-medium", "--sup-3"],
-    ["--alerta-tono-high", "--sup-3"],
+    ["--alerta-tono-high", "--alerta-fondo-high"],
+    ["--alerta-segmento-vacio", "--alerta-fondo-high"],
   ];
 
   it.each(graficos)("el trazo %s sobre %s tiene al menos 3:1", (trazo, fondo) => {
     expect(contraste(resolver(mapa, trazo), resolver(mapa, fondo))).toBeGreaterThanOrEqual(3);
   });
 
-  it("los tres tonos del nivel van de claro a hondo: más nivel, más contraste", () => {
+  it("los tres tonos del nivel van de apagado a intenso: más nivel, más contraste", () => {
     const [bajo, medio, alto] = ["--alerta-tono-low", "--alerta-tono-medium", "--alerta-tono-high"].map((t) =>
       contraste(resolver(mapa, t), resolver(mapa, "--sup-2"))
     );
