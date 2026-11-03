@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import type { Evento } from "../services/sesionesService";
 import { describirEvento, horaCorta, horaExacta } from "../eventos";
 import { conHuecos } from "../huecos";
@@ -32,7 +32,17 @@ import "./ListaEventos.css";
  * «sin eventos recibidos». Después de un corte de red, el hueco mide lo que
  * tardó en llegar el registro, y los eventos de ese tramo aparecen después del
  * hueco, con la hora en que se reenviaron.
+ *
+ * Se muestran de a tandas (`TANDA`), con «Mostrar más» y «Mostrar todos»
+ * abajo, y la tabla crece con la página en vez de desplazarse por dentro:
+ * con el desplazamiento interno, quien miraba el registro veía las diez
+ * filas de arriba y no encontraba cómo llegar al resto. Es solo cuántas filas
+ * se ven: ninguna se junta con otra, ninguna se esconde por su tipo y el orden
+ * sigue siendo el del reloj (criterio 6 de HU10).
  */
+
+/** Cuántas filas se agregan con cada «Mostrar más». */
+export const TANDA = 50;
 
 function Hora({ evento }: { evento: Evento }) {
   return (
@@ -81,8 +91,14 @@ export function ListaEventos({ eventos, vacio }: Props) {
   // Se recorre en el orden en que llegó, que es como está pensada la búsqueda
   // de huecos, y recién después se da vuelta para mostrarlo.
   const entradas = useMemo(() => conHuecos(eventos).reverse(), [eventos]);
+  const [visibles, setVisibles] = useState(TANDA);
 
   if (eventos.length === 0) return <>{vacio}</>;
+
+  const mostradas = entradas.slice(0, visibles);
+  const quedan = entradas.length - mostradas.length;
+  // Los huecos no son eventos: la cuenta dice cuántos eventos se ven, que es lo que dice el encabezado.
+  const eventosVistos = mostradas.filter((e) => e.clase !== "hueco").length;
 
   // El marco recorta la tabla y se desplaza por dentro, pero adentro no hay nada
   // que pueda recibir el foco: sin tabIndex, quien navega con teclado no pasa de
@@ -106,7 +122,7 @@ export function ListaEventos({ eventos, vacio }: Props) {
             </tr>
           </thead>
           <tbody>
-            {entradas.map((entrada) => {
+            {mostradas.map((entrada) => {
               if (entrada.clase === "hueco") {
                 return (
                   // Cruza la fila entera y no reparte por columnas: no es un
@@ -130,6 +146,22 @@ export function ListaEventos({ eventos, vacio }: Props) {
           </tbody>
         </table>
       </div>
+      {quedan > 0 ? (
+        <div className="eventos__mas">
+          <p className="eventos__vistos" role="status">
+            Se ven los {eventosVistos.toLocaleString("es-AR")} eventos más recientes de{" "}
+            {eventos.length.toLocaleString("es-AR")}.
+          </p>
+          <div className="eventos__botones">
+            <button type="button" className="eventos__boton" onClick={() => setVisibles((v) => v + TANDA)}>
+              Mostrar {Math.min(TANDA, quedan).toLocaleString("es-AR")} más
+            </button>
+            <button type="button" className="eventos__boton" onClick={() => setVisibles(entradas.length)}>
+              Mostrar todos
+            </button>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

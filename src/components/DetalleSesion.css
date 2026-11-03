@@ -41,7 +41,7 @@
   /* Pegado a la cuenta, como una sola frase: el hueco del encabezado separa
      el título de lo que lo acompaña, no la cuenta de su precisión. */
   margin-left: calc(-1 * var(--e3));
-  font-size: var(--panel-nota);
+  font-size: var(--paso-apoyo);
   color: var(--tinta-media);
 }
 
@@ -61,10 +61,23 @@
 }
 
 /* El registro, en segundo plano: un escalón más abajo que la lámina del
-   análisis, con el anillo para que no se pierda contra el fondo. */
+   análisis, con el anillo para que no se pierda contra el fondo. El título
+   tiene el mismo tamaño que «Análisis de la sesión», porque las dos son
+   secciones del mismo nivel, y la cuenta se lee sin esfuerzo. */
 .lista.detalle__registro {
   background: var(--sup-2);
   box-shadow: var(--anillo);
+}
+
+.detalle__registro .lista__titulo {
+  margin: 0;
+  font-size: var(--paso-subtitulo);
+  line-height: 1.25;
+  letter-spacing: normal;
+}
+
+.detalle__registro .lista__cuenta {
+  font-size: var(--paso-apoyo);
 }
 
 /* Los dos avisos de la vista de eventos. Comparten la forma del vacío del

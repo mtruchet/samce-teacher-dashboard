@@ -4,28 +4,36 @@ import { describirEvento, duracion } from "./eventos";
 const de = (type: string, data: Record<string, unknown> = {}) => describirEvento({ type, data });
 
 describe("duracion", () => {
-  it("cuenta en segundos y en minutos", () => {
-    expect(duracion(400)).toBe("menos de 1 s");
-    expect(duracion(4000)).toBe("4 s");
-    expect(duracion(59_400)).toBe("59 s");
-    expect(duracion(60_000)).toBe("1 min");
-    expect(duracion(125_000)).toBe("2 min 5 s");
-    // Pasada la hora, el mismo formato que la columna «Transcurrido». Llegan
-    // valores así: el aviso de mouse quieto se repite cada minuto mientras no
-    // se mueva, y ni `idle_ms` ni `away_ms` tienen tope.
-    expect(duracion(3_600_000)).toBe("1 h");
-    expect(duracion(4_500_000)).toBe("1 h 15 min");
-    expect(duracion(7_200_000)).toBe("2 h");
-    expect(duracion(9_000_000)).toBe("2 h 30 min");
+  it("cuenta en segundos y en minutos, con las unidades escritas enteras", () => {
+    expect(duracion(400)).toBe("menos de un segundo");
+    expect(duracion(1000)).toBe("1 segundo");
+    expect(duracion(4000)).toBe("4 segundos");
+    expect(duracion(59_400)).toBe("59 segundos");
+    expect(duracion(60_000)).toBe("1 minuto");
+    expect(duracion(61_000)).toBe("1 minuto y 1 segundo");
+    expect(duracion(125_000)).toBe("2 minutos y 5 segundos");
+    // Pasada la hora se dejan los segundos, como en la columna «Transcurrido».
+    // Llegan valores así: el aviso de mouse quieto se repite cada minuto
+    // mientras no se mueva, y ni `idle_ms` ni `away_ms` tienen tope.
+    expect(duracion(3_600_000)).toBe("1 hora");
+    expect(duracion(4_500_000)).toBe("1 hora y 15 minutos");
+    expect(duracion(7_200_000)).toBe("2 horas");
+    expect(duracion(9_000_000)).toBe("2 horas y 30 minutos");
+  });
+
+  it("nunca abrevia las unidades", () => {
+    for (const ms of [400, 4000, 60_000, 125_000, 4_500_000]) {
+      expect(duracion(ms)).not.toMatch(/\b(s|min|h)\b/);
+    }
   });
 });
 
 describe("describirEvento", () => {
   it("cuenta el foco y la visibilidad, con cuánto duró la salida", () => {
     expect(de("focus_lost")).toMatchObject({ titulo: "Pasó a otra ventana", detalle: "" });
-    expect(de("focus_gained", { away_ms: 4000 })).toMatchObject({ titulo: "Volvió a la ventana del examen", detalle: "4 s afuera" });
+    expect(de("focus_gained", { away_ms: 4000 })).toMatchObject({ titulo: "Volvió a la ventana del examen", detalle: "4 segundos afuera" });
     expect(de("visibility_hidden").titulo).toBe("El examen dejó de verse en pantalla");
-    expect(de("visibility_visible", { away_ms: 125_000 }).detalle).toBe("2 min 5 s afuera");
+    expect(de("visibility_visible", { away_ms: 125_000 }).detalle).toBe("2 minutos y 5 segundos afuera");
   });
 
   it("cuenta el tecleo con la pregunta y el origen, sin ningún texto", () => {
@@ -42,7 +50,7 @@ describe("describirEvento", () => {
     // Cada origen con su verbo: un total con el desglose entre paréntesis
     // obligaba a restar para saber cuánto escribió de verdad.
     expect(evento.detalle).toBe(
-      "pregunta 3 (ensayo), 9 teclas, 2 pegadas, 1 autocompletada, 1 borrado, paró 2 veces"
+      "pregunta 3 (de desarrollo), 9 teclas, 2 pegadas, 1 autocompletada, 1 borrado, paró 2 veces"
     );
   });
 
@@ -64,14 +72,14 @@ describe("describirEvento", () => {
     // «Sin movimiento» diría que el alumno no movió el mouse; lo único cierto
     // es que el dato no sirve.
     expect(de("mouse_activity", { moves: "muchos" }).detalle).toBe("");
-    expect(de("mouse_activity", { moves: "muchos", idle_ms: 8000 }).detalle).toBe("8 s sin mover");
+    expect(de("mouse_activity", { moves: "muchos", idle_ms: 8000 }).detalle).toBe("8 segundos sin mover");
     expect(de("mouse_activity", {}).detalle).toBe("");
   });
 
   it("cuenta el pegado solo por su longitud", () => {
     expect(de("clipboard", { action: "paste", length: 340, slot: 1, qtype: "essay" })).toMatchObject({
       titulo: "Pegó desde el portapapeles",
-      detalle: "pregunta 1 (ensayo), 340 caracteres",
+      detalle: "pregunta 1 (de desarrollo), 340 caracteres",
     });
     expect(de("clipboard", { action: "copy", length: 1 }).detalle).toBe("1 carácter");
     expect(de("clipboard", { action: "cut", length: 5 }).titulo).toBe("Cortó al portapapeles");
@@ -83,7 +91,7 @@ describe("describirEvento", () => {
   it("con reason unload no dice que volvió, porque no volvió", () => {
     expect(de("visibility_visible", { away_ms: 2000, reason: "unload" })).toMatchObject({
       titulo: "Cambió o cerró la página del examen",
-      detalle: "2 s afuera",
+      detalle: "2 segundos afuera",
     });
     expect(de("visibility_visible", { away_ms: 2000 }).titulo).toBe("El examen volvió a verse en pantalla");
   });
@@ -105,19 +113,26 @@ describe("describirEvento", () => {
     // distintas con el mismo campo: con movimientos es el hueco más largo de
     // ese tramo, sin movimientos es cuánto hace que no se mueve, contado desde
     // el último movimiento real y no desde que empezó el tramo.
-    expect(de("mouse_activity", { moves: 14, idle_ms: 9000 }).detalle).toBe("14 movimientos, 9 s sin mover");
+    expect(de("mouse_activity", { moves: 14, idle_ms: 9000 }).detalle).toBe("14 movimientos, 9 segundos sin mover");
     expect(de("mouse_activity", { moves: 14, idle_ms: 0 }).detalle).toBe("14 movimientos");
     expect(de("mouse_activity", { moves: 1 }).detalle).toBe("1 movimiento");
-    expect(de("mouse_activity", { moves: 0, idle_ms: 20_000 }).detalle).toBe("sin movimiento desde hace 20 s");
+    expect(de("mouse_activity", { moves: 0, idle_ms: 20_000 }).detalle).toBe("sin movimiento desde hace 20 segundos");
     expect(de("mouse_leave").titulo).toBe("El mouse salió del área del examen");
     expect(de("mouse_enter", { away_ms: 9000 }).titulo).toBe("El mouse volvió al área del examen");
   });
 
-  it("cuenta cuánto estuvo a la vista cada pregunta", () => {
+  it("cuenta cuánto estuvo en cada pregunta, dicho como una frase", () => {
     expect(de("question_time", { slot: 2, qtype: "multichoice", ms: 42_000 })).toMatchObject({
-      titulo: "Tiempo a la vista",
-      detalle: "pregunta 2 (opción múltiple), 42 s",
+      titulo: "Tiempo en una pregunta",
+      detalle: "42 segundos en la pregunta 2 (de opción múltiple)",
     });
+    expect(de("question_time", { slot: 5, qtype: "essay", ms: 47_000 }).detalle).toBe(
+      "47 segundos en la pregunta 5 (de desarrollo)"
+    );
+    // Sin el tiempo, o sin la pregunta, lo que haya.
+    expect(de("question_time", { slot: 5 }).detalle).toBe("pregunta 5");
+    expect(de("question_time", { ms: 3000 }).detalle).toBe("3 segundos");
+    expect(de("question_time", { qtype: "numerical", ms: 3000 }).detalle).toBe("3 segundos en la pregunta numérica");
   });
 
   // El «cómo se supo» salió de la lista el 24/09/2026: el complemento marca si
@@ -135,14 +150,11 @@ describe("describirEvento", () => {
     });
   });
 
-  it("cuenta el tamaño de la ventana y la conexión", () => {
-    // Con la unidad escrita y sin la cruz de multiplicar: «1920 × 1080» son
-    // dos números sin decir de qué, y hay lectores de pantalla que se comen el
-    // símbolo y leen las dos cifras de corrido.
-    expect(de("resize", { w: 1920, h: 1080 }).detalle).toBe("1920 por 1080 píxeles");
-    // Un lado solo se muestra igual: que falte uno no vuelve inútil al otro.
-    expect(de("resize", { w: 1920 }).detalle).toBe("1920 píxeles de ancho");
-    expect(de("resize", { h: 1080 }).detalle).toBe("1080 píxeles de alto");
+  it("cuenta el cambio de tamaño de la ventana sin píxeles, y la conexión", () => {
+    // «1920 por 1080 píxeles» es técnico y no le sirve al docente para
+    // corregir: el dato se guarda y lo lee el motor de análisis.
+    expect(de("resize", { w: 1920, h: 1080 })).toMatchObject({ titulo: "Cambió el tamaño de la ventana", detalle: "" });
+    expect(de("resize", { w: 1920 }).detalle).toBe("");
     expect(de("resize", {}).detalle).toBe("");
     expect(de("connection", { online: false, source: "browser" }).titulo).toBe("Se perdió la conexión");
     expect(de("connection", { online: true, source: "browser" }).titulo).toBe("Se recuperó la conexión");
@@ -227,7 +239,7 @@ describe("describirEvento", () => {
   });
 
   it("un tipo de pregunta que no conoce lo muestra como viene", () => {
-    expect(de("question_time", { slot: 1, qtype: "stack", ms: 3000 }).detalle).toBe("pregunta 1 (stack), 3 s");
+    expect(de("question_time", { slot: 1, qtype: "stack", ms: 3000 }).detalle).toBe("3 segundos en la pregunta 1 (de tipo stack)");
   });
 
   // El largo del tramo que resume cada evento (`window_ms`) llega y no se
@@ -243,7 +255,7 @@ describe("describirEvento", () => {
     // tramo dura 5 s y el rato quieto son 4 minutos, porque se cuenta desde el
     // último movimiento y no desde que empezó el tramo.
     expect(de("mouse_activity", { moves: 0, idle_ms: 260_000, window_ms: 5000 }).detalle)
-      .toBe("sin movimiento desde hace 4 min 20 s");
+      .toBe("sin movimiento desde hace 4 minutos y 20 segundos");
   });
 
   it("cuenta cuánto hacía que no se tecleaba en esa pregunta", () => {
@@ -252,12 +264,12 @@ describe("describirEvento", () => {
     expect(de("key_activity", { by_origin: { typed: 5 }, gap_before_ms: 800 }).detalle)
       .toBe("5 teclas");
     expect(de("key_activity", { slot: 2, by_origin: { typed: 4 }, gap_before_ms: 47_000 }).detalle)
-      .toBe("pregunta 2, 4 teclas, 47 s desde el tecleo anterior");
+      .toBe("pregunta 2, 4 teclas, 47 segundos desde el tecleo anterior");
   });
 
   it("cuenta cuánto duró la pausa más larga, además de cuántas hubo", () => {
     expect(de("key_activity", { by_origin: { typed: 9 }, pauses: 3, max_pause_ms: 12_000 }).detalle)
-      .toBe("9 teclas, paró 3 veces, la más larga de 12 s");
+      .toBe("9 teclas, paró 3 veces, la más larga de 12 segundos");
     // Sin el campo, sigue diciendo sólo cuántas: inventar un «hasta 0 s» sería
     // afirmar una duración que el evento no trae.
     expect(de("key_activity", { by_origin: { typed: 9 }, pauses: 3 }).detalle)
@@ -266,13 +278,13 @@ describe("describirEvento", () => {
 
   it("cuenta cuántas preguntas había a la vista, sólo cuando fue más de una", () => {
     expect(de("question_time", { slot: 1, ms: 45_000, visible_count: 4 }).detalle)
-      .toBe("pregunta 1, 45 s, 4 en pantalla a la vez");
+      .toBe("45 segundos en la pregunta 1, 4 en pantalla a la vez");
     expect(de("question_time", { slot: 1, ms: 45_000, visible_count: 1 }).detalle)
-      .toBe("pregunta 1, 45 s");
+      .toBe("45 segundos en la pregunta 1");
   });
 
   it("cuenta el tiempo que el puntero estuvo fuera de la página", () => {
-    expect(de("mouse_enter", { away_ms: 9000 }).detalle).toBe("9 s afuera");
+    expect(de("mouse_enter", { away_ms: 9000 }).detalle).toBe("9 segundos afuera");
     expect(de("mouse_enter").detalle).toBe("");
   });
 
@@ -309,7 +321,7 @@ describe("describirEvento", () => {
   // evento sale al entregar y al cerrar la pestaña, y adónde fue el alumno es
   // justo lo que el dato no dice.
   it("con reason unload y menos de un segundo afuera lo dice así", () => {
-    expect(de("visibility_visible", { away_ms: 400, reason: "unload" }).detalle).toBe("menos de 1 s afuera");
+    expect(de("visibility_visible", { away_ms: 400, reason: "unload" }).detalle).toBe("menos de un segundo afuera");
   });
 
   // El intervalo entre teclas dejó de mostrarse el 24/09/2026: en pantalla
@@ -358,7 +370,7 @@ describe("describirEvento", () => {
   });
 
   it("el tamaño inicial de la ventana no se lee como una acción del alumno", () => {
-    expect(de("resize", { w: 1280, h: 720, initial: true })).toMatchObject({ titulo: "Tamaño de la ventana al empezar", detalle: "1280 por 720 píxeles" });
+    expect(de("resize", { w: 1280, h: 720, initial: true })).toMatchObject({ titulo: "Ventana del examen al empezar", detalle: "" });
     expect(de("resize", { w: 900, h: 700 }).titulo).toBe("Cambió el tamaño de la ventana");
   });
 

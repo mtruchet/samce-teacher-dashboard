@@ -106,8 +106,11 @@ export function horaCorta(iso: string): string {
 }
 
 /**
- * «4 s», «2 min 5 s», «2 h 15 min». Por debajo del segundo no vale la pena el
- * detalle.
+ * «4 segundos», «2 minutos y 5 segundos», «2 horas y 15 minutos». Por debajo
+ * del segundo no vale la pena el detalle.
+ *
+ * Con las unidades escritas enteras: «4 s» y «2 min» son abreviaturas técnicas,
+ * y los docentes que revisaron el detalle de la sesión no las leían de corrido.
  *
  * Pasa a horas con el mismo criterio que la columna «Transcurrido». El docente
  * ve las dos en pantallas consecutivas —de la lista de sesiones pasa al
@@ -120,47 +123,58 @@ export function horaCorta(iso: string): string {
  */
 export function duracion(ms: number): string {
   const segundos = Math.round(ms / 1000);
-  if (segundos < 1) return "menos de 1 s";
-  if (segundos < 60) return `${segundos} s`;
+  if (segundos < 1) return "menos de un segundo";
+  if (segundos < 60) return unidad(segundos, "segundo", "segundos");
   const minutos = Math.floor(segundos / 60);
   if (minutos < 60) {
     const resto = segundos % 60;
-    return resto === 0 ? `${minutos} min` : `${minutos} min ${resto} s`;
+    const enMinutos = unidad(minutos, "minuto", "minutos");
+    return resto === 0 ? enMinutos : `${enMinutos} y ${unidad(resto, "segundo", "segundos")}`;
   }
   const horas = Math.floor(minutos / 60);
   const resto = minutos % 60;
-  return resto === 0 ? `${horas} h` : `${horas} h ${resto} min`;
+  const enHoras = unidad(horas, "hora", "horas");
+  return resto === 0 ? enHoras : `${enHoras} y ${unidad(resto, "minuto", "minutos")}`;
 }
 
+/** «1 segundo», «4 segundos». */
+function unidad(n: number, singular: string, plural: string): string {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
+
+/**
+ * El tipo de pregunta como lo diría un docente, con su preposición: «de
+ * desarrollo» y no «ensayo», que es el nombre del tipo en Moodle.
+ */
 const TIPOS_DE_PREGUNTA: Record<string, string> = {
-  essay: "ensayo",
-  multichoice: "opción múltiple",
-  truefalse: "verdadero/falso",
-  shortanswer: "respuesta corta",
+  essay: "de desarrollo",
+  multichoice: "de opción múltiple",
+  truefalse: "de verdadero o falso",
+  shortanswer: "de respuesta corta",
   numerical: "numérica",
-  match: "emparejar",
-  gapselect: "completar con opciones",
-  ddwtos: "arrastrar palabras",
-  ddimageortext: "arrastrar sobre imagen",
-  ddmarker: "marcar sobre imagen",
-  multianswer: "respuesta incrustada",
+  match: "de emparejar",
+  gapselect: "de completar con opciones",
+  ddwtos: "de arrastrar palabras",
+  ddimageortext: "de arrastrar sobre una imagen",
+  ddmarker: "de marcar sobre una imagen",
+  multianswer: "con respuestas incrustadas",
   calculated: "calculada",
   calculatedmulti: "calculada de opción múltiple",
   calculatedsimple: "calculada simple",
-  ordering: "ordenar",
+  ordering: "de ordenar",
 };
 
-/** «pregunta 3 (ensayo)», o lo que se pueda decir si falta alguno de los dos. */
+/** «pregunta 3 (de desarrollo)», o lo que se pueda decir si falta alguno de los dos. */
 function pregunta(datos: Datos): string {
   const posicion = numero(datos.slot);
   const crudo = typeof datos.qtype === "string" ? datos.qtype : null;
   // Un tipo de pregunta de un plugin de Moodle que este panel no conoce se
   // muestra igual, con los guiones bajos hechos espacios: es un dato del
   // examen y esconderlo sería peor que mostrarlo sin traducir.
-  const tipo = crudo === null ? null : (TIPOS_DE_PREGUNTA[crudo] ?? crudo.replace(/_/g, " "));
+  const tipo = crudo === null ? null : (TIPOS_DE_PREGUNTA[crudo] ?? `de tipo ${crudo.replace(/_/g, " ")}`);
   // El tipo se muestra aunque no se sepa de qué pregunta es: que falte el
   // número no vuelve inútil al otro dato.
-  if (posicion === null) return tipo ? `pregunta de ${tipo}` : "";
+  if (posicion === null) return tipo ? `pregunta ${tipo}` : "";
   return tipo ? `pregunta ${posicion} (${tipo})` : `pregunta ${posicion}`;
 }
 
@@ -418,7 +432,7 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
               ? `sin movimiento desde hace ${rato}`
               : "sin movimiento"
             : unir([plural(movimientos, "movimiento", "movimientos"), rato && `${rato} sin mover`]);
-      return { icono: Raton, titulo: "Mouse", detalle };
+      return { icono: Raton, titulo: "Movimiento del mouse", detalle };
     }
     case "mouse_leave":
       return { icono: ArrowUpRight, titulo: "El mouse salió del área del examen", detalle: "" };
@@ -434,20 +448,22 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
 
     case "question_time": {
       const ms = numero(d.ms);
+      // Negativo es imposible y el backend no mira adentro de `data`.
+      // `duracion()` lo mostraba como «menos de un segundo», que es afirmar un
+      // tiempo que el dato no sostiene; callarlo es más honesto.
+      const tiempo = ms === null || ms < 0 ? "" : duracion(ms);
+      const cual = pregunta(d);
       return {
         icono: Cronometro,
-        // «A la vista» y no «tiempo en la pregunta», por dos motivos. Uno: el
-        // complemento mide cuánto estuvo VISIBLE en pantalla, no cuánto le
-        // dedicó el alumno. Dos: el evento sale como mucho cada minuto y ahí
-        // reinicia su cuenta, así que cada fila es un tramo y no el total;
-        // cuatro filas seguidas de la misma pregunta son cuatro tramos.
-        titulo: "Tiempo a la vista",
+        // «Tiempo en una pregunta» y no «Tiempo a la vista», que no se
+        // entendía. El complemento mide cuánto estuvo la pregunta en pantalla,
+        // y el evento sale como mucho cada minuto y ahí reinicia su cuenta, así
+        // que cada fila es un tramo y no el total: cuatro filas seguidas de la
+        // misma pregunta son cuatro tramos.
+        titulo: "Tiempo en una pregunta",
         detalle: unir([
-          pregunta(d),
-          // Negativo es imposible y el backend no mira adentro de `data`.
-          // `duracion()` lo mostraba como «menos de 1 s», que es afirmar un
-          // tiempo que el dato no sostiene; callarlo es más honesto.
-          ms === null || ms < 0 ? "" : duracion(ms),
+          // «47 segundos en la pregunta 5 (de desarrollo)»: se lee como una frase.
+          tiempo && cual ? `${tiempo} en la ${cual}` : tiempo || cual,
           // Cuántas preguntas había en pantalla en ese tramo. Con más de una,
           // el mismo segundo se le suma entero a cada una: el número está para
           // que eso se vea, no para que el panel lo reparta por su cuenta.
@@ -506,30 +522,17 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       };
     }
 
-    case "resize": {
-      const ancho = numero(d.w);
-      const alto = numero(d.h);
-      // Los píxeles, escritos. «1280 × 720» son dos números sin decir de qué,
-      // y la cruz de multiplicar no todos los lectores de pantalla la
-      // pronuncian: quedaba «mil doscientos ochenta setecientos veinte».
-      //
-      // Y si llegó un solo lado se muestra ese: descartar los dos sería
-      // esconder un dato que sí está por culpa de otro que falta.
-      const medidas =
-        ancho !== null && alto !== null
-          ? `${ancho} por ${alto} píxeles`
-          : ancho !== null
-            ? `${ancho} píxeles de ancho`
-            : alto !== null
-              ? `${alto} píxeles de alto`
-              : "";
-      // El primero de cada sesión no lo hizo el alumno: es el tamaño con el que arrancó.
+    case "resize":
+      // Sin los píxeles: «1360 por 860 píxeles» es un dato técnico que no le
+      // sirve al docente para corregir, y para entenderlo hay que saber el
+      // tamaño de la pantalla del alumno, que el evento no trae. Se guardan y
+      // los lee el motor de análisis. El primero de cada sesión no lo hizo el
+      // alumno: es la ventana con la que arrancó.
       return {
         icono: Marco,
-        titulo: d.initial === true ? "Tamaño de la ventana al empezar" : "Cambió el tamaño de la ventana",
-        detalle: medidas,
+        titulo: d.initial === true ? "Ventana del examen al empezar" : "Cambió el tamaño de la ventana",
+        detalle: "",
       };
-    }
 
     case "capture_status":
       // Lo genera el servidor de Moodle, no el navegador del alumno: es lo único que puede

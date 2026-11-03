@@ -3,14 +3,12 @@
    columnas menos la primera, pensado para una columna de nombres y dos de
    tiempos, y acá la que se lleva el espacio es la última. */
 
-/* El mismo alto que `.lista__marco`, a propósito. Las dos tablas viven a un
-   clic de distancia y el scroll interno existe para que la barra quede siempre
-   en el mismo lugar: con dos altos distintos el ojo la tiene que volver a
-   buscar cada vez que se entra a una sesión. */
+/* Sin desplazamiento interno: la tabla crece con la página y se muestra de a
+   tandas, con «Mostrar más» abajo (`ListaEventos`). Con el alto fijo de antes,
+   quien miraba el registro veía diez filas y no encontraba cómo llegar al
+   resto. */
 .eventos__marco {
-  max-height: min(52vh, 520px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow-x: auto;
 }
 
 .eventos {
@@ -34,11 +32,62 @@
   white-space: nowrap;
 }
 
-/* Cómo está ordenada la tabla, a la vista y no solo para lectores de pantalla. */
+/* Cómo está ordenada la tabla, a la vista y no solo para lectores de pantalla. En
+   un tamaño y un contraste que se leen: es lo primero que hace falta saber. */
 .eventos__orden {
   margin: calc(-1 * var(--e2)) 0 var(--e3);
-  font-size: var(--panel-nota);
+  font-size: var(--paso-apoyo);
   color: var(--tinta-media);
+}
+
+/* Debajo de la tabla: cuántos se ven y los dos botones para ver el resto. */
+.eventos__mas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3) var(--e5);
+  margin-top: var(--e4);
+  padding-top: var(--e4);
+  box-shadow: inset 0 1px 0 var(--sup-4);
+}
+
+.eventos__vistos {
+  margin: 0;
+  font-size: var(--paso-apoyo);
+  color: var(--tinta-media);
+}
+
+.eventos__botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e3);
+}
+
+/* Botones secundarios: el registro es para ubicar un momento, no la acción
+   principal de la pantalla. */
+.eventos__boton {
+  height: 40px;
+  padding-inline: var(--e5);
+  border: 0;
+  border-radius: var(--radio-chip);
+  background: var(--sup-1);
+  box-shadow: inset 0 0 0 1px var(--sup-4);
+  font: inherit;
+  font-size: var(--paso-apoyo);
+  font-weight: 500;
+  color: var(--pizarra);
+  cursor: pointer;
+  transition: background var(--mov-estado) var(--curva);
+}
+
+.eventos__boton:hover {
+  background: var(--sup-3);
+}
+
+.eventos__boton:focus-visible {
+  outline: 2px solid var(--pizarra);
+  outline-offset: 2px;
 }
 
 .eventos td {
@@ -75,9 +124,12 @@
    título, empujado a la derecha, y ahí cada fila lo arrancaba en un lugar
    distinto según lo largo que fuera: la lista se leía en zigzag. Simularlo con
    un ancho mínimo alineaba, pero sólo mientras el título entrara; una columna
-   de tabla alinea siempre. */
+   de tabla alinea siempre. Toma lo que ocupa el título más largo y no más: con
+   un 30 % fijo quedaba un hueco grande entre «Qué pasó» y el detalle. */
 .eventos__que {
-  width: 30%;
+  width: 1%;
+  padding-right: var(--e6);
+  white-space: nowrap;
 }
 
 /* El flex va en un envoltorio y no en la celda: un `td` con `display: flex`
@@ -151,6 +203,8 @@ th.eventos__que {
      y el detalle envuelve debajo. */
   .eventos__que {
     width: 38%;
+    padding-right: var(--e4);
+    white-space: normal;
   }
 }
 
