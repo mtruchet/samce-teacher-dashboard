@@ -212,7 +212,9 @@ function desde(datos: Datos): string {
   // «5 teclas, menos de 1 s desde el tecleo anterior», que ocupa medio renglón
   // para decir que no pasó nada.
   const PAUSA = 2000;
-  return ms === null || ms < PAUSA ? "" : `${duracion(ms)} desde el tecleo anterior`;
+  // «después de 5 segundos sin escribir» y no «5 segundos desde el tecleo anterior», que los docentes de la ronda 2
+  // no sabían cómo leer.
+  return ms === null || ms < PAUSA ? "" : `después de ${duracion(ms)} sin escribir`;
 }
 
 /**
@@ -229,18 +231,28 @@ function juntas(datos: Datos): string {
   return cuantas === null || cuantas <= 1 ? "" : `${cuantas} en pantalla a la vez`;
 }
 
-/** «paró 3 veces» y, si el evento la trae, cuánto duró la más larga. */
+/**
+ * «hizo 1 pausa de 3 segundos», «hizo 3 pausas, la más larga de 12 segundos».
+ *
+ * Con «pausa» y no «paró 1 vez, la más larga de 3 segundos»: con una sola,
+ * «la más larga» no tenía con qué compararse, y «paró» no decía qué.
+ */
 function paradas(pausas: number, datos: Datos): string {
-  const veces = `paró ${pausas} ${pausas === 1 ? "vez" : "veces"}`;
   const mayor = numero(datos.max_pause_ms);
+  const conMayor = mayor !== null && mayor > 0;
+  if (pausas === 1) return conMayor ? `hizo 1 pausa de ${duracion(mayor)}` : "hizo 1 pausa";
+  const veces = `hizo ${pausas.toLocaleString("es-AR")} pausas`;
   // Dicho entero y no «hasta 9 s»: las partes del detalle van separadas por
   // comas, así que un dato suelto al lado de otro se lee como uno más de la
   // lista y no como la aclaración del anterior.
-  return mayor === null || mayor <= 0 ? veces : `${veces}, la más larga de ${duracion(mayor)}`;
+  return conMayor ? `${veces}, la más larga de ${duracion(mayor)}` : veces;
 }
 
 /**
- * Con qué apunta el equipo del alumno.
+ * Desde qué clase de equipo abrió el examen: «una computadora», «un celular o
+ * una tableta». Es lo que un docente entiende de los tres campos de punteros;
+ * «equipo sin pantalla táctil» o «apunta con mouse o trackpad» eran el dato
+ * técnico sin la conclusión obvia.
  *
  * `is_touch` da verdadero en cualquier notebook con pantalla táctil, así que no
  * distingue una tablet. El puntero principal y si hay alguno fino sí, y son dos
@@ -250,34 +262,43 @@ function paradas(pausas: number, datos: Datos): string {
  * —puntero principal fino— repetir «tiene mouse o trackpad» es el mismo hecho
  * dos veces, y son cuarenta renglones los que lo pagan.
  */
-function punteros(datos: Datos): string[] {
+function equipo(datos: Datos): string {
   const grueso = typeof datos.pointer_coarse === "boolean" ? datos.pointer_coarse : null;
   const fino = typeof datos.any_pointer_fine === "boolean" ? datos.any_pointer_fine : null;
+  const tactil = typeof datos.is_touch === "boolean" ? datos.is_touch : null;
 
-  // Un equipo sin pantalla táctil no puede apuntar con el dedo, así que decir
-  // además «apunta con mouse o trackpad» es el mismo hecho escrito dos veces,
-  // y es el caso de casi todas las sesiones. Con pantalla táctil sí distinguen:
-  // ahí el puntero principal es lo que separa una tablet de una notebook.
-  if (datos.is_touch === false && grueso !== true) return [];
+  // Los dos campos de punteros juntos pueden decir cosas que no se sostienen
+  // entre sí: un puntero principal que no es grueso, y a la vez ningún puntero
+  // fino en todo el equipo. Ahí no se elige cuál creer: no se dice nada.
+  if (grueso === false && fino === false) return "";
 
-  // Los dos campos juntos pueden decir cosas que no se sostienen entre sí: un
-  // puntero principal que no es grueso, y a la vez ningún puntero fino en todo
-  // el equipo. Ahí el par no afirma nada y la frase salía contradiciéndose sola
-  // («apunta con mouse o trackpad, sin mouse ni trackpad»). No se elige cuál de
-  // los dos creer: no se dice ninguno.
-  if (grueso === false && fino === false) return [];
-
-  if (grueso === null) {
-    if (fino === null) return [];
-    return [fino ? "tiene mouse o trackpad" : "sin mouse ni trackpad"];
+  // Con el dedo como puntero principal es un celular o una tableta; que además
+  // tenga uno fino es el mouse conectado, un dato aparte.
+  if (grueso === true) {
+    if (tactil === false) return "";
+    return fino === true ? "un celular o una tableta, con mouse o trackpad" : "un celular o una tableta";
   }
+  // `is_touch` da verdadero en cualquier notebook con pantalla táctil: con un
+  // puntero principal fino, es una computadora.
+  if (tactil === true) return grueso === false ? "una computadora con pantalla táctil" : "un equipo con pantalla táctil";
+  // Las tres ramas a propósito: con una sola comparación, el campo ausente
+  // afirmaba algo que el evento no trae.
+  if (tactil === false || grueso === false) return "una computadora";
+  return fino === true ? "un equipo con mouse o trackpad" : "";
+}
 
-  if (!grueso) return ["apunta con mouse o trackpad"];
-
-  // Con el dedo como puntero principal, que además haya uno fino es un dato
-  // aparte y no una repetición: es la tablet con un mouse conectado.
-  const conDedo = ["apunta con el dedo"];
-  return fino === true ? [...conDedo, "tiene mouse o trackpad"] : conDedo;
+/**
+ * El largo de un texto copiado o pegado, en palabras: «unas 50 palabras».
+ *
+ * «301 caracteres» era justo la palabra que los docentes no entendían, y no les
+ * decía cuánto era. Una palabra en castellano son unas seis letras contando el
+ * espacio, así que es una cuenta aproximada y lo dice («unas»). No es un umbral:
+ * no esconde ni elige nada, cambia la unidad del mismo dato.
+ */
+function palabras(letras: number): string {
+  if (letras <= 0) return "";
+  const n = Math.max(1, Math.round(letras / 6));
+  return n === 1 ? "alrededor de una palabra" : `unas ${n.toLocaleString("es-AR")} palabras`;
 }
 
 export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripcion {
@@ -291,20 +312,18 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       // FxiOS, y ninguno matchea. Traducirlo es lo mismo que se hace con el
       // identificador negativo de una sesión que no se pudo descifrar. Que el
       // campo no venga, en cambio, no habilita a decir nada.
+      //
+      // «Abrió el examen · desde una computadora, con Chrome»: sin la versión
+      // del navegador ni «equipo sin pantalla táctil», que son datos técnicos
+      // (ronda 2 de los docentes). La versión sigue guardada.
       const familia = typeof d.browser_family === "string" ? d.browser_family : "";
-      const navegador = familia === "Other" ? "" : familia;
-      const version = numero(d.browser_major);
+      const desdeDonde = equipo(d);
       return {
         icono: Navegador,
-        titulo: "Navegador del alumno",
+        titulo: "Abrió el examen",
         detalle: unir([
-          familia === "Other" && "navegador no identificado",
-          navegador && version ? `${navegador} ${version}` : navegador,
-          // Las tres ramas a propósito: con una sola comparación, el campo
-          // ausente afirmaba que el equipo no tiene pantalla táctil, que es un
-          // hecho que el evento no trae.
-          d.is_touch === true ? "equipo con pantalla táctil" : d.is_touch === false ? "equipo sin pantalla táctil" : "",
-          ...punteros(d),
+          desdeDonde && `desde ${desdeDonde}`,
+          familia === "Other" ? "con un navegador que no se pudo identificar" : familia && `con ${familia}`,
         ]),
       };
     }
@@ -370,17 +389,21 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       // tecleado; si no viene, se cae al total.
       const tecleadas = numero(origen.typed);
       const desglosado = (tecleadas ?? 0) + pegadas + arrastradas + reemplazadas > 0;
+      // «Escribió» y no «Tecleo». Lo que entró pegado se dice con el mismo verbo
+      // que la fila del pegado («pegó un texto»): «1 pegada» no se entendía y
+      // parecía otro hecho distinto del de al lado.
       return {
         icono: Teclado,
-        titulo: "Tecleo",
+        titulo: "Escribió",
         detalle: unir([
           pregunta(d),
           desglosado
             ? unir([
                 (tecleadas ?? 0) > 0 && plural(tecleadas ?? 0, "tecla", "teclas"),
-                pegadas > 0 && `${plural(pegadas, "pegada", "pegadas")}`,
-                arrastradas > 0 && `${plural(arrastradas, "arrastrada", "arrastradas")}`,
-                reemplazadas > 0 && `${plural(reemplazadas, "autocompletada", "autocompletadas")}`,
+                pegadas > 0 && (pegadas === 1 ? "pegó un texto" : `pegó ${plural(pegadas, "texto", "textos")}`),
+                arrastradas > 0 &&
+                  (arrastradas === 1 ? "arrastró un texto" : `arrastró ${plural(arrastradas, "texto", "textos")}`),
+                reemplazadas > 0 && plural(reemplazadas, "palabra autocompletada", "palabras autocompletadas"),
               ])
             : inserciones > 0 && plural(inserciones, "entrada de texto", "entradas de texto"),
           borrados > 0 && plural(borrados, "borrado", "borrados"),
@@ -402,7 +425,8 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       // - Sin movimientos (`moves: 0`), es el aviso de que el mouse quedó quieto:
       //   sale una sola vez, al pasar los 15 s que el complemento considera
       //   quietud, y cuenta desde el último movimiento real, que puede ser de
-      //   antes del tramo. Por eso ahí se escribe «desde hace».
+      //   antes del tramo. Se escribe igual, «1 minuto y 16 segundos sin
+      //   mover»: «sin movimiento desde hace…» se leía raro en algo que ya pasó.
       //
       // El largo del tramo (`window_ms`) no se muestra: es un dato de cómo
       // resume el complemento, no del examen.
@@ -429,7 +453,7 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
             : ""
           : movimientos === 0
             ? rato
-              ? `sin movimiento desde hace ${rato}`
+              ? `${rato} sin mover`
               : "sin movimiento"
             : unir([plural(movimientos, "movimiento", "movimientos"), rato && `${rato} sin mover`]);
       return { icono: Raton, titulo: "Movimiento del mouse", detalle };
@@ -481,10 +505,12 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
         : d.action === "cut" ? "Cortó"
         : d.action === "copy" ? "Copió"
         : "Usó";
-      const accion = d.action === "paste" ? "Pegó desde el portapapeles"
-        : d.action === "cut" ? "Cortó al portapapeles"
-        : d.action === "copy" ? "Copió al portapapeles"
-        : "Usó el portapapeles";
+      // Sin «portapapeles», que es una palabra técnica: «Pegó un texto». Lo
+      // copiado sale de la propia página, y por eso lo dice («del examen»).
+      const accion = d.action === "paste" ? "Pegó un texto"
+        : d.action === "cut" ? "Cortó un texto"
+        : d.action === "copy" ? "Copió un texto del examen"
+        : "Copió o pegó un texto";
       const largo = numero(d.length);
       // Pegar un archivo o una imagen no es texto y no tiene largo.
       if (d.non_text === true) {
@@ -496,7 +522,7 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
         titulo: accion,
         detalle: unir([
           pregunta(d),
-          largo === null ? "" : plural(largo, "carácter", "caracteres"),
+          largo === null ? "" : palabras(largo),
         ]),
       };
     }
@@ -530,7 +556,8 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       // alumno: es la ventana con la que arrancó.
       return {
         icono: Marco,
-        titulo: d.initial === true ? "Ventana del examen al empezar" : "Cambió el tamaño de la ventana",
+        // «Ventana del examen al empezar» no decía qué se había registrado.
+        titulo: d.initial === true ? "Se registró el tamaño de la ventana" : "Cambió el tamaño de la ventana",
         detalle: "",
       };
 
@@ -560,8 +587,9 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       // - `send`: fallaron varios envíos seguidos, o volvieron a salir. La
       //   falla puede ser del alumno, pero también de Moodle o del servidor de
       //   SAMCE con el alumno conectado, así que escribir «Se perdió la
-      //   conexión» le atribuiría un corte que el dato no sostiene. Se cuenta
-      //   lo que sí se sabe: que los eventos no se pudieron enviar.
+      //   conexión» le atribuiría un corte que el dato no sostiene. Se dice
+      //   «Se cortó la conexión», sin decir de quién: «No se pudieron enviar
+      //   los eventos» hablaba del monitoreo y sonaba a falla (ronda 2).
       //
       // El `source` no se escribe: solo elige el
       // nombre. Si no llega, o llega un valor que el complemento no manda, no
@@ -575,8 +603,8 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
               : "Se perdió la conexión"
             : d.source === "send"
               ? volvio
-                ? "Se reanudó el envío"
-                : "No se pudieron enviar los eventos"
+                ? "Volvió la conexión"
+                : "Se cortó la conexión"
               : "Conexión";
       // Con el rótulo neutro, el icono tampoco se inclina.
       return {

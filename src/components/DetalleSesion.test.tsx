@@ -35,7 +35,7 @@ describe("DetalleSesion", () => {
     const filas = screen.getAllByRole("row").slice(1);
     expect(filas).toHaveLength(2);
     expect(filas[0]).toHaveTextContent("Pegó");
-    expect(filas[0]).toHaveTextContent("pregunta 1 (de desarrollo), 340 caracteres");
+    expect(filas[0]).toHaveTextContent("pregunta 1 (de desarrollo), unas 57 palabras");
     expect(filas[1]).toHaveTextContent("Pasó a otra ventana");
     // Quién es el alumno lo dice el título de la pantalla, no esta vista, con
     // o sin nombre. El estado sí, porque es lo único que cambia solo.

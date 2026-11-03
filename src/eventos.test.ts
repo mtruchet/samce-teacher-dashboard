@@ -46,12 +46,22 @@ describe("describirEvento", () => {
       pauses: 2,
     });
 
-    expect(evento.titulo).toBe("Tecleo");
+    expect(evento.titulo).toBe("Escribió");
     // Cada origen con su verbo: un total con el desglose entre paréntesis
-    // obligaba a restar para saber cuánto escribió de verdad.
+    // obligaba a restar para saber cuánto escribió de verdad. Lo pegado, con el
+    // mismo verbo que la fila del pegado: «2 pegadas» no se entendía.
     expect(evento.detalle).toBe(
-      "pregunta 3 (de desarrollo), 9 teclas, 2 pegadas, 1 autocompletada, 1 borrado, paró 2 veces"
+      "pregunta 3 (de desarrollo), 9 teclas, pegó 2 textos, 1 palabra autocompletada, 1 borrado, hizo 2 pausas"
     );
+  });
+
+  it("lo que entró pegado dice «pegó un texto», como la fila del pegado (453)", () => {
+    // La fila que acompaña al pegado de la 453 decía «Tecleo · pregunta 3 (de desarrollo), 1 pegada».
+    const fila = de("key_activity", { slot: 3, qtype: "essay", inserts: 1, by_origin: { typed: 0, paste: 1 } });
+    expect(fila).toMatchObject({ titulo: "Escribió", detalle: "pregunta 3 (de desarrollo), pegó un texto" });
+    expect(fila.detalle).not.toMatch(/pegada/);
+    expect(de("key_activity", { by_origin: { drop: 1 } }).detalle).toBe("arrastró un texto");
+    expect(de("key_activity", { by_origin: { drop: 3 } }).detalle).toBe("arrastró 3 textos");
   });
 
   it("no menciona lo que no pasó", () => {
@@ -76,13 +86,27 @@ describe("describirEvento", () => {
     expect(de("mouse_activity", {}).detalle).toBe("");
   });
 
-  it("cuenta el pegado solo por su longitud", () => {
-    expect(de("clipboard", { action: "paste", length: 340, slot: 1, qtype: "essay" })).toMatchObject({
-      titulo: "Pegó desde el portapapeles",
-      detalle: "pregunta 1 (de desarrollo), 340 caracteres",
+  it("cuenta el pegado solo por su largo, en palabras y sin «portapapeles» ni «caracteres»", () => {
+    // La 453: 301 letras son unas 50 palabras.
+    expect(de("clipboard", { action: "paste", length: 301, slot: 3, qtype: "essay" })).toMatchObject({
+      titulo: "Pegó un texto",
+      detalle: "pregunta 3 (de desarrollo), unas 50 palabras",
     });
-    expect(de("clipboard", { action: "copy", length: 1 }).detalle).toBe("1 carácter");
-    expect(de("clipboard", { action: "cut", length: 5 }).titulo).toBe("Cortó al portapapeles");
+    expect(de("clipboard", { action: "paste", length: 340, slot: 1, qtype: "essay" }).detalle)
+      .toBe("pregunta 1 (de desarrollo), unas 57 palabras");
+    expect(de("clipboard", { action: "paste", length: 18_400 }).detalle).toBe("unas 3.067 palabras");
+    expect(de("clipboard", { action: "copy", length: 1 }).detalle).toBe("alrededor de una palabra");
+    expect(de("clipboard", { action: "copy", length: 8 }).detalle).toBe("alrededor de una palabra");
+    expect(de("clipboard", { action: "copy", length: 9 }).detalle).toBe("unas 2 palabras");
+    // Un largo de cero no dice «0 palabras»: no dice nada.
+    expect(de("clipboard", { action: "paste", length: 0 }).detalle).toBe("");
+    expect(de("clipboard", { action: "copy", length: 27 }).titulo).toBe("Copió un texto del examen");
+    expect(de("clipboard", { action: "cut", length: 5 }).titulo).toBe("Cortó un texto");
+    expect(de("clipboard", { length: 5 }).titulo).toBe("Copió o pegó un texto");
+    for (const accion of ["paste", "copy", "cut", "otra"]) {
+      const e = de("clipboard", { action: accion, length: 301 });
+      expect(`${e.titulo} ${e.detalle}`).not.toMatch(/portapapeles|car[aá]cter/);
+    }
   });
 
   // El complemento cierra el tramo oculto cuando la página se va de verdad
@@ -116,7 +140,10 @@ describe("describirEvento", () => {
     expect(de("mouse_activity", { moves: 14, idle_ms: 9000 }).detalle).toBe("14 movimientos, 9 segundos sin mover");
     expect(de("mouse_activity", { moves: 14, idle_ms: 0 }).detalle).toBe("14 movimientos");
     expect(de("mouse_activity", { moves: 1 }).detalle).toBe("1 movimiento");
-    expect(de("mouse_activity", { moves: 0, idle_ms: 20_000 }).detalle).toBe("sin movimiento desde hace 20 segundos");
+    // Sin movimientos se dice igual: «sin movimiento desde hace…» se leía raro en algo que ya pasó.
+    expect(de("mouse_activity", { moves: 0, idle_ms: 20_000 }).detalle).toBe("20 segundos sin mover");
+    expect(de("mouse_activity", { moves: 0, idle_ms: 76_000 }).detalle).toBe("1 minuto y 16 segundos sin mover");
+    expect(de("mouse_activity", { moves: 0 }).detalle).toBe("sin movimiento");
     expect(de("mouse_leave").titulo).toBe("El mouse salió del área del examen");
     expect(de("mouse_enter", { away_ms: 9000 }).titulo).toBe("El mouse volvió al área del examen");
   });
@@ -180,47 +207,50 @@ describe("describirEvento", () => {
   // negativo de una sesión que no se pudo descifrar.
   it("no muestra el centinela del navegador tal cual", () => {
     expect(de("client_profile", { browser_family: "Other", browser_major: 0 }).detalle)
-      .toBe("navegador no identificado");
+      .toBe("con un navegador que no se pudo identificar");
     expect(de("client_profile", { browser_family: "Other", browser_major: 0, is_touch: true }).detalle)
-      .toBe("navegador no identificado, equipo con pantalla táctil");
+      .toBe("desde un equipo con pantalla táctil, con un navegador que no se pudo identificar");
+    // Sin la versión del navegador: es un dato técnico.
     expect(de("client_profile", { browser_family: "Chrome", browser_major: 153 }).detalle)
-      .toBe("Chrome 153");
+      .toBe("con Chrome");
   });
 
   // Un evento sin el campo no puede afirmar que el equipo no tiene pantalla
   // táctil: eso lo dice `is_touch: false`, no la ausencia del campo.
-  it("no afirma nada sobre la pantalla táctil si el campo no llegó", () => {
+  it("no afirma nada sobre el equipo si los campos no llegaron", () => {
     expect(de("client_profile", {}).detalle).toBe("");
     expect(de("client_profile", { browser_family: "Chrome", browser_major: 128, is_touch: false }).detalle)
-      .toBe("Chrome 128, equipo sin pantalla táctil");
+      .toBe("desde una computadora, con Chrome");
   });
 
   // La fuente no se escribe, pero elige el nombre. Con `send` la falla puede
   // ser del servidor con el alumno conectado, así que no se le atribuye a él
-  // un corte de conexión: se dice que los eventos no se pudieron enviar. Sin
-  // una fuente conocida no se sabe cuál de las dos pasó.
+  // un corte: se dice que se cortó la conexión, sin decir de quién, y no «No se
+  // pudieron enviar los eventos», que hablaba del monitoreo y sonaba a falla.
+  // Sin una fuente conocida no se sabe cuál de las dos pasó.
   it("no le atribuye al alumno una falla del envío", () => {
     expect(de("connection", { online: false, source: "send" })).toMatchObject({
-      titulo: "No se pudieron enviar los eventos",
+      titulo: "Se cortó la conexión",
       detalle: "",
     });
     expect(de("connection", { online: true, source: "send" })).toMatchObject({
-      titulo: "Se reanudó el envío",
+      titulo: "Volvió la conexión",
       detalle: "",
     });
+    expect(de("connection", { online: false, source: "browser" }).titulo).toBe("Se perdió la conexión");
     expect(de("connection", { online: false, source: "browser" }).detalle).toBe("");
     expect(de("connection", { online: false })).toMatchObject({ titulo: "Conexión", detalle: "" });
     expect(de("connection", { online: true, source: "otra" }).titulo).toBe("Conexión");
   });
 
-  it("cuenta el navegador sin el user agent", () => {
-    expect(de("client_profile", { browser_family: "Chrome", browser_major: 126, is_touch: false })).toMatchObject({
-      titulo: "Navegador del alumno",
-      detalle: "Chrome 126, equipo sin pantalla táctil",
-    });
+  it("cuenta desde qué equipo abrió el examen, sin el user agent ni la versión", () => {
+    // La 457: «Navegador del alumno · Chrome 153, equipo sin pantalla táctil» era técnico.
+    const la457 = { is_touch: false, browser_major: 153, browser_family: "Chrome", pointer_coarse: false, any_pointer_fine: true };
+    expect(de("client_profile", la457)).toMatchObject({ titulo: "Abrió el examen", detalle: "desde una computadora, con Chrome" });
     expect(de("client_profile", { browser_family: "Safari", browser_major: 0, is_touch: true }).detalle).toBe(
-      "Safari, equipo con pantalla táctil"
+      "desde un equipo con pantalla táctil, con Safari"
     );
+    expect(`${de("client_profile", la457).detalle}`).not.toMatch(/153|táctil|puntero|trackpad/);
   });
 
   it("muestra un tipo desconocido tal cual, en vez de esconderlo", () => {
@@ -255,7 +285,7 @@ describe("describirEvento", () => {
     // tramo dura 5 s y el rato quieto son 4 minutos, porque se cuenta desde el
     // último movimiento y no desde que empezó el tramo.
     expect(de("mouse_activity", { moves: 0, idle_ms: 260_000, window_ms: 5000 }).detalle)
-      .toBe("sin movimiento desde hace 4 minutos y 20 segundos");
+      .toBe("4 minutos y 20 segundos sin mover");
   });
 
   it("cuenta cuánto hacía que no se tecleaba en esa pregunta", () => {
@@ -264,16 +294,21 @@ describe("describirEvento", () => {
     expect(de("key_activity", { by_origin: { typed: 5 }, gap_before_ms: 800 }).detalle)
       .toBe("5 teclas");
     expect(de("key_activity", { slot: 2, by_origin: { typed: 4 }, gap_before_ms: 47_000 }).detalle)
-      .toBe("pregunta 2, 4 teclas, 47 segundos desde el tecleo anterior");
+      .toBe("pregunta 2, 4 teclas, después de 47 segundos sin escribir");
   });
 
   it("cuenta cuánto duró la pausa más larga, además de cuántas hubo", () => {
     expect(de("key_activity", { by_origin: { typed: 9 }, pauses: 3, max_pause_ms: 12_000 }).detalle)
-      .toBe("9 teclas, paró 3 veces, la más larga de 12 segundos");
+      .toBe("9 teclas, hizo 3 pausas, la más larga de 12 segundos");
+    // Con una sola, «la más larga» no tiene con qué compararse.
+    expect(de("key_activity", { by_origin: { typed: 1 }, pauses: 1, max_pause_ms: 3000 }).detalle)
+      .toBe("1 tecla, hizo 1 pausa de 3 segundos");
     // Sin el campo, sigue diciendo sólo cuántas: inventar un «hasta 0 s» sería
     // afirmar una duración que el evento no trae.
     expect(de("key_activity", { by_origin: { typed: 9 }, pauses: 3 }).detalle)
-      .toBe("9 teclas, paró 3 veces");
+      .toBe("9 teclas, hizo 3 pausas");
+    expect(de("key_activity", { by_origin: { typed: 9 }, pauses: 1 }).detalle)
+      .toBe("9 teclas, hizo 1 pausa");
   });
 
   it("cuenta cuántas preguntas había a la vista, sólo cuando fue más de una", () => {
@@ -298,14 +333,20 @@ describe("describirEvento", () => {
     expect(de("focus_gained", { away_ms: 4000 }).titulo).toBe("Volvió a la ventana del examen");
   });
 
-  it("cuenta con qué apunta el equipo, sin repetir el mismo hecho dos veces", () => {
-    // El equipo más común: puntero principal fino. «tiene mouse o trackpad»
-    // sería el mismo dato otra vez, y son cuarenta renglones los que lo pagan.
-    expect(de("client_profile", { pointer_coarse: false, any_pointer_fine: true }).detalle)
-      .toBe("apunta con mouse o trackpad");
-    // Una tablet con un mouse conectado: los dos campos dicen cosas distintas.
+  it("dice la clase de equipo con lo que traen los punteros, sin contradecirse", () => {
+    // El equipo más común: puntero principal fino, sin pantalla táctil.
+    expect(de("client_profile", { pointer_coarse: false, any_pointer_fine: true }).detalle).toBe("desde una computadora");
+    // Una notebook con pantalla táctil: `is_touch` da verdadero, pero apunta con el mouse o el trackpad.
+    expect(de("client_profile", { is_touch: true, pointer_coarse: false }).detalle)
+      .toBe("desde una computadora con pantalla táctil");
+    // Con el dedo como puntero principal, y una tablet con un mouse conectado.
+    expect(de("client_profile", { is_touch: true, pointer_coarse: true }).detalle).toBe("desde un celular o una tableta");
     expect(de("client_profile", { pointer_coarse: true, any_pointer_fine: true }).detalle)
-      .toBe("apunta con el dedo, tiene mouse o trackpad");
+      .toBe("desde un celular o una tableta, con mouse o trackpad");
+    expect(de("client_profile", { any_pointer_fine: true }).detalle).toBe("desde un equipo con mouse o trackpad");
+    // Los dos campos se contradicen, o el táctil dice lo contrario que el puntero: no se dice nada.
+    expect(de("client_profile", { pointer_coarse: false, any_pointer_fine: false }).detalle).toBe("");
+    expect(de("client_profile", { is_touch: false, pointer_coarse: true }).detalle).toBe("");
   });
 
   // El único evento que habla del monitoreo y no del examen. Sin él, un hueco
@@ -370,7 +411,8 @@ describe("describirEvento", () => {
   });
 
   it("el tamaño inicial de la ventana no se lee como una acción del alumno", () => {
-    expect(de("resize", { w: 1280, h: 720, initial: true })).toMatchObject({ titulo: "Ventana del examen al empezar", detalle: "" });
+    // «Ventana del examen al empezar» no decía qué se había registrado (ronda 2).
+    expect(de("resize", { w: 1280, h: 720, initial: true })).toMatchObject({ titulo: "Se registró el tamaño de la ventana", detalle: "" });
     expect(de("resize", { w: 900, h: 700 }).titulo).toBe("Cambió el tamaño de la ventana");
   });
 

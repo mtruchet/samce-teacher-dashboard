@@ -31,14 +31,14 @@ describe("ListaEventos", () => {
     expect(filas()).toHaveLength(TANDA);
     expect(screen.getByText(`Se ven los ${TANDA} eventos más recientes de 194.`)).toBeInTheDocument();
     // El primero del examen (el pegado, el más viejo) todavía no se ve.
-    expect(screen.queryByText("Pegó desde el portapapeles")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pegó un texto")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: `Mostrar ${TANDA} más` }));
     expect(filas()).toHaveLength(2 * TANDA);
 
     fireEvent.click(screen.getByRole("button", { name: "Mostrar todos" }));
     expect(filas()).toHaveLength(194);
-    expect(screen.getByText("Pegó desde el portapapeles")).toBeInTheDocument();
+    expect(screen.getByText("Pegó un texto")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
