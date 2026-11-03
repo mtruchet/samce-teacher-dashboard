@@ -4,14 +4,15 @@
  * El motor escribe cada explicación para el docente, en lenguaje llano, con un renglón por cosa
  * (ver el docstring de `alertas.py`):
  *
- * 1. El primer renglón es el hecho: «Este examen se rindió de una forma un poco distinta a lo
- *    habitual.» o «En la pregunta 3, pegó de una sola vez un texto largo en una respuesta que
- *    todavía estaba vacía, algo poco común en un examen.».
- * 2. Un renglón que termina en «:» abre la lista («En qué se diferenció de lo habitual:»).
- * 3. Los renglones que empiezan con «• » son las viñetas de esa lista («Pegó texto una sola vez:
- *    el texto largo de la pregunta 3 que describe la otra alerta.»).
+ * 1. El primer renglón es el hecho: «Este examen se rindió de una forma un poco distinta a la
+ *    mayoría de los exámenes.» o «En la pregunta 3, pegó de una sola vez un texto largo en una
+ *    respuesta que todavía estaba vacía, algo poco común en un examen.».
+ * 2. Un renglón que termina en «:» abre la lista («Lo que más se notó:»).
+ * 3. Los renglones que empiezan con «• » son las viñetas de esa lista («En la pregunta 3 pegó un
+ *    texto largo (es el mismo de la otra alerta).», «Pasó a otra ventana 11 veces.»), ya en el
+ *    orden en que se leen: el motor decide el orden, el panel no lo cambia.
  * 4. Cualquier otro renglón es una nota y sale tal cual («Ninguna de estas cosas es rara por sí
- *    sola…», el aviso de la conexión).
+ *    sola. Lo poco común es que se den juntas.», el aviso de la conexión).
  *
  * El panel no traduce nada: si el motor cambia una frase, en pantalla se lee la frase nueva.
  * Nunca se descarta un renglón por no entenderlo, con dos excepciones que solo tocan a las
@@ -25,7 +26,7 @@ export interface ExplicacionOrdenada {
   hecho: string;
   /** Las notas escritas entre el hecho y la lista. Solo las alertas viejas las traen. */
   notasAntes: string[];
-  /** El rótulo de la lista sin los dos puntos («En qué se diferenció de lo habitual»), o null. */
+  /** El rótulo de la lista sin los dos puntos («Lo que más se notó»), o null. */
   encabezadoDeLista: string | null;
   /** Las viñetas, sin el «• » de adelante y con el texto tal cual. */
   viñetas: string[];

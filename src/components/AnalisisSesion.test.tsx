@@ -24,6 +24,13 @@ const RECHAZADOS =
  */
 const MARCADOS_EN_LA_RONDA_1 =
   /lo común|llamó la atención|por última vez|Apareció a las|sesión se rindió|aplicaciones|salida más larga|fuera del examen|\b1 vez|\b1 minuto|cuando lo común/i;
+/**
+ * Lo que marcaron en la ronda 2: «habitual» sin decir contra qué (y repetido tres veces en la tarjeta), la viñeta que
+ * remitía a «la otra alerta que describe», «una sola vez» en el pegado, «en cada pregunta», los números en letras al
+ * lado de los números en cifras, la hora del análisis («Se detectó a las») y la bajada que repetía el título de la 452.
+ */
+const MARCADOS_EN_LA_RONDA_2 =
+  /habitual|que describe la otra alerta|Pegó texto una sola vez|en cada pregunta|\b(dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez) (minutos|segundos|veces)\b|Se detectó|no surgió ninguna alerta/i;
 /** Palabras técnicas que el docente no tiene por qué conocer. */
 const TECNICAS =
   /caracteres|sesiones habituales|sesiones esperadas|99 de cada 100|%|modelo|variable|cálculo|índice|proporción|mediana|percentil|severidad|puntaje|captura|complemento|Moodle|backend/i;
@@ -118,7 +125,8 @@ describe("AnalisisSesion", () => {
     const { container } = await mostrar(analisis(), CERRADA);
 
     expect(within(veredicto()).getByText("No hay alertas para revisar.")).toBeInTheDocument();
-    expect(within(veredicto()).getByText("Se analizó la sesión completa y no surgió ninguna alerta.")).toBeInTheDocument();
+    // Sin repetir el título: «no surgió ninguna alerta» decía lo mismo dos veces.
+    expect(within(veredicto()).getByText("Se analizó todo el examen.")).toBeInTheDocument();
     // Con el examen terminado, la hora del análisis no le sirve al docente: una sesión de la mañana
     // analizada de nuevo a la tarde decía «Analizada por última vez a las 16:55».
     expect(container.querySelector(".analisis__ultima")).toBeNull();
@@ -182,10 +190,10 @@ describe("AnalisisSesion", () => {
 
     const bajadas = Array.from(veredicto().querySelectorAll(".veredicto__bajada")).map((b) => b.textContent);
     expect(within(veredicto()).getByText("Esta sesión no se pudo analizar.")).toBeInTheDocument();
+    // Dos frases: el motivo del motor y, en una sola, que no indica un problema y dónde mirar.
     expect(bajadas).toEqual([
       SIN_EVIDENCIA_457,
-      "Que no se haya podido analizar no indica ningún problema en el examen.",
-      "Lo que sí se registró está más abajo, en el registro de eventos.",
+      "Que no se haya podido analizar no indica ningún problema en el examen; lo que sí se registró está más abajo.",
     ]);
     expect(container.querySelector("details")).toBeNull();
     // Ni «Analizada a las»: contradecía al título.
@@ -198,7 +206,7 @@ describe("AnalisisSesion", () => {
     const { container } = await mostrar(analisis({ state: "insufficient_evidence", reason: null }));
 
     expect(within(veredicto()).getByText("Esta sesión no se pudo analizar.")).toBeInTheDocument();
-    expect(veredicto().querySelectorAll(".veredicto__bajada")).toHaveLength(2);
+    expect(veredicto().querySelectorAll(".veredicto__bajada")).toHaveLength(1);
     // Aunque la sesión siga abierta, una que no se pudo analizar no dice la hora del análisis.
     expect(container.querySelector(".analisis__ultima")).toBeNull();
   });
@@ -267,19 +275,22 @@ describe("AnalisisSesion", () => {
     expect(evento.querySelector(".analisis__rotulo")).toHaveTextContent("Nivel bajo · En un momento de la sesión");
 
     expect(modelo.querySelector(".analisis__hecho")).toHaveTextContent(MODELO_453.split("\n")[0]);
-    expect(within(modelo).getByRole("heading", { name: "En qué se diferenció de lo habitual" })).toBeInTheDocument();
+    expect(within(modelo).getByRole("heading", { name: "Lo que más se notó" })).toBeInTheDocument();
     const viñetas = Array.from(modelo.querySelectorAll(".analisis__lista li")).map((li) => li.textContent);
     expect(viñetas).toEqual(MODELO_453.split("\n").filter((r) => r.startsWith("• ")).map((r) => r.slice(2)));
 
     expect(evento.querySelector(".analisis__hecho")).toHaveTextContent(EVENTO_453);
     expect(evento.querySelector(".analisis__lista")).toBeNull();
-    // El pegado se nombra una sola vez en la lista, y dice que es el de la otra alerta y en qué pregunta.
+    // El pegado se nombra una sola vez en la lista, con su pregunta, y aclara que es el de la otra alerta.
     expect(viñetas.filter((v) => /[Pp]eg/.test(v ?? ""))).toEqual([
-      "Pegó texto una sola vez: el texto largo de la pregunta 3 que describe la otra alerta.",
+      "En la pregunta 3 pegó un texto largo (es el mismo de la otra alerta).",
     ]);
     expect(EVENTO_453).toMatch(/^En la pregunta 3, /);
-    // El tiempo por pregunta va al final y sin cifras.
-    expect(viñetas[viñetas.length - 1]).toBe("Se tomó más tiempo que lo habitual en cada pregunta.");
+    // El tiempo por pregunta va al final, sin cifras y «en general»: es un promedio, no todas las preguntas.
+    expect(viñetas[viñetas.length - 1]).toBe("En general, tardó más que la mayoría en responder las preguntas.");
+    // «Habitual» no aparece en ningún lado de la tarjeta: el titular dice contra qué se compara.
+    expect(modelo.textContent).not.toMatch(/habitual/);
+    expect(modelo.querySelector(".analisis__hecho")).toHaveTextContent("a la mayoría de los exámenes");
     // Ningún signo de viñeta suelto: la lista los dibuja.
     expect(screen.queryByText(/•/)).not.toBeInTheDocument();
   });
@@ -290,14 +301,16 @@ describe("AnalisisSesion", () => {
     const [tarjeta] = tarjetasDeAlerta();
     expect(tarjeta).toHaveClass("analisis__alerta--high");
     expect(tarjeta.querySelector(".analisis__hecho")).toHaveTextContent(
-      "Este examen se rindió de una forma muy distinta a lo habitual."
+      "Este examen se rindió de una forma muy distinta a la mayoría de los exámenes."
     );
-    // Las salidas, con las palabras del registro y con su número, sin suponer que se fue.
-    expect(tarjeta).toHaveTextContent("Pasó a otra ventana 11 veces.");
-    expect(tarjeta).toHaveTextContent("En total, estuvo unos ocho minutos fuera de la ventana del examen.");
-    expect(tarjeta.querySelectorAll(".analisis__lista li").length).toBe(
-      MODELO_454.split("\n").filter((r) => r.startsWith("• ")).length
-    );
+    // Las salidas, con las palabras del registro y con su número, sin suponer que se fue, de lo general a lo
+    // particular y con todos los números en cifras.
+    const viñetas = Array.from(tarjeta.querySelectorAll(".analisis__lista li")).map((li) => li.textContent);
+    expect(viñetas).toEqual([
+      "Pasó a otra ventana 11 veces.",
+      "En total, estuvo unos 8 minutos fuera de la ventana del examen, de los 28 que duró.",
+      "La vez más larga fue de 45 segundos.",
+    ]);
   });
 
   it("ordena por nivel: un momento de nivel alto va antes que toda la sesión de nivel bajo", async () => {
@@ -330,7 +343,7 @@ describe("AnalisisSesion", () => {
     expect(document.querySelector(".analisis__origen-icono")).toBeNull();
   });
 
-  it("solo la alerta de un momento lleva hora: «Se detectó a las», sin segundos", async () => {
+  it("ninguna alerta lleva hora: la que da la API es la del análisis, no la del hecho", async () => {
     await mostrar(analisis({
       alerts: [
         alerta({ level: "medium", level_since: "2026-10-23T14:10:00.000Z", created_at: "2026-10-23T14:00:00.000Z" }),
@@ -341,30 +354,31 @@ describe("AnalisisSesion", () => {
       ],
     }));
 
-    const [modelo, evento] = tarjetasDeAlerta();
-    // La de toda la sesión no: «Apareció a las 10:00» en una sesión que siguió hasta las 10:12 confundía.
-    expect(modelo.querySelector(".analisis__hora")).toBeNull();
-    const hora = evento.querySelector(".analisis__hora") as HTMLElement;
-    expect(hora).toHaveTextContent(`Se detectó a las ${horaCorta("2026-10-23T14:05:00.000Z")}`);
-    expect(hora.querySelector("time")?.dateTime).toBe("2026-10-23T14:05:00.000Z");
+    // En la 453, «Se detectó a las 09:36» no coincidía con el pegado del registro (09:35:08), y los docentes
+    // buscaban 09:36 sin encontrarlo. Dónde fue lo dice el texto del motor, con la pregunta.
+    for (const tarjeta of tarjetasDeAlerta()) {
+      expect(tarjeta.querySelector("time")).toBeNull();
+      expect(tarjeta.textContent).not.toMatch(/\d{2}:\d{2}|Se detectó|a las/);
+    }
   });
 
   it("ninguna hora del apartado lleva segundos", async () => {
     const { container } = await mostrar(analisis({ alerts: ALERTAS_453 }), { status: "open" });
 
+    // Solo «Analizada a las», mientras el alumno rinde.
     const horas = Array.from(container.querySelectorAll("time"));
-    expect(horas).toHaveLength(2);
+    expect(horas).toHaveLength(1);
     for (const hora of horas) expect(hora.textContent).toMatch(/^\d{2}:\d{2}$/);
     expect(container.textContent).not.toMatch(/\d{2}:\d{2}:\d{2}/);
   });
 
   it("las notas del motor (la combinación, la conexión) salen tal cual, con el ícono de información", async () => {
-    const combinacion = "Ninguna de estas cosas es rara por sí sola. Lo poco habitual es que se den juntas.";
+    const combinacion = "Ninguna de estas cosas es rara por sí sola. Lo poco común es que se den juntas.";
     const conexion = "Parte de esto puede deberse a cortes de la conexión a internet, que no dependen del alumno.";
     const texto = [
-      "Este examen se rindió de una forma bastante distinta a lo habitual.",
-      "En qué se diferenció de lo habitual:",
-      "• La conexión a internet se cortó más veces de lo habitual.",
+      "Este examen se rindió de una forma bastante distinta a la mayoría de los exámenes.",
+      "Lo que más se notó:",
+      "• La conexión a internet se cortó más veces que en la mayoría.",
       combinacion,
       conexion,
     ].join("\n");
@@ -383,10 +397,10 @@ describe("AnalisisSesion", () => {
   });
 
   it("un rótulo de lista sin viñetas no abre una lista vacía: sale como nota", async () => {
-    await mostrar(analisis({ alerts: [alerta({ explanation: "Algo pasó.\nEn qué se diferenció de lo habitual:" })] }));
+    await mostrar(analisis({ alerts: [alerta({ explanation: "Algo pasó.\nLo que más se notó:" })] }));
 
-    expect(screen.queryByRole("heading", { name: "En qué se diferenció de lo habitual" })).not.toBeInTheDocument();
-    expect(document.querySelector(".analisis__nota")).toHaveTextContent("En qué se diferenció de lo habitual:");
+    expect(screen.queryByRole("heading", { name: "Lo que más se notó" })).not.toBeInTheDocument();
+    expect(document.querySelector(".analisis__nota")).toHaveTextContent("Lo que más se notó:");
   });
 
   it("una alerta vieja sin volver a analizar se lee igual, pero sin el cierre", async () => {
@@ -413,6 +427,7 @@ describe("AnalisisSesion", () => {
     expect(container.textContent).not.toMatch(TECNICAS);
     expect(container.textContent).not.toMatch(RECHAZADOS);
     expect(container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_1);
+    expect(container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_2);
     expect(container.querySelector(".comparacion, .resumen__nota, .resumen__motivos, .analisis__aclaracion")).toBeNull();
   });
 
@@ -421,12 +436,14 @@ describe("AnalisisSesion", () => {
     expect(r453.container.textContent).not.toMatch(TECNICAS);
     expect(r453.container.textContent).not.toMatch(RECHAZADOS);
     expect(r453.container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_1);
+    expect(r453.container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_2);
     r453.unmount();
     vi.restoreAllMocks();
 
     const r457 = await mostrar(analisis({ state: "insufficient_evidence", reason: SIN_EVIDENCIA_457 }), CERRADA);
     expect(r457.container.textContent).not.toMatch(TECNICAS);
     expect(r457.container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_1);
+    expect(r457.container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_2);
     expect(r457.container.textContent).not.toMatch(/eventos de actividad|se necesitan/);
   });
 

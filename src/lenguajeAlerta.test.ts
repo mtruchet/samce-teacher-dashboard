@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { horaCorta } from "./eventos";
-import { horaDeLaAlerta, ordenarAlertas } from "./lenguajeAlerta";
+import { ordenarAlertas } from "./lenguajeAlerta";
 import type { AlertaDeSesion } from "./services/sesionesService";
 
 function alerta(cambios: Partial<AlertaDeSesion>): AlertaDeSesion {
@@ -30,31 +29,5 @@ describe("ordenarAlertas", () => {
     const original = [alerta({ origin: "model", level: "low" }), alerta({ origin: "event", level: "high" })];
     ordenarAlertas(original);
     expect(original.map((a) => a.origin)).toEqual(["model", "event"]);
-  });
-});
-
-describe("horaDeLaAlerta", () => {
-  it("la alerta de toda la sesión no lleva hora", () => {
-    expect(
-      horaDeLaAlerta({ origin: "model", created_at: "2026-11-03T12:42:50.906Z", level_since: "2026-11-03T12:42:50.906Z" })
-    ).toBeNull();
-  });
-
-  it("la de un momento dice «Se detectó a las», sin segundos, y nunca «Pasó» ni «Apareció»", () => {
-    const h = horaDeLaAlerta({ origin: "event", created_at: "2026-11-03T12:36:55.872Z", level_since: "2026-11-03T12:36:55.872Z" });
-    expect(h?.texto).toBe("Se detectó a las");
-    expect(h?.hora).toBe(horaCorta("2026-11-03T12:36:55.872Z"));
-    expect(h?.hora).not.toMatch(/:\d\d:\d\d/);
-  });
-
-  it("si el nivel subió, la hora es desde cuándo tiene este nivel", () => {
-    const h = horaDeLaAlerta({ origin: "event", created_at: "2026-11-03T12:36:00.000Z", level_since: "2026-11-03T12:42:00.000Z" });
-    expect(h?.texto).toBe("Se detectó a las");
-    expect(h?.iso).toBe("2026-11-03T12:42:00.000Z");
-  });
-
-  it("sin `level_since` usa la hora de creación", () => {
-    const h = horaDeLaAlerta({ origin: "event", created_at: "2026-11-03T12:36:00.000Z", level_since: undefined as unknown as string });
-    expect(h?.iso).toBe("2026-11-03T12:36:00.000Z");
   });
 });

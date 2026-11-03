@@ -6,8 +6,8 @@ describe("ordenarExplicacion", () => {
   it("la alerta de toda la sesión de la 453: el hecho, el rótulo sin los dos puntos y las viñetas tal cual", () => {
     const e = ordenarExplicacion(MODELO_453);
 
-    expect(e.hecho).toBe("Este examen se rindió de una forma un poco distinta a lo habitual.");
-    expect(e.encabezadoDeLista).toBe("En qué se diferenció de lo habitual");
+    expect(e.hecho).toBe("Este examen se rindió de una forma un poco distinta a la mayoría de los exámenes.");
+    expect(e.encabezadoDeLista).toBe("Lo que más se notó");
     expect(e.viñetas).toEqual(MODELO_453.split("\n").filter((r) => r.startsWith("• ")).map((r) => r.slice(2)));
     expect(e.viñetas.length).toBeGreaterThan(0);
     expect(e.notasAntes).toEqual([]);
@@ -16,9 +16,13 @@ describe("ordenarExplicacion", () => {
   it("la alerta de toda la sesión de la 454: lo mismo, con su titular de nivel alto", () => {
     const e = ordenarExplicacion(MODELO_454);
 
-    expect(e.hecho).toBe("Este examen se rindió de una forma muy distinta a lo habitual.");
-    expect(e.encabezadoDeLista).toBe("En qué se diferenció de lo habitual");
-    expect(e.viñetas.length).toBeGreaterThan(0);
+    expect(e.hecho).toBe("Este examen se rindió de una forma muy distinta a la mayoría de los exámenes.");
+    expect(e.encabezadoDeLista).toBe("Lo que más se notó");
+    expect(e.viñetas).toEqual([
+      "Pasó a otra ventana 11 veces.",
+      "En total, estuvo unos 8 minutos fuera de la ventana del examen, de los 28 que duró.",
+      "La vez más larga fue de 45 segundos.",
+    ]);
     for (const v of e.viñetas) expect(v).not.toMatch(/^•/);
   });
 
@@ -32,17 +36,17 @@ describe("ordenarExplicacion", () => {
   });
 
   it("las notas que siguen a la lista (la combinación, la conexión) salen tal cual y en orden", () => {
-    const combinacion = "Ninguna de estas cosas es rara por sí sola. Lo poco habitual es que se den juntas.";
+    const combinacion = "Ninguna de estas cosas es rara por sí sola. Lo poco común es que se den juntas.";
     const conexion = "Parte de esto puede deberse a cortes de la conexión a internet, que no dependen del alumno.";
     const e = ordenarExplicacion([
-      "Este examen se rindió de una forma bastante distinta a lo habitual.",
-      "En qué se diferenció de lo habitual:",
-      "• La conexión a internet se cortó más veces de lo habitual.",
+      "Este examen se rindió de una forma bastante distinta a la mayoría de los exámenes.",
+      "Lo que más se notó:",
+      "• La conexión a internet se cortó más veces que en la mayoría.",
       combinacion,
       conexion,
     ].join("\n"));
 
-    expect(e.viñetas).toEqual(["La conexión a internet se cortó más veces de lo habitual."]);
+    expect(e.viñetas).toEqual(["La conexión a internet se cortó más veces que en la mayoría."]);
     expect(e.notas).toEqual([combinacion, conexion]);
   });
 
@@ -62,7 +66,7 @@ describe("ordenarExplicacion", () => {
   });
 
   it("si el motor no manda lista, no hay lista", () => {
-    const e = ordenarExplicacion("Este examen se rindió de una forma un poco distinta a lo habitual.");
+    const e = ordenarExplicacion("Este examen se rindió de una forma un poco distinta a la mayoría de los exámenes.");
 
     expect(e.encabezadoDeLista).toBeNull();
     expect(e.viñetas).toEqual([]);
@@ -104,10 +108,10 @@ describe("ordenarExplicacion", () => {
   });
 
   it("tolera renglones en blanco, espacios sobrantes y saltos de línea de Windows", () => {
-    const e = ordenarExplicacion("  Algo pasó.  \r\n\r\nEn qué se diferenció de lo habitual:\r\n•   Una cosa.  \r\n");
+    const e = ordenarExplicacion("  Algo pasó.  \r\n\r\nLo que más se notó:\r\n•   Una cosa.  \r\n");
 
     expect(e.hecho).toBe("Algo pasó.");
-    expect(e.encabezadoDeLista).toBe("En qué se diferenció de lo habitual");
+    expect(e.encabezadoDeLista).toBe("Lo que más se notó");
     expect(e.viñetas).toEqual(["Una cosa."]);
   });
 

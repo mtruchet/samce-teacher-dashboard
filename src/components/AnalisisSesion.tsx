@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { horaCorta } from "../eventos";
 import { ordenarExplicacion } from "../explicacion";
 import { Check, Info, Ojo, Reloj, type Icon } from "../iconos";
-import { horaDeLaAlerta, ordenarAlertas } from "../lenguajeAlerta";
+import { ordenarAlertas } from "../lenguajeAlerta";
 import { recienCerrada } from "../seguimiento";
 import {
   CADENCIA_MS,
@@ -23,7 +23,7 @@ import "./AnalisisSesion.css";
  * encontró. Tiene tres capas: arriba, el veredicto en una frase, con la misma forma en todos los
  * estados («Hay 2 alertas para revisar.», «No hay alertas para revisar.», «Esta sesión no se pudo
  * analizar.»); debajo, una tarjeta por alerta con el hecho en grande; y, en la alerta de toda la
- * sesión, la lista corta de en qué se diferenció de lo habitual.
+ * sesión, la lista corta de lo que más se notó.
  *
  * Los textos de las alertas y el motivo de una sesión que no se pudo analizar los escribe el
  * motor para el docente, en lenguaje llano, y salen tal cual: el panel no traduce nada
@@ -71,7 +71,6 @@ function Nota({ texto }: { texto: string }) {
 
 function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
   const e = ordenarExplicacion(alerta.explanation);
-  const hora = horaDeLaAlerta(alerta);
   // Un rótulo de lista sin viñetas debajo no abre nada: se muestra como nota, sin perderse.
   const notasAntes =
     e.encabezadoDeLista !== null && e.viñetas.length === 0 ? [...e.notasAntes, `${e.encabezadoDeLista}:`] : e.notasAntes;
@@ -85,11 +84,8 @@ function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
             <span className="analisis__separador" aria-hidden="true">·</span>{" "}
             <span className="analisis__origen">{ORIGENES[alerta.origin]}</span>
           </span>
-          {hora ? (
-            <span className="analisis__hora">
-              {hora.texto} <time className="cifra" dateTime={hora.iso}>{hora.hora}</time>
-            </span>
-          ) : null}
+          {/* Sin hora: la que da la API es la del análisis y no la del hecho, y no coincidía con el registro
+              (ver `lenguajeAlerta.ts`). Dónde fue lo dice el texto del motor («En la pregunta 3, …»). */}
         </div>
 
         <p className="analisis__hecho">{e.hecho}</p>
@@ -120,8 +116,11 @@ interface Veredicto {
   bajadas: string[];
 }
 
-/** Que no se pudiera analizar no es una señal sobre el examen: sin esto, el estado se leía como una sanción. */
-const SIN_PROBLEMA = "Que no se haya podido analizar no indica ningún problema en el examen.";
+/**
+ * Que no se pudiera analizar no es una señal sobre el examen: sin esto, el estado se leía como una sanción. Va en
+ * la misma oración que la remisión al registro, para que el estado entero sean dos frases (ronda 2).
+ */
+const SIN_PROBLEMA = "Que no se haya podido analizar no indica ningún problema en el examen; lo que sí se registró está más abajo.";
 
 /**
  * Qué dice el veredicto de arriba en cada estado: una frase, su ícono y, si hace falta, una bajada.
@@ -152,7 +151,8 @@ function veredictoDe(analisis: Analisis, alertas: number, abierta: boolean): Ver
           }
         : {
             icono: Check, frase: "No hay alertas para revisar.",
-            bajadas: ["Se analizó la sesión completa y no surgió ninguna alerta."],
+            // Sin repetir el título («no surgió ninguna alerta» decía lo mismo dos veces).
+            bajadas: ["Se analizó todo el examen."],
           };
     case "not_analyzed":
       return {
@@ -162,7 +162,7 @@ function veredictoDe(analisis: Analisis, alertas: number, abierta: boolean): Ver
     case "insufficient_evidence":
       return {
         icono: Info, frase: "Esta sesión no se pudo analizar.",
-        bajadas: [...(motivo ? [motivo] : []), SIN_PROBLEMA, "Lo que sí se registró está más abajo, en el registro de eventos."],
+        bajadas: [...(motivo ? [motivo] : []), SIN_PROBLEMA],
       };
     default:
       return {
