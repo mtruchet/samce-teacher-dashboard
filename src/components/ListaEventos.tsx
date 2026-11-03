@@ -88,43 +88,48 @@ export function ListaEventos({ eventos, vacio }: Props) {
   // que pueda recibir el foco: sin tabIndex, quien navega con teclado no pasa de
   // la primera pantalla de filas.
   return (
-    <div className="eventos__marco" tabIndex={0} role="group" aria-label="Registro de eventos">
-      <table className="eventos">
-        <caption className="solo-lectores">
-          Eventos de la sesión, del más reciente al más viejo, uno por fila. Cada fila dice a
-          qué hora llegó al servidor, qué pasó y el detalle que trajo el evento.
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col" className="eventos__hora">Hora</th>
-            <th scope="col" className="eventos__que">Qué pasó</th>
-            <th scope="col">Detalle</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entradas.map((entrada) => {
-            if (entrada.clase === "hueco") {
-              return (
-                // Cruza la fila entera y no reparte por columnas: no es un
-                // evento, es un corte entre dos. Con la hora en su columna y
-                // el texto en la del medio se leía como uno más de la lista.
-                // «entre» y no «de X a Y»: la tabla va del más reciente al más
-                // viejo, y un rango con dirección se leería al revés del
-                // renglón que lo contiene.
-                <tr key={entrada.clave} className="eventos__hueco">
-                  <td colSpan={3}>
-                    <Silencio size={18} aria-hidden="true" />
-                    sin eventos recibidos entre {horaCorta(entrada.desde)} y{" "}
-                    {horaCorta(entrada.hasta)}
-                  </td>
-                </tr>
-              );
-            }
+    <>
+      {/* Visible y no solo en la `caption`: sin esto, quien mira la tabla por
+          primera vez no sabe si lo de arriba es el comienzo o el final. */}
+      <p className="eventos__orden" aria-hidden="true">Lo más reciente va arriba.</p>
+      <div className="eventos__marco" tabIndex={0} role="group" aria-label="Registro de eventos">
+        <table className="eventos">
+          <caption className="solo-lectores">
+            Eventos de la sesión, del más reciente al más viejo, uno por fila. Cada fila dice a
+            qué hora llegó al servidor, qué pasó y el detalle que trajo el evento.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" className="eventos__hora">Hora</th>
+              <th scope="col" className="eventos__que">Qué pasó</th>
+              <th scope="col">Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entradas.map((entrada) => {
+              if (entrada.clase === "hueco") {
+                return (
+                  // Cruza la fila entera y no reparte por columnas: no es un
+                  // evento, es un corte entre dos. Con la hora en su columna y
+                  // el texto en la del medio se leía como uno más de la lista.
+                  // «entre» y no «de X a Y»: la tabla va del más reciente al más
+                  // viejo, y un rango con dirección se leería al revés del
+                  // renglón que lo contiene.
+                  <tr key={entrada.clave} className="eventos__hueco">
+                    <td colSpan={3}>
+                      <Silencio size={18} aria-hidden="true" />
+                      sin eventos recibidos entre {horaCorta(entrada.desde)} y{" "}
+                      {horaCorta(entrada.hasta)}
+                    </td>
+                  </tr>
+                );
+              }
 
-            return <Fila key={entrada.clave} evento={entrada.evento} />;
-          })}
-        </tbody>
-      </table>
-    </div>
+              return <Fila key={entrada.clave} evento={entrada.evento} />;
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

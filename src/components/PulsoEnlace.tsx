@@ -38,7 +38,8 @@ const CICLO = CADENCIA_MS / 1000;
 const TEXTO: Record<EstadoEnlace, (s: number) => string> = {
   vivo: (s) => `En vivo, se actualiza en ${Math.max(1, CICLO - s)} s`,
   "sin-conexion": () => "No se pudo actualizar esta pantalla. Reintentando.",
-  quieto: () => "Intento terminado, el registro ya no se actualiza",
+  // El estado de la entrega ya lo dice la ficha de la sesión: acá solo que la pantalla no se mueve más.
+  quieto: () => "Esta pantalla ya no se actualiza",
 };
 
 interface Props {

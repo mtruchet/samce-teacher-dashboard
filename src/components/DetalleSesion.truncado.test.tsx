@@ -57,6 +57,6 @@ describe("DetalleSesion, la paginación del registro", () => {
 
     expect(traer.mock.calls.map((c) => c[2])).toEqual([0, POR_PAGINA, 0, POR_PAGINA]);
     const encabezado = screen.getByRole("heading", { name: "Registro de eventos" }).parentElement!;
-    expect(within(encabezado).getByText(String(POR_PAGINA + 1))).toBeInTheDocument();
+    expect(within(encabezado).getByText(`${(POR_PAGINA + 1).toLocaleString("es-AR")} eventos`)).toBeInTheDocument();
   });
 });

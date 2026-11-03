@@ -37,7 +37,7 @@ const EXAMEN: sesionesService.ExamenMonitoreado = {
 };
 
 const EN_VIVO = /En vivo, se actualiza en/;
-const QUIETO = "Intento terminado, el registro ya no se actualiza";
+const QUIETO = "Esta pantalla ya no se actualiza";
 const SIN_CONEXION = "No se pudo actualizar esta pantalla. Reintentando.";
 
 /** Una sesión que se entregó hace una hora: el registro se pide una vez y listo. */
