@@ -28,6 +28,8 @@ export { CircleDashedIcon as SinNada } from "@phosphor-icons/react/dist/icons/Ci
    una cruz ni una alerta: dice que quedó incompleto, no que algo esté mal. */
 export { FileDashedIcon as SinEntregar } from "@phosphor-icons/react/dist/icons/FileDashed";
 export { CheckIcon as Check } from "@phosphor-icons/react/dist/icons/Check";
+/* La nota de apoyo del análisis: información, no advertencia. */
+export { InfoIcon as Info } from "@phosphor-icons/react/dist/icons/Info";
 export { WarningIcon as Warning } from "@phosphor-icons/react/dist/icons/Warning";
 export { WarningCircleIcon as WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
 export { CaretDownIcon as CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";

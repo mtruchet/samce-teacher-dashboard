@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import tokens from "./styles/tokens.css?raw";
 
 /**
- * El texto atenuado del apartado «Análisis de la sesión» (la hora, el origen, «lo esperado», la aclaración de que
- * no atribuye intención) tiene que leerse sobre su fondo: relación de contraste de al menos 4,5:1 (WCAG 2.1, AA para
- * texto normal). Se lee de los tokens, resolviendo cada `var(--x)` hasta un hexadecimal, sin `fs`.
+ * El texto atenuado del apartado «Análisis de la sesión» (la hora, el origen, «Una sesión habitual», la nota de apoyo)
+ * tiene que leerse sobre su fondo: relación de contraste de al menos 4,5:1 (WCAG 2.1, AA para texto normal). Los
+ * trazos que dicen el nivel de una alerta (el borde, el medidor y las barras) piden al menos 3:1 (WCAG 2.1, 1.4.11).
+ * Se lee de los tokens, resolviendo cada `var(--x)` hasta un hexadecimal, sin `fs`.
  */
 
 const DECLARACION = /(--[\w-]+)\s*:\s*([^;]+);/g;
@@ -45,17 +46,45 @@ function contraste(a: string, b: string): number {
   return (claro + 0.05) / (oscuro + 0.05);
 }
 
-describe("contraste del texto atenuado del análisis", () => {
+describe("contraste del texto atenuado y de los trazos del análisis", () => {
   const mapa = declaraciones();
+  // Texto: la tinta atenuada sobre la lámina (--sup-1), sobre las tarjetas de las alertas y la lámina del registro
+  // (--sup-2) y sobre la nota de apoyo (--sup-3); y la palabra del nivel y el titular, en --tinta, sobre la tarjeta.
   const pares: Array<[string, string]> = [
     ["--analisis-tinta-atenuada", "--sup-1"],
-    ["--analisis-tinta-atenuada-low", "--nivel-1-fondo"],
-    ["--analisis-tinta-atenuada-medium", "--nivel-2-fondo"],
-    ["--analisis-tinta-atenuada-high", "--nivel-3-fondo"],
+    ["--analisis-tinta-atenuada", "--sup-2"],
+    ["--analisis-tinta-atenuada", "--sup-3"],
+    ["--tinta", "--sup-2"],
+    ["--celeste-hondo", "--sup-1"],
   ];
 
   it.each(pares)("%s sobre %s tiene al menos 4,5:1", (tinta, fondo) => {
     expect(contraste(resolver(mapa, tinta), resolver(mapa, fondo))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  // Trazos y rellenos que dicen el nivel (WCAG 1.4.11, 3:1): el borde de la tarjeta y el medidor sobre la tarjeta
+  // (--sup-2), y las barras sobre su pista (--sup-3).
+  const graficos: Array<[string, string]> = [
+    ["--alerta-tono-low", "--sup-2"],
+    ["--alerta-tono-medium", "--sup-2"],
+    ["--alerta-tono-high", "--sup-2"],
+    ["--alerta-segmento-vacio", "--sup-2"],
+    ["--alerta-tono-low", "--sup-3"],
+    ["--alerta-tono-medium", "--sup-3"],
+    ["--alerta-tono-high", "--sup-3"],
+    ["--alerta-barra-habitual", "--sup-3"],
+  ];
+
+  it.each(graficos)("el trazo %s sobre %s tiene al menos 3:1", (trazo, fondo) => {
+    expect(contraste(resolver(mapa, trazo), resolver(mapa, fondo))).toBeGreaterThanOrEqual(3);
+  });
+
+  it("los tres tonos del nivel van de claro a hondo: más nivel, más contraste", () => {
+    const [bajo, medio, alto] = ["--alerta-tono-low", "--alerta-tono-medium", "--alerta-tono-high"].map((t) =>
+      contraste(resolver(mapa, t), resolver(mapa, "--sup-2"))
+    );
+    expect(bajo).toBeLessThan(medio);
+    expect(medio).toBeLessThan(alto);
   });
 
   it("la fórmula da 21:1 para negro sobre blanco y 1:1 para el mismo color", () => {

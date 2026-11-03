@@ -1,0 +1,93 @@
+/* Una cifra de «Lo que más pesó»: el nombre arriba y dos renglones, esta sesión y una sesión
+   habitual, cada uno con su valor escrito y su barra. Los dos renglones comparten la grilla, así
+   los valores y las barras arrancan en la misma columna y se comparan de un vistazo. */
+.comparacion {
+  display: grid;
+  gap: var(--e1);
+}
+
+.comparacion__nombre {
+  margin: 0;
+  font-size: var(--panel-cuerpo);
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+.comparacion__filas {
+  display: grid;
+  /* Anchos fijos para el rótulo y el valor: así las barras de todas las cifras arrancan en la misma
+     columna y el ojo no salta. Un valor más largo envuelve en vez de correr la barra. */
+  grid-template-columns: 10em 16em minmax(64px, 1fr);
+  align-items: center;
+  gap: var(--e1) var(--e4);
+  margin: 0;
+}
+
+.comparacion__filas--sin-barras {
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
+/* Cada renglón se reparte en las columnas de la grilla de arriba. */
+.comparacion__fila {
+  display: contents;
+}
+
+.comparacion__rotulo,
+.comparacion__valor,
+.comparacion__pista {
+  margin: 0;
+}
+
+.comparacion__rotulo {
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+}
+
+.comparacion__valor {
+  font-size: var(--panel-fila);
+  color: var(--tinta-media);
+}
+
+/* Lo de esta sesión pesa; lo habitual lo acompaña. */
+.comparacion__fila--sesion .comparacion__valor {
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+/* La pista es el recorrido entero de la barra: dice dónde está el máximo de esta cifra. Un escalón
+   y no más: sobre --sup-4 el tono bajo no llegaba a 3:1 (ver AnalisisSesion.contraste.test.ts). */
+.comparacion__pista {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--sup-3);
+  overflow: hidden;
+}
+
+.comparacion__barra {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+/* El tono de la barra de esta sesión lo pone la tarjeta (`--tono`), según el nivel. */
+.comparacion__fila--sesion .comparacion__barra {
+  background: var(--tono, var(--alerta-tono-medium));
+}
+
+.comparacion__fila--habitual .comparacion__barra {
+  background: var(--alerta-barra-habitual);
+}
+
+@media (max-width: 640px) {
+  /* El rótulo y el valor en un renglón, y la barra abajo, a lo ancho. */
+  .comparacion__filas,
+  .comparacion__filas--sin-barras {
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 2px var(--e3);
+  }
+
+  .comparacion__pista {
+    grid-column: 1 / -1;
+    margin-bottom: var(--e1);
+  }
+}
