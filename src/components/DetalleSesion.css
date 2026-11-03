@@ -40,7 +40,7 @@
 .detalle__extremos {
   /* Pegado a la cuenta, como una sola frase: el hueco del encabezado separa
      el título de lo que lo acompaña, no la cuenta de su precisión. */
-  margin-left: calc(-1 * var(--e2));
+  margin-left: calc(-1 * var(--e3));
   font-size: var(--panel-nota);
   color: var(--tinta-media);
 }

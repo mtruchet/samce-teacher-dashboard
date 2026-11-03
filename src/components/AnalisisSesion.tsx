@@ -1,13 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { horaCorta } from "../eventos";
-import { Check, Info } from "../iconos";
-import {
-  explicacionLegible,
-  horaDeLaAlerta,
-  motivoCorto,
-  motivoDeAlerta,
-  ordenarAlertas,
-} from "../lenguajeAlerta";
+import { ordenarExplicacion } from "../explicacion";
+import { Alfiler, Capas, Check, Info, NoSePudo, Ojo, Reloj, type Icon } from "../iconos";
+import { horaDeLaAlerta, ordenarAlertas } from "../lenguajeAlerta";
 import { recienCerrada } from "../seguimiento";
 import {
   CADENCIA_MS,
@@ -17,7 +12,6 @@ import {
   type Analisis,
   type SesionNumerada,
 } from "../services/sesionesService";
-import { Comparacion } from "./Comparacion";
 import { MedidorNivel } from "./MedidorNivel";
 import "./AnalisisSesion.css";
 
@@ -26,22 +20,21 @@ import "./AnalisisSesion.css";
  * análisis.
  *
  * Va aparte del registro de eventos, que cuenta lo que pasó; acá se lee lo que el análisis
- * encontró. Arriba, un resumen que en una frase dice si hay algo para revisar y por qué; debajo,
- * una tarjeta por alerta con su nivel, la hora, de dónde sale y su explicación en lenguaje llano
- * (`lenguajeAlerta.ts`), con las cifras que más pesaron puestas al lado de las de una sesión
- * habitual.
+ * encontró. Tiene tres capas: arriba, el veredicto en una frase («Hay 2 alertas para revisar.»,
+ * «No hay nada para revisar.»); debajo, una tarjeta por alerta con el hecho en grande; y, en la
+ * alerta de toda la sesión, la lista corta de lo que más llamó la atención.
+ *
+ * Los textos de las alertas y el motivo de una sesión que no se pudo analizar los escribe el
+ * motor para el docente, en lenguaje llano, y salen tal cual: el panel no traduce nada
+ * (`explicacion.ts` solo los ordena por renglón).
  *
  * No muestra el índice de integridad (decisión vigente), ni las métricas, el historial o la
- * cronología (HU05), ni un nivel de la sesión (HU03): el resumen cuenta las alertas y dice de qué
- * tratan, pero nunca muestra un nivel.
+ * cronología (HU05), ni un nivel de la sesión (HU03): el veredicto cuenta las alertas, pero nunca
+ * dice un nivel ni usa su color. El nivel es de cada alerta y va en su tarjeta.
  *
  * Mientras la sesión sigue abierta, y unos minutos después de la entrega, vuelve a preguntar
  * cada pocos segundos: el análisis se recalcula con cada tanda de eventos, y una alerta puede
  * aparecer o subir de nivel mientras el docente mira.
- *
- * Una alerta es una señal para revisar, no una conclusión sobre el alumno. El motor cierra cada
- * explicación diciéndolo; acá esa aclaración se dice una sola vez, arriba, en la nota de apoyo,
- * en lugar de repetirse al pie de cada tarjeta.
  */
 
 const NIVELES: Record<AlertaDeSesion["level"], string> = {
@@ -50,19 +43,11 @@ const NIVELES: Record<AlertaDeSesion["level"], string> = {
   high: "Nivel alto",
 };
 
-const ORIGENES: Record<AlertaDeSesion["origin"], string> = {
-  model: "La sesión en conjunto",
-  event: "Un momento puntual",
+/** De dónde sale la alerta, escrito y con su ícono. Se elige por `origin`, nunca por el texto. */
+const ORIGENES: Record<AlertaDeSesion["origin"], { texto: string; icono: Icon }> = {
+  model: { texto: "En toda la sesión", icono: Capas },
+  event: { texto: "En un momento de la sesión", icono: Alfiler },
 };
-
-/** La nota de apoyo: una sola vez por pantalla, y solo si hay alertas. */
-const NOTA_DE_APOYO =
-  "Una alerta señala algo para mirar con atención. Describe lo que se observó y no atribuye intención: la revisión es del docente.";
-
-/** El `id` de la tarjeta de una alerta: a lo sumo hay una de cada origen. */
-function idDeAlerta(alerta: AlertaDeSesion): string {
-  return `analisis-alerta-${alerta.origin}`;
-}
 
 interface Props {
   sesion: SesionNumerada;
@@ -70,78 +55,57 @@ interface Props {
   onVencida: () => void;
 }
 
-function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
-  const e = explicacionLegible(alerta.explanation);
-  const hora = horaDeLaAlerta(alerta);
+/** Una nota del motor dentro de la tarjeta: el ícono de información y el texto tal cual. */
+function Nota({ texto }: { texto: string }) {
   return (
-    <li
-      className={`analisis__alerta analisis__alerta--${alerta.level}`}
-      id={idDeAlerta(alerta)}
-      // Destino de los motivos del resumen: recibe el foco al seguir el enlace, sin entrar al orden del tabulador.
-      tabIndex={-1}
-    >
-      <div className="analisis__cabeza">
-        <span className="analisis__nivel">
-          <MedidorNivel nivel={alerta.level} />
-          {NIVELES[alerta.level]}
-        </span>
-        <span className="analisis__hora">
-          {hora.texto} <time className="cifra" dateTime={hora.iso}>{hora.hora}</time>
-        </span>
-        <span className="analisis__origen">{ORIGENES[alerta.origin]}</span>
-      </div>
-
-      {/* Una explicación sin estructura (una alerta guardada en un solo párrafo) no tiene un
-          titular: se muestra como texto común y no en grande y en negrita. */}
-      <p className={e.sinEstructura ? "analisis__detalle" : "analisis__titular"}>{e.titular}</p>
-      {e.contexto.map((renglon) => (
-        <p className="analisis__detalle" key={renglon}>{renglon}</p>
-      ))}
-
-      {e.cifras.length > 0 ? (
-        <div className="analisis__pesos">
-          <h3 className="analisis__subtitulo">Lo que más pesó</h3>
-          <ul className="analisis__cifras">
-            {e.cifras.map((cifra) => <Comparacion key={cifra.clave} cifra={cifra} />)}
-          </ul>
-          {/* Es cierto por construcción: el backend conserva la explicación del peor momento. */}
-          <p className="analisis__aclaracion">Las cifras son las del momento de la sesión en que más se notó.</p>
-        </div>
-      ) : e.viñetasSinForma.length > 0 ? (
-        <div className="analisis__pesos">
-          {e.conEncabezado ? <h3 className="analisis__subtitulo">Lo que más pesó</h3> : null}
-          <ul className="analisis__viñetas">
-            {e.viñetasSinForma.map((v) => <li key={v}>{v}</li>)}
-          </ul>
-        </div>
-      ) : null}
-
-      {e.despues.map((renglon) => (
-        <p className="analisis__detalle" key={renglon}>{renglon}</p>
-      ))}
-    </li>
+    <p className="analisis__nota">
+      <Info size={16} aria-hidden="true" />
+      <span>{texto}</span>
+    </p>
   );
 }
 
-/** Lleva el foco a la tarjeta de una alerta, sin tocar la dirección de la página. */
-function irALaAlerta(evento: React.MouseEvent<HTMLAnchorElement>, id: string) {
-  const tarjeta = document.getElementById(id);
-  if (!tarjeta) return;
-  evento.preventDefault();
-  tarjeta.focus();
-}
-
-function Motivos({ alertas }: { alertas: AlertaDeSesion[] }) {
+function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
+  const e = ordenarExplicacion(alerta.explanation);
+  const hora = horaDeLaAlerta(alerta);
+  const origen = ORIGENES[alerta.origin];
+  const IconoDeOrigen = origen.icono;
+  // Un rótulo de lista sin viñetas debajo no abre nada: se muestra como nota, sin perderse.
+  const notasAntes =
+    e.encabezadoDeLista !== null && e.viñetas.length === 0 ? [...e.notasAntes, `${e.encabezadoDeLista}:`] : e.notasAntes;
   return (
-    <ul className="resumen__motivos">
-      {alertas.map((alerta) => (
-        <li key={alerta.origin}>
-          <a href={`#${idDeAlerta(alerta)}`} onClick={(ev) => irALaAlerta(ev, idDeAlerta(alerta))}>
-            {motivoDeAlerta(alerta)}
-          </a>
-        </li>
-      ))}
-    </ul>
+    <li className={`analisis__alerta analisis__alerta--${alerta.level}`} data-origen={alerta.origin}>
+      <span className="analisis__origen-icono" aria-hidden="true">
+        <IconoDeOrigen size={18} />
+      </span>
+      <div className="analisis__cuerpo">
+        <div className="analisis__cabeza">
+          <span className="analisis__rotulo">
+            <MedidorNivel nivel={alerta.level} />
+            <span className="analisis__nivel">{NIVELES[alerta.level]}</span>{" "}
+            <span className="analisis__separador" aria-hidden="true">·</span>{" "}
+            <span className="analisis__origen">{origen.texto}</span>
+          </span>
+          <span className="analisis__hora">
+            {hora.texto} <time className="cifra" dateTime={hora.iso}>{hora.hora}</time>
+          </span>
+        </div>
+
+        <p className="analisis__hecho">{e.hecho}</p>
+        {notasAntes.map((renglon) => <Nota key={renglon} texto={renglon} />)}
+
+        {e.viñetas.length > 0 ? (
+          <div className="analisis__atencion">
+            {e.encabezadoDeLista ? <h3 className="analisis__subtitulo">{e.encabezadoDeLista}</h3> : null}
+            <ul className="analisis__lista">
+              {e.viñetas.map((v) => <li key={v}>{v}</li>)}
+            </ul>
+          </div>
+        ) : null}
+
+        {e.notas.map((renglon) => <Nota key={renglon} texto={renglon} />)}
+      </div>
+    </li>
   );
 }
 
@@ -149,100 +113,75 @@ function cuantas(n: number): string {
   return n === 1 ? "Hay 1 alerta para revisar." : `Hay ${n} alertas para revisar.`;
 }
 
-/** Si el motivo de la evidencia insuficiente es la captura y no la poca actividad. */
-function porLaCaptura(motivo: string | null): boolean {
-  return motivo !== null && /^La captura/.test(motivo);
+interface Veredicto {
+  icono: Icon;
+  /** Si el ícono va grande, en su cuadro: los estados sin alertas. */
+  grande: boolean;
+  frase: string;
+  bajadas: string[];
 }
 
 /**
- * El resumen de arriba: una frase grande y, si hace falta, una bajada. Con alertas, la bajada es
- * la lista de motivos, una por alerta y en el orden de las tarjetas, y debajo va la nota de apoyo.
+ * Qué dice el veredicto de arriba en cada estado: una frase, su ícono y, si hace falta, una bajada.
  *
- * Nunca muestra un nivel: un nivel acá sería el nivel de la sesión, que es de HU03.
+ * Nunca dice un nivel ni usa el color de uno: acá sería el nivel de la sesión, que es de HU03.
+ * El motivo de una sesión que no se pudo analizar es el del motor, tal cual. El de «no
+ * disponible» no se repite, porque dice lo mismo que la frase.
  */
-function Resumen({ analisis, alertas, abierta }: { analisis: Analisis; alertas: AlertaDeSesion[]; abierta: boolean }) {
-  if (alertas.length > 0) {
-    // El motivo de «no disponible» es técnico (el modelo, un archivo...) y no se le muestra al docente.
-    const bajada =
+function veredictoDe(analisis: Analisis, alertas: number, abierta: boolean): Veredicto {
+  const motivo = analisis.reason?.trim() || null;
+  if (alertas > 0) {
+    const bajadas =
       analisis.state === "insufficient_evidence"
-        ? "Hubo poca actividad para analizar la sesión en conjunto, pero se marcó un momento puntual."
+        ? ["La sesión completa no se pudo analizar, pero hubo un momento que conviene mirar.", ...(motivo ? [motivo] : [])]
         : analisis.state === "unavailable"
-          ? "El análisis de la sesión en conjunto no está disponible por ahora, pero se marcó un momento puntual."
-          : null;
-    return (
-      <div className="resumen">
-        <p className="resumen__frase">{cuantas(alertas.length)}</p>
-        {bajada ? <p className="resumen__bajada">{bajada}</p> : null}
-        <Motivos alertas={alertas} />
-        <p className="resumen__nota">
-          <Info size={18} aria-hidden="true" />
-          <span>{NOTA_DE_APOYO}</span>
-        </p>
-      </div>
-    );
+          ? ["El análisis de la sesión completa no está disponible en este momento."]
+          : [];
+    return { icono: Ojo, grande: false, frase: cuantas(alertas), bajadas };
   }
-
   switch (analisis.state) {
     case "analyzed":
-      return (
-        <div className="resumen resumen--con-icono">
-          <Check className="resumen__icono" size={20} aria-hidden="true" />
-          <div className="resumen__texto">
-            <p className="resumen__frase">
-              {abierta ? "Por ahora no se encontró nada fuera de lo habitual." : "No se encontró nada fuera de lo habitual."}
-            </p>
-            <p className="resumen__bajada">
-              {abierta
-                ? "El análisis se repite solo mientras el alumno rinde."
-                : "La sesión se analizó completa y no tiene alertas."}
-            </p>
-          </div>
-        </div>
-      );
+      return abierta
+        ? {
+            icono: Check, grande: true, frase: "Por ahora no hay nada para revisar.",
+            bajadas: ["La sesión se sigue analizando mientras el alumno rinde."],
+          }
+        : {
+            icono: Check, grande: true, frase: "No hay nada para revisar.",
+            bajadas: ["Se analizó la sesión completa y no surgió ninguna alerta."],
+          };
     case "not_analyzed":
-      return (
-        <div className="resumen">
-          <p className="resumen__frase">Esta sesión todavía no se analizó.</p>
-          {abierta ? (
-            <p className="resumen__bajada">
-              El análisis se hace solo mientras el alumno rinde, y esta pantalla se actualiza sola.
-            </p>
-          ) : null}
-        </div>
-      );
-    case "insufficient_evidence": {
-      // El umbral del motor («5 eventos de actividad») choca con la cuenta del registro de abajo, que
-      // cuenta todo: queda dentro de un desplegable cerrado, para quien quiera saberlo.
-      const requisito = motivoCorto(analisis.reason);
-      // Con la captura incompleta no fue poca actividad: decirlo así sería falso.
-      const captura = porLaCaptura(analisis.reason);
-      return (
-        <div className="resumen">
-          <p className="resumen__frase">
-            {captura
-              ? "Esta sesión no se pudo analizar porque la captura quedó incompleta."
-              : "Hubo muy poca actividad para analizar esta sesión."}
-          </p>
-          {captura ? null : (
-            <p className="resumen__bajada">Con tan pocos datos no se puede decir si se aparta de lo habitual.</p>
-          )}
-          {requisito ? (
-            <details className="resumen__requisito">
-              <summary>{captura ? "Qué pasó con la captura" : "Qué hace falta para analizarla"}</summary>
-              <p>{requisito}</p>
-            </details>
-          ) : null}
-        </div>
-      );
-    }
+      return {
+        icono: Reloj, grande: true, frase: "Esta sesión todavía no se analizó.",
+        bajadas: abierta ? ["Se va a analizar mientras el alumno rinde. No hace falta recargar la pantalla."] : [],
+      };
+    case "insufficient_evidence":
+      return {
+        icono: NoSePudo, grande: true, frase: "Esta sesión no se pudo analizar.",
+        bajadas: [...(motivo ? [motivo] : []), "Lo que sí se registró está más abajo, en el registro de eventos."],
+      };
     default:
-      return (
-        <div className="resumen">
-          <p className="resumen__frase">El análisis de esta sesión no está disponible por ahora.</p>
-          <p className="resumen__bajada">Los eventos de la sesión se pueden revisar igual, más abajo.</p>
-        </div>
-      );
+      return {
+        icono: NoSePudo, grande: true, frase: "El análisis no está disponible en este momento.",
+        bajadas: ["Los eventos de la sesión se pueden ver igual, más abajo."],
+      };
   }
+}
+
+function Veredicto({ analisis, alertas, abierta }: { analisis: Analisis; alertas: number; abierta: boolean }) {
+  const v = veredictoDe(analisis, alertas, abierta);
+  const Icono = v.icono;
+  return (
+    <div className={v.grande ? "veredicto veredicto--grande" : "veredicto"}>
+      <span className="veredicto__icono" aria-hidden="true">
+        <Icono size={v.grande ? 28 : 24} />
+      </span>
+      <div className="veredicto__texto">
+        <p className="veredicto__frase">{v.frase}</p>
+        {v.bajadas.map((b) => <p className="veredicto__bajada" key={b}>{b}</p>)}
+      </div>
+    </div>
+  );
 }
 
 export function AnalisisSesion({ sesion, onVencida }: Props) {
@@ -318,9 +257,9 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
       ) : (
         // Región viva: un lector de pantalla anuncia la alerta que aparece o sube de nivel mientras se mira. Lleva
         // nombre porque el componente ya tiene otros dos `role="status"` (el aviso sin conexión y «Cargando»). El
-        // resumen va primero, así es lo primero que se anuncia.
+        // veredicto va primero, así es lo primero que se anuncia.
         <div className="analisis__region" role="status" aria-live="polite" aria-label="Alertas de la sesión">
-          <Resumen analisis={analisis} alertas={alertas} abierta={abierta} />
+          <Veredicto analisis={analisis} alertas={alertas.length} abierta={abierta} />
           {alertas.length > 0 ? (
             <ul className="analisis__alertas">
               {alertas.map((alerta) => <Alerta key={alerta.origin} alerta={alerta} />)}

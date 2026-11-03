@@ -69,13 +69,12 @@
   /* ---- El nivel de una alerta -------------------------------------------- */
   /* Un solo tono (ocre), de claro a hondo: intensidad y no semáforo, como los niveles de atención. No reemplazan
      a los --nivel-*, que usan otros cinco componentes. Son trazos y rellenos (el borde de la tarjeta, el medidor
-     y la barra de «Esta sesión»), nunca texto: el nivel siempre va escrito al lado, en --tinta. Piden 3:1 sobre
+     y el ícono de origen), nunca texto: el nivel siempre va escrito al lado, en --tinta. Piden 3:1 sobre
      --sup-2 (WCAG 1.4.11); se comprueba en AnalisisSesion.contraste.test.ts. */
-  --alerta-tono-low: #b07d3a; /* 3,45:1 (sobre --sup-3, la pista de las barras: 3,26:1) */
+  --alerta-tono-low: #b07d3a; /* 3,45:1 (sobre --sup-3, el cuadro del ícono de origen: 3,26:1) */
   --alerta-tono-medium: #8a5a1c; /* 5,66:1 */
   --alerta-tono-high: #5a360c; /* 10,25:1 */
   --alerta-segmento-vacio: var(--tinta-suave); /* contorno del segmento vacío del medidor: 4,78:1 */
-  --alerta-barra-habitual: var(--tinta-suave); /* barra de «Una sesión habitual», sobre --sup-3: 4,51:1 */
 
   /* ---- Tipografía -------------------------------------------------------- */
   /* Una sola familia en todo el sistema. Los datos y los códigos se alinean

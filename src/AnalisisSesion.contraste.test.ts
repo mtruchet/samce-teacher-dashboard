@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import tokens from "./styles/tokens.css?raw";
 
 /**
- * El texto atenuado del apartado «Análisis de la sesión» (la hora, el origen, «Una sesión habitual», la nota de apoyo)
+ * El texto atenuado del apartado «Análisis de la sesión» (la hora, el origen, las bajadas del veredicto y las notas del motor)
  * tiene que leerse sobre su fondo: relación de contraste de al menos 4,5:1 (WCAG 2.1, AA para texto normal). Los
- * trazos que dicen el nivel de una alerta (el borde, el medidor y las barras) piden al menos 3:1 (WCAG 2.1, 1.4.11).
+ * trazos que dicen el nivel de una alerta (el borde, el medidor y el ícono de origen) piden al menos 3:1 (WCAG 2.1, 1.4.11).
  * Se lee de los tokens, resolviendo cada `var(--x)` hasta un hexadecimal, sin `fs`.
  */
 
@@ -49,12 +49,15 @@ function contraste(a: string, b: string): number {
 describe("contraste del texto atenuado y de los trazos del análisis", () => {
   const mapa = declaraciones();
   // Texto: la tinta atenuada sobre la lámina (--sup-1), sobre las tarjetas de las alertas y la lámina del registro
-  // (--sup-2) y sobre la nota de apoyo (--sup-3); y la palabra del nivel y el titular, en --tinta, sobre la tarjeta.
+  // (--sup-2) y sobre el cuadro del ícono grande (--sup-3); y la palabra del nivel y el hecho, en --tinta, sobre la tarjeta.
   const pares: Array<[string, string]> = [
     ["--analisis-tinta-atenuada", "--sup-1"],
     ["--analisis-tinta-atenuada", "--sup-2"],
     ["--analisis-tinta-atenuada", "--sup-3"],
     ["--tinta", "--sup-2"],
+    ["--tinta-media", "--sup-1"],
+    ["--tinta-media", "--sup-2"],
+    ["--tinta-media", "--sup-3"],
     ["--celeste-hondo", "--sup-1"],
   ];
 
@@ -63,7 +66,7 @@ describe("contraste del texto atenuado y de los trazos del análisis", () => {
   });
 
   // Trazos y rellenos que dicen el nivel (WCAG 1.4.11, 3:1): el borde de la tarjeta y el medidor sobre la tarjeta
-  // (--sup-2), y las barras sobre su pista (--sup-3).
+  // (--sup-2), y el ícono de origen sobre su cuadro (--sup-3).
   const graficos: Array<[string, string]> = [
     ["--alerta-tono-low", "--sup-2"],
     ["--alerta-tono-medium", "--sup-2"],
@@ -72,7 +75,6 @@ describe("contraste del texto atenuado y de los trazos del análisis", () => {
     ["--alerta-tono-low", "--sup-3"],
     ["--alerta-tono-medium", "--sup-3"],
     ["--alerta-tono-high", "--sup-3"],
-    ["--alerta-barra-habitual", "--sup-3"],
   ];
 
   it.each(graficos)("el trazo %s sobre %s tiene al menos 3:1", (trazo, fondo) => {

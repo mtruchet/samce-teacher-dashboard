@@ -1,10 +1,13 @@
 /* El apartado «Análisis de la sesión»: la lámina principal del detalle, arriba del registro.
    Pesa más que el registro (blanca y con sombra, sobre el fondo del panel) porque es lo primero
-   que el docente tiene que leer. Adentro, el resumen arriba y una tarjeta por alerta. */
+   que el docente tiene que leer. Adentro, el veredicto arriba y una tarjeta por alerta.
+
+   Los textos de lectura van en los pasos del sitio y no en los del panel: son frases que el
+   docente lee enteras, no datos de una tabla. */
 .analisis {
   display: grid;
-  gap: var(--e4);
-  padding: var(--e5) var(--e6);
+  gap: var(--e5);
+  padding: var(--e5) var(--e6) var(--e6);
   border-radius: var(--radio-lamina);
   background: var(--sup-1);
   box-shadow: var(--anillo), var(--elev-1);
@@ -19,8 +22,9 @@
 
 .analisis__titulo {
   margin: 0;
-  font-size: var(--panel-pieza);
+  font-size: var(--paso-subtitulo);
   font-weight: 600;
+  line-height: 1.25;
   color: var(--tinta);
 }
 
@@ -28,13 +32,13 @@
    es el asunto de la lámina. */
 .analisis__ultima {
   margin-left: auto;
-  font-size: var(--panel-nota);
-  color: var(--analisis-tinta-atenuada);
+  font-size: var(--paso-apoyo);
+  color: var(--tinta-media);
 }
 
 .analisis__estado {
   margin: 0;
-  font-size: var(--panel-cuerpo);
+  font-size: var(--paso-apoyo);
   color: var(--tinta);
 }
 
@@ -44,154 +48,99 @@
   border-radius: max(0px, calc(var(--radio-panel) - var(--e5)));
   background: var(--nivel-1-fondo);
   box-shadow: inset 0 0 0 1px var(--nivel-1-borde);
-  font-size: var(--panel-cuerpo);
+  font-size: var(--paso-apoyo);
   color: var(--nivel-1-tinta);
 }
 
 .analisis__region {
   display: grid;
-  gap: var(--e4);
+  gap: var(--e5);
 }
 
-/* ==== El resumen ======================================================= */
+/* ==== El veredicto ===================================================== */
 
-.resumen {
+/* Una frase grande con su ícono de trazo fino. Nunca el color de un nivel: el veredicto no es el
+   nivel de la sesión (HU03). */
+.veredicto {
   display: grid;
-  gap: var(--e2);
-}
-
-/* Sin alertas, el tilde fino del mismo trazo que los íconos del registro: neutro, ni verde ni
-   sello. Dice que se miró, no que el alumno «aprobó». */
-.resumen--con-icono {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   gap: var(--e3);
 }
 
-.resumen__icono {
-  margin-top: 3px;
-  color: var(--tinta-media);
+.veredicto__icono {
+  display: inline-flex;
+  margin-top: 2px;
+  color: var(--pizarra);
 }
 
-.resumen__texto {
+.veredicto__texto {
   display: grid;
   gap: var(--e1);
+  max-width: var(--medida);
 }
 
-.resumen__frase {
+.veredicto__frase {
   margin: 0;
-  font-size: var(--panel-pieza);
+  font-size: var(--paso-cuerpo-grande);
   font-weight: 600;
   line-height: 1.35;
   color: var(--tinta);
 }
 
-.resumen__bajada {
+.veredicto__bajada {
   margin: 0;
-  font-size: var(--panel-cuerpo);
+  font-size: var(--paso-apoyo);
   line-height: 1.5;
   color: var(--tinta-media);
 }
 
-/* Un motivo por alerta, en el orden de las tarjetas. Son enlaces: llevan a su tarjeta. */
-.resumen__motivos {
-  display: grid;
-  gap: var(--e1);
-  margin: 0;
-  padding-left: var(--e5);
-  font-size: var(--panel-cuerpo);
-  line-height: 1.5;
-  color: var(--tinta);
+/* Sin alertas, el ícono va grande y en su cuadro: el estado se reconoce de un vistazo. Neutro, sin
+   verde ni rojo: el tilde dice que se miró, no que el alumno «aprobó». */
+.veredicto--grande {
+  align-items: center;
+  gap: var(--e4);
 }
 
-.resumen__motivos a {
-  color: var(--tinta);
-  text-decoration: underline;
-  text-decoration-color: var(--tinta-tenue);
-  text-underline-offset: 3px;
-  transition: text-decoration-color var(--mov-estado) var(--curva);
-}
-
-.resumen__motivos a:hover {
-  text-decoration-color: currentColor;
-}
-
-.resumen__motivos a:focus-visible,
-.resumen__requisito summary:focus-visible {
-  outline: 2px solid var(--celeste);
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
-/* La nota de apoyo, una sola vez: información, con un ícono neutro y no de advertencia. */
-.resumen__nota {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--e2);
-  margin: var(--e1) 0 0;
-  padding: var(--e3) var(--e4);
+.veredicto--grande .veredicto__icono {
+  justify-content: center;
+  align-items: center;
+  width: 56px;
+  height: 56px;
+  margin-top: 0;
   border-radius: var(--radio-ficha);
   background: var(--sup-3);
-  font-size: var(--panel-nota);
-  line-height: 1.5;
   color: var(--tinta-media);
 }
 
-.resumen__nota svg {
-  flex: none;
-  margin-top: 1px;
-  color: var(--tinta-media);
-}
-
-/* El requisito del motor para analizar una sesión, cerrado: queda para quien quiera saberlo. */
-.resumen__requisito {
-  font-size: var(--panel-nota);
-  color: var(--tinta-media);
-}
-
-.resumen__requisito summary {
-  width: fit-content;
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--tinta-media);
-}
-
-.resumen__requisito p {
-  margin: var(--e1) 0 0;
-  padding-left: var(--e4);
-  line-height: 1.5;
+.veredicto--grande .veredicto__icono svg {
+  width: 40px;
+  height: 40px;
 }
 
 /* ==== Las alertas ====================================================== */
 
 .analisis__alertas {
   display: grid;
-  gap: var(--e3);
+  gap: var(--e4);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 /* El mismo fondo claro en los tres niveles: el nivel no depende del fondo, se lee en la palabra,
-   en el medidor y en el borde izquierdo. Así ninguna tarjeta grita más que las otras. */
+   en el medidor, en el borde izquierdo y en el ícono de origen. Así ninguna tarjeta grita más que
+   las otras. */
 .analisis__alerta {
   display: grid;
-  gap: var(--e2);
-  padding: var(--e4) var(--e5);
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--e4);
+  padding: var(--e6);
   border-left: 4px solid var(--tono);
   border-radius: var(--radio-ficha);
   background: var(--sup-2);
-  box-shadow: var(--anillo);
   color: var(--tinta);
-  scroll-margin-top: var(--e8);
-}
-
-/* Al llegar desde un motivo del resumen, la tarjeta se marca con el anillo de foco del sistema. Con
-   `:focus` y no `:focus-visible`: el foco llega por código después de un clic, y ahí el navegador
-   no siempre lo considera visible. */
-.analisis__alerta:focus {
-  outline: 2px solid var(--celeste);
-  outline-offset: 2px;
 }
 
 .analisis__alerta--low {
@@ -206,37 +155,59 @@
   --tono: var(--alerta-tono-high);
 }
 
+/* De dónde sale la alerta, dibujado: capas para toda la sesión, alfiler para un momento. */
+.analisis__origen-icono {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--sup-3);
+  color: var(--tono);
+}
+
+.analisis__cuerpo {
+  display: grid;
+  gap: var(--e3);
+  min-width: 0;
+}
+
 .analisis__cabeza {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--e1) var(--e4);
-  font-size: var(--panel-nota);
+  min-height: 32px;
+  font-size: var(--paso-apoyo);
+  color: var(--tinta-media);
+}
+
+.analisis__rotulo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e1) var(--e2);
 }
 
 .analisis__nivel {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--e2);
-  font-size: var(--panel-cuerpo);
   font-weight: 600;
   color: var(--tinta);
 }
 
-.analisis__hora {
-  color: var(--tinta-media);
+.analisis__separador {
+  color: var(--tinta-suave);
 }
 
-/* De dónde sale la alerta, al final de la cabecera. */
-.analisis__origen {
+.analisis__hora {
   margin-left: auto;
-  color: var(--analisis-tinta-atenuada);
 }
 
 /* El medidor: tres segmentos, llenos según el nivel, en el tono de la tarjeta. */
 .medidor {
   display: inline-flex;
   gap: 3px;
+  margin-right: var(--e1);
 }
 
 .medidor__segmento {
@@ -251,70 +222,98 @@
   box-shadow: inset 0 0 0 1px var(--tono);
 }
 
-/* El titular es lo primero que se lee: pesa más que el resto de la tarjeta. */
-.analisis__titular {
-  margin: var(--e1) 0 0;
-  font-size: var(--panel-pieza);
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-.analisis__detalle {
+/* El hecho es lo primero que se lee de la tarjeta: pesa más que todo lo demás. */
+.analisis__hecho {
+  max-width: var(--medida);
   margin: 0;
-  font-size: var(--panel-cuerpo);
-  line-height: 1.5;
+  font-size: var(--paso-cuerpo-grande);
+  font-weight: 600;
+  line-height: 1.4;
+  text-wrap: pretty;
 }
 
-/* «Lo que más pesó»: subtítulo en minúscula inicial y una comparación por cifra. */
-.analisis__pesos {
+/* «Lo que más llamó la atención»: un rótulo legible, no un sobretítulo chico. */
+.analisis__atencion {
   display: grid;
-  gap: var(--e3);
-  margin-top: var(--e2);
+  gap: var(--e2);
+  margin-top: var(--e1);
 }
 
 .analisis__subtitulo {
   margin: 0;
-  font-size: var(--panel-cuerpo);
+  font-size: var(--paso-apoyo);
   font-weight: 600;
-  color: var(--tinta-media);
+  color: var(--tinta);
 }
 
-.analisis__cifras {
+/* Las viñetas, con un punto igual para todas: sin íconos elegidos por palabras del texto. */
+.analisis__lista {
   display: grid;
-  gap: var(--e4);
+  gap: var(--e3);
+  max-width: var(--medida);
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.analisis__aclaracion {
-  margin: 0;
-  font-size: var(--panel-nota);
-  color: var(--analisis-tinta-atenuada);
-}
-
-.analisis__viñetas {
-  margin: 0;
-  padding-left: var(--e5);
-  font-size: var(--panel-cuerpo);
+  font-size: var(--paso-cuerpo);
   line-height: 1.5;
+}
+
+.analisis__lista li {
+  position: relative;
+  padding-left: var(--e5);
+}
+
+.analisis__lista li::before {
+  content: "";
+  position: absolute;
+  top: calc(0.75em - 3px);
+  left: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tinta-suave);
+}
+
+/* Las notas del motor (que la combinación es lo poco común, que la conexión no depende del
+   alumno): en línea, sin recuadro, con un ícono de información. */
+.analisis__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e2);
+  max-width: var(--medida);
+  margin: 0;
+  font-size: var(--paso-cuerpo);
+  line-height: 1.5;
+  color: var(--tinta-media);
+}
+
+.analisis__nota svg {
+  flex: none;
+  margin-top: 0.3em;
+  color: var(--tinta-suave);
 }
 
 @media (max-width: 760px) {
   .analisis {
     padding: var(--e4);
   }
+
+  .analisis__alerta {
+    padding: var(--e4);
+  }
 }
 
 @media (max-width: 640px) {
-  /* El nivel y la hora en un renglón; el origen baja al siguiente. */
-  .analisis__origen,
+  /* El ícono de origen sube a la cabecera para que el texto use todo el ancho; la hora baja. */
+  .analisis__alerta {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--e3);
+    padding: var(--e4);
+  }
+
+  .analisis__hora,
   .analisis__ultima {
     flex-basis: 100%;
     margin-left: 0;
-  }
-
-  .analisis__alerta {
-    padding: var(--e3) var(--e4);
   }
 }

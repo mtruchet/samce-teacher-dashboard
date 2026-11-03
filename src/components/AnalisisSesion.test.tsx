@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as sesionesService from "../services/sesionesService";
 import type { AlertaDeSesion, Analisis } from "../services/sesionesService";
 import { esperar, sesionNumerada } from "../test/fabricas";
+import { EVENTO_453, MODELO_453, MODELO_454, NO_DISPONIBLE, SIN_EVIDENCIA_457 } from "../test/explicaciones";
 import { horaCorta } from "../eventos";
 import { AnalisisSesion } from "./AnalisisSesion";
 
@@ -10,38 +11,18 @@ const nada = () => undefined;
 const CALCULO = "2026-10-23T14:30:05.123Z";
 /** Una entrega de hace una hora: el apartado ya no vuelve a preguntar. */
 const HACE_RATO = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+const CERRADA = { status: "closed" as const, closed_at: HACE_RATO };
 
-/*
- * Las explicaciones reales de la sesión 453 del «Segundo Parcial (réplica del campus)», tal como las
- * guarda la base, y la de la sesión en conjunto de la 454.
- */
-const MODELO_453 = [
-  "Esta sesión se aparta levemente de lo habitual.",
-  "Menos del 5 % de las sesiones esperadas llega a comportarse así.",
-  "Lo que más pesó:",
-  "• Pegado más largo: 301 caracteres (lo esperado: 0 caracteres)",
-  "• Pegados por pregunta: 0,2 pegados por pregunta (lo esperado: 0 pegados por pregunta)",
-  "• Tiempo habitual en una pregunta: 176 segundos (lo esperado: 67,8 segundos)",
-  "Esto describe lo observado y no atribuye intención: la revisión es del docente.",
-].join("\n");
-const EVENTO_453 = [
-  "Se pegó un bloque de 301 caracteres en una respuesta en la que no se había escrito nada antes.",
-  "En el 99 % de las sesiones esperadas, ningún pegado sin escritura previa pasó de 241 caracteres.",
-  "Esto describe lo observado y no atribuye intención: la revisión es del docente.",
-].join("\n");
-const MODELO_454 = [
-  "Esta sesión se aparta mucho de lo habitual.",
-  "Menos del 0,2 % de las sesiones esperadas llega a comportarse así.",
-  "Lo que más pesó:",
-  "• Proporción del tiempo fuera del examen: 28,8 % (lo esperado: 0 %)",
-  "• Salidas a otra aplicación por minuto: 0,61 salidas por minuto (lo esperado: 0 salidas por minuto)",
-  "• Salida más larga del examen: 45 segundos (lo esperado: 0 segundos)",
-  "Esto describe lo observado y no atribuye intención: la revisión es del docente.",
-].join("\n");
+/** Lo que Facundo rechazó del primer rediseño: no puede volver a aparecer. */
+const RECHAZADOS =
+  /Por cómo se desarrolló|Una alerta señala|no atribuye intención|la revisión es del docente|Las cifras son las del momento|Una sesión habitual|Esta sesión\n/;
+/** Palabras técnicas que el docente no tiene por qué conocer. */
+const TECNICAS =
+  /caracteres|sesiones habituales|sesiones esperadas|99 de cada 100|%|modelo|variable|cálculo|índice|proporción|mediana|percentil|severidad|puntaje|captura|complemento|Moodle|backend|habitual/i;
 
-/** El resumen de arriba del apartado. */
-function resumen(): HTMLElement {
-  return document.querySelector(".resumen") as HTMLElement;
+/** El veredicto de arriba del apartado. */
+function veredicto(): HTMLElement {
+  return document.querySelector(".veredicto") as HTMLElement;
 }
 
 /** Las tarjetas de las alertas, en el orden en que se muestran. */
@@ -57,13 +38,26 @@ function alerta(cambios: Partial<AlertaDeSesion> = {}): AlertaDeSesion {
   return {
     origin: "model",
     level: "medium",
-    explanation: "El índice de la sesión es 60 de 100: su comportamiento se parece al de menos del 1 % de las sesiones esperadas.",
+    explanation: MODELO_453,
     level_since: "2026-10-23T14:10:00.000Z",
     created_at: "2026-10-23T14:00:00.000Z",
     updated_at: CALCULO,
     ...cambios,
   };
 }
+
+async function mostrar(a: Analisis, cambios: Parameters<typeof sesionNumerada>[0] = {}) {
+  vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(a);
+  const r = render(<AnalisisSesion sesion={sesionNumerada(cambios)} onVencida={nada} />);
+  await esperar();
+  return r;
+}
+
+/** Las dos alertas reales de la 453, en el orden en que las manda el backend. */
+const ALERTAS_453 = [
+  alerta({ origin: "event", level: "low", explanation: EVENTO_453 }),
+  alerta({ origin: "model", level: "low", explanation: MODELO_453 }),
+];
 
 describe("AnalisisSesion", () => {
   beforeEach(() => {
@@ -84,153 +78,224 @@ describe("AnalisisSesion", () => {
     expect(screen.getByRole("heading", { name: "Análisis de la sesión" })).toBeInTheDocument();
   });
 
-  it("mientras llega la primera respuesta lo dice, y no afirma que no hay alertas", () => {
+  // ---- Los diez estados del veredicto ------------------------------------------------------------
+
+  it("cargando: lo dice, y no afirma que no hay nada para revisar", () => {
     vi.spyOn(sesionesService, "traerAnalisis").mockReturnValue(new Promise(() => undefined));
     render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
 
     expect(screen.getByText("Cargando el análisis…")).toBeInTheDocument();
-    expect(screen.queryByText(/no tiene alertas/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/nada para revisar/)).not.toBeInTheDocument();
+    expect(veredicto()).toBeNull();
   });
 
-  it("una sesión que todavía no se analizó lo dice, sin hora del análisis", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis({ state: "not_analyzed", calculated_at: null }));
-    render(<AnalisisSesion sesion={sesionNumerada({ status: "closed", closed_at: HACE_RATO })} onVencida={nada} />);
-    await esperar();
+  it("sin analizar y rindiendo: con el reloj, dice que se va a analizar solo", async () => {
+    await mostrar(analisis({ state: "not_analyzed", calculated_at: null }), { status: "open" });
 
-    expect(screen.getByText("Esta sesión todavía no se analizó.")).toBeInTheDocument();
+    expect(within(veredicto()).getByText("Esta sesión todavía no se analizó.")).toBeInTheDocument();
+    expect(
+      within(veredicto()).getByText("Se va a analizar mientras el alumno rinde. No hace falta recargar la pantalla.")
+    ).toBeInTheDocument();
+    expect(veredicto()).toHaveClass("veredicto--grande");
     expect(screen.queryByText(/Analizada por última vez/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/El análisis se hace solo/)).not.toBeInTheDocument();
   });
 
-  it("con la sesión abierta y sin analizar, dice que el análisis se hace solo", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis({ state: "not_analyzed", calculated_at: null }));
-    render(<AnalisisSesion sesion={sesionNumerada({ status: "open" })} onVencida={nada} />);
-    await esperar();
+  it("sin analizar y cerrada: solo la frase, sin bajada ni hora", async () => {
+    await mostrar(analisis({ state: "not_analyzed", calculated_at: null }), CERRADA);
 
-    expect(screen.getByText(/El análisis se hace solo mientras el alumno rinde/)).toBeInTheDocument();
+    expect(veredicto()).toHaveTextContent(/^Esta sesión todavía no se analizó\.$/);
+    expect(screen.queryByText(/Analizada por última vez/)).not.toBeInTheDocument();
   });
 
-  it("una sesión entregada sin alertas dice que no se encontró nada, con la hora del análisis sin segundos", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis());
-    const { container } = render(
-      <AnalisisSesion sesion={sesionNumerada({ status: "closed", closed_at: HACE_RATO })} onVencida={nada} />
-    );
-    await esperar();
+  it("analizada, sin alertas y cerrada: «No hay nada para revisar.», con la hora sin segundos", async () => {
+    const { container } = await mostrar(analisis(), CERRADA);
 
-    expect(screen.getByText("No se encontró nada fuera de lo habitual.")).toBeInTheDocument();
-    expect(screen.getByText("La sesión se analizó completa y no tiene alertas.")).toBeInTheDocument();
+    expect(within(veredicto()).getByText("No hay nada para revisar.")).toBeInTheDocument();
+    expect(within(veredicto()).getByText("Se analizó la sesión completa y no surgió ninguna alerta.")).toBeInTheDocument();
+    expect(veredicto()).toHaveClass("veredicto--grande");
     const ultima = container.querySelector(".analisis__ultima") as HTMLElement;
     expect(ultima).toHaveTextContent(`Analizada por última vez a las ${horaCorta(CALCULO)}`);
     expect(ultima.querySelector("time")?.dateTime).toBe(CALCULO);
-    expect(screen.queryByText(/cálculo/)).not.toBeInTheDocument();
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
-    // Sin alertas no hay nota de apoyo: no hay nada que aclarar.
-    expect(screen.queryByText(/la revisión es del docente/)).not.toBeInTheDocument();
   });
 
-  it("con la sesión abierta y sin alertas dice «por ahora»", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis());
-    render(<AnalisisSesion sesion={sesionNumerada({ status: "open" })} onVencida={nada} />);
-    await esperar();
+  it("analizada, sin alertas y rindiendo: dice «por ahora»", async () => {
+    await mostrar(analisis(), { status: "open" });
 
-    expect(screen.getByText("Por ahora no se encontró nada fuera de lo habitual.")).toBeInTheDocument();
-    expect(screen.getByText("El análisis se repite solo mientras el alumno rinde.")).toBeInTheDocument();
+    expect(within(veredicto()).getByText("Por ahora no hay nada para revisar.")).toBeInTheDocument();
+    expect(within(veredicto()).getByText("La sesión se sigue analizando mientras el alumno rinde.")).toBeInTheDocument();
   });
 
-  it("con dos alertas dice cuántas hay y por qué, cada motivo enlazado a su tarjeta", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({ alerts: [alerta({ level: "low", explanation: MODELO_453 }), alerta({ origin: "event", level: "low", explanation: EVENTO_453 })] })
-    );
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
+  it("con alertas: cuántas hay, sin bajada", async () => {
+    await mostrar(analisis({ alerts: ALERTAS_453 }));
 
-    expect(screen.getByText("Hay 2 alertas para revisar.")).toBeInTheDocument();
-    const enlaces = within(resumen()).getAllByRole("link");
-    expect(enlaces.map((a) => a.textContent)).toEqual([
-      "Por cómo se desarrolló la sesión en conjunto, sobre todo el pegado más largo",
-      "Por un texto pegado de 301 caracteres",
+    expect(veredicto()).toHaveTextContent(/^Hay 2 alertas para revisar\.$/);
+    expect(veredicto()).not.toHaveClass("veredicto--grande");
+  });
+
+  it("con una sola alerta, en singular", async () => {
+    await mostrar(analisis({ alerts: [alerta({ level: "high", explanation: MODELO_454 })] }));
+
+    expect(veredicto()).toHaveTextContent(/^Hay 1 alerta para revisar\.$/);
+  });
+
+  it("sin evidencia y sin alertas (457): el motivo del motor tal cual y dónde mirar, sin desplegable", async () => {
+    const { container } = await mostrar(analisis({ state: "insufficient_evidence", reason: SIN_EVIDENCIA_457 }), CERRADA);
+
+    const bajadas = Array.from(veredicto().querySelectorAll(".veredicto__bajada")).map((b) => b.textContent);
+    expect(within(veredicto()).getByText("Esta sesión no se pudo analizar.")).toBeInTheDocument();
+    expect(bajadas).toEqual([SIN_EVIDENCIA_457, "Lo que sí se registró está más abajo, en el registro de eventos."]);
+    expect(veredicto()).toHaveClass("veredicto--grande");
+    expect(container.querySelector("details")).toBeNull();
+  });
+
+  it("sin evidencia y sin motivo: la frase y dónde mirar", async () => {
+    await mostrar(analisis({ state: "insufficient_evidence", reason: null }));
+
+    expect(within(veredicto()).getByText("Esta sesión no se pudo analizar.")).toBeInTheDocument();
+    expect(veredicto().querySelectorAll(".veredicto__bajada")).toHaveLength(1);
+  });
+
+  it("sin evidencia pero con la alerta de un momento: cuántas hay, que conviene mirar y el motivo del motor", async () => {
+    await mostrar(analisis({
+      state: "insufficient_evidence",
+      reason: SIN_EVIDENCIA_457,
+      alerts: [alerta({ origin: "event", level: "high", explanation: EVENTO_453 })],
+    }));
+
+    const bajadas = Array.from(veredicto().querySelectorAll(".veredicto__bajada")).map((b) => b.textContent);
+    expect(within(veredicto()).getByText("Hay 1 alerta para revisar.")).toBeInTheDocument();
+    expect(bajadas).toEqual([
+      "La sesión completa no se pudo analizar, pero hubo un momento que conviene mirar.", SIN_EVIDENCIA_457,
     ]);
-    const tarjetas = tarjetasDeAlerta();
-    expect(enlaces[0]).toHaveAttribute("href", `#${tarjetas[0].id}`);
-    expect(enlaces[1]).toHaveAttribute("href", `#${tarjetas[1].id}`);
+    expect(within(tarjetasDeAlerta()[0]).getByText(EVENTO_453)).toBeInTheDocument();
   });
 
-  it("seguir un motivo lleva el foco a su tarjeta", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({ alerts: [alerta({ level: "low", explanation: MODELO_453 }), alerta({ origin: "event", level: "low", explanation: EVENTO_453 })] })
-    );
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
+  it("no disponible y sin alertas: lo dice una sola vez, sin repetir el motivo", async () => {
+    await mostrar(analisis({ state: "unavailable", reason: NO_DISPONIBLE }));
 
-    const [, segundo] = within(resumen()).getAllByRole("link");
-    fireEvent.click(segundo);
-    const tarjeta = tarjetasDeAlerta()[1];
-    expect(tarjeta).toHaveFocus();
-    expect(tarjeta).toHaveAttribute("tabindex", "-1");
+    expect(within(veredicto()).getByText("El análisis no está disponible en este momento.")).toBeInTheDocument();
+    expect(within(veredicto()).getByText("Los eventos de la sesión se pueden ver igual, más abajo.")).toBeInTheDocument();
+    expect(screen.getAllByText(NO_DISPONIBLE)).toHaveLength(1);
   });
 
-  it("frontera con HU03: el resumen no muestra ningún nivel, aunque las tarjetas sí", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({ alerts: [alerta({ level: "high", explanation: MODELO_454 }), alerta({ origin: "event", level: "medium", explanation: EVENTO_453 })] })
-    );
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
+  it("no disponible pero con la alerta de un momento: la alerta se sigue mostrando", async () => {
+    await mostrar(analisis({
+      state: "unavailable",
+      reason: NO_DISPONIBLE,
+      alerts: [alerta({ origin: "event", level: "low", explanation: EVENTO_453 })],
+    }));
 
-    expect(resumen()).not.toHaveTextContent(/Nivel bajo|Nivel medio|Nivel alto|nivel/i);
-    expect(within(tarjetasDeAlerta()[0]).getByText("Nivel alto")).toBeInTheDocument();
+    expect(within(veredicto()).getByText("Hay 1 alerta para revisar.")).toBeInTheDocument();
+    expect(
+      within(veredicto()).getByText("El análisis de la sesión completa no está disponible en este momento.")
+    ).toBeInTheDocument();
+    expect(screen.getByText(EVENTO_453)).toBeInTheDocument();
   });
 
-  it("ordena las alertas por nivel: un momento puntual alto va antes que la sesión en conjunto baja", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({
-        alerts: [
-          alerta({ level: "low", explanation: MODELO_453 }),
-          alerta({ origin: "event", level: "high", explanation: "Se pegó un bloque de 4.370 caracteres en una respuesta con 5 caracteres escritos antes." }),
-        ],
-      })
-    );
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
-
-    const tarjetas = tarjetasDeAlerta();
-    expect(within(tarjetas[0]).getByText("Nivel alto")).toBeInTheDocument();
-    expect(within(tarjetas[0]).getByText("Un momento puntual")).toBeInTheDocument();
-    expect(within(tarjetas[1]).getByText("Nivel bajo")).toBeInTheDocument();
-    expect(within(tarjetas[1]).getByText("La sesión en conjunto")).toBeInTheDocument();
-    // Y los motivos siguen el orden de las tarjetas.
-    expect(within(resumen()).getAllByRole("link")[0]).toHaveTextContent("Por un texto pegado de 4.370 caracteres");
+  it("frontera con HU03: el veredicto nunca dice un nivel, en ningún estado", async () => {
+    const casos: Analisis[] = [
+      analisis({ alerts: [alerta({ level: "high", explanation: MODELO_454 })] }),
+      analisis({ alerts: ALERTAS_453 }),
+      analisis(),
+      analisis({ state: "not_analyzed", calculated_at: null }),
+      analisis({ state: "insufficient_evidence", reason: SIN_EVIDENCIA_457 }),
+      analisis({ state: "unavailable", reason: NO_DISPONIBLE }),
+    ];
+    for (const caso of casos) {
+      const { unmount } = await mostrar(caso);
+      expect(veredicto()).not.toHaveTextContent(/Nivel|nivel (bajo|medio|alto)/i);
+      unmount();
+      vi.restoreAllMocks();
+    }
   });
 
-  it("cada tarjeta dice su nivel escrito, la hora sin segundos y de dónde sale", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({
-        alerts: [
-          // Subió de nivel: dice desde cuándo tiene este nivel.
-          alerta({ level: "medium", level_since: "2026-10-23T14:10:00.000Z", created_at: "2026-10-23T14:00:00.000Z" }),
-          // No cambió: dice cuándo apareció.
-          alerta({ origin: "event", level: "low", explanation: EVENTO_453, level_since: "2026-10-23T14:05:00.000Z", created_at: "2026-10-23T14:05:00.000Z" }),
-        ],
-      })
-    );
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
+  // ---- Las tarjetas -----------------------------------------------------------------------------
+
+  it("453: dos tarjetas de nivel bajo, primero la de toda la sesión, con el texto del motor tal cual", async () => {
+    await mostrar(analisis({ alerts: ALERTAS_453 }));
 
     const [modelo, evento] = tarjetasDeAlerta();
-    expect(within(modelo).getByText("Nivel medio")).toBeInTheDocument();
-    expect(within(modelo).getByText("La sesión en conjunto")).toBeInTheDocument();
+    expect(modelo.querySelector(".analisis__rotulo")).toHaveTextContent("Nivel bajo · En toda la sesión");
+    expect(evento.querySelector(".analisis__rotulo")).toHaveTextContent("Nivel bajo · En un momento de la sesión");
+
+    expect(modelo.querySelector(".analisis__hecho")).toHaveTextContent(MODELO_453.split("\n")[0]);
+    expect(within(modelo).getByRole("heading", { name: "Lo que más llamó la atención" })).toBeInTheDocument();
+    const viñetas = Array.from(modelo.querySelectorAll(".analisis__lista li")).map((li) => li.textContent);
+    expect(viñetas).toEqual(MODELO_453.split("\n").filter((r) => r.startsWith("• ")).map((r) => r.slice(2)));
+
+    expect(evento.querySelector(".analisis__hecho")).toHaveTextContent(EVENTO_453);
+    expect(evento.querySelector(".analisis__lista")).toBeNull();
+    // Ningún signo de viñeta suelto: la lista los dibuja.
+    expect(screen.queryByText(/•/)).not.toBeInTheDocument();
+  });
+
+  it("454: la alerta de nivel alto, con su lista", async () => {
+    await mostrar(analisis({ alerts: [alerta({ level: "high", explanation: MODELO_454 })] }));
+
+    const [tarjeta] = tarjetasDeAlerta();
+    expect(tarjeta).toHaveClass("analisis__alerta--high");
+    expect(tarjeta.querySelector(".analisis__hecho")).toHaveTextContent(
+      "Esta sesión se rindió de una forma muy distinta a lo común en un examen."
+    );
+    expect(tarjeta.querySelectorAll(".analisis__lista li").length).toBe(
+      MODELO_454.split("\n").filter((r) => r.startsWith("• ")).length
+    );
+  });
+
+  it("ordena por nivel: un momento de nivel alto va antes que toda la sesión de nivel bajo", async () => {
+    await mostrar(analisis({
+      alerts: [alerta({ level: "low" }), alerta({ origin: "event", level: "high", explanation: EVENTO_453 })],
+    }));
+
+    const [primera, segunda] = tarjetasDeAlerta();
+    expect(primera).toHaveTextContent("Nivel alto");
+    expect(primera).toHaveTextContent("En un momento de la sesión");
+    expect(segunda).toHaveTextContent("Nivel bajo");
+    expect(segunda).toHaveTextContent("En toda la sesión");
+  });
+
+  it("el ícono de origen sale del campo `origin`, no del texto, y va oculto para los lectores de pantalla", async () => {
+    // El texto de la alerta de un momento puesto en una de toda la sesión, y al revés.
+    await mostrar(analisis({
+      alerts: [
+        alerta({ origin: "model", level: "high", explanation: EVENTO_453 }),
+        alerta({ origin: "event", level: "low", explanation: MODELO_453 }),
+      ],
+    }));
+
+    const [modelo, evento] = tarjetasDeAlerta();
+    const iconoDe = (t: HTMLElement) => t.querySelector(".analisis__origen-icono") as HTMLElement;
+    expect(iconoDe(modelo)).toHaveAttribute("aria-hidden", "true");
+    expect(modelo).toHaveAttribute("data-origen", "model");
+    expect(evento).toHaveAttribute("data-origen", "event");
+    expect(iconoDe(modelo).innerHTML).not.toBe(iconoDe(evento).innerHTML);
+    // El mismo origen con otro texto da el mismo ícono.
+    const otro = await mostrar(analisis({ alerts: [alerta({ origin: "model", level: "low", explanation: MODELO_454 })] }));
+    const modeloOtro = otro.container.querySelector(".analisis__origen-icono") as HTMLElement;
+    expect(modeloOtro.innerHTML).toBe(iconoDe(modelo).innerHTML);
+  });
+
+  it("cada tarjeta dice la hora sin segundos: cuándo apareció o desde cuándo tiene este nivel", async () => {
+    await mostrar(analisis({
+      alerts: [
+        alerta({ level: "medium", level_since: "2026-10-23T14:10:00.000Z", created_at: "2026-10-23T14:00:00.000Z" }),
+        alerta({
+          origin: "event", level: "low", explanation: EVENTO_453,
+          level_since: "2026-10-23T14:05:00.000Z", created_at: "2026-10-23T14:05:00.000Z",
+        }),
+      ],
+    }));
+
+    const [modelo, evento] = tarjetasDeAlerta();
     const desde = modelo.querySelector(".analisis__hora") as HTMLElement;
     expect(desde).toHaveTextContent(`Con este nivel desde las ${horaCorta("2026-10-23T14:10:00.000Z")}`);
     expect(desde.querySelector("time")?.dateTime).toBe("2026-10-23T14:10:00.000Z");
     expect(evento.querySelector(".analisis__hora")).toHaveTextContent(`Apareció a las ${horaCorta("2026-10-23T14:05:00.000Z")}`);
-    expect(within(evento).getByText("Un momento puntual")).toBeInTheDocument();
   });
 
   it("ninguna hora del apartado lleva segundos", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({ alerts: [alerta({ explanation: MODELO_454 }), alerta({ origin: "event", explanation: EVENTO_453 })] })
-    );
-    const { container } = render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
+    const { container } = await mostrar(analisis({ alerts: ALERTAS_453 }));
 
     const horas = Array.from(container.querySelectorAll("time"));
     expect(horas.length).toBeGreaterThanOrEqual(3);
@@ -238,238 +303,103 @@ describe("AnalisisSesion", () => {
     expect(container.textContent).not.toMatch(/\d{2}:\d{2}:\d{2}/);
   });
 
-  it("la explicación se lee en lenguaje llano, con lo de esta sesión al lado de una sesión habitual", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({ alerts: [alerta({ level: "high", explanation: MODELO_454 })] })
-    );
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
-
-    const [tarjeta] = tarjetasDeAlerta();
-    expect(within(tarjeta).getByText("Esta sesión se aparta mucho de lo habitual.")).toHaveClass("analisis__titular");
-    expect(within(tarjeta).getByText("Menos de 2 de cada 1.000 sesiones habituales se comportan así.")).toBeInTheDocument();
-    expect(within(tarjeta).getByRole("heading", { name: "Lo que más pesó" })).toBeInTheDocument();
-    const cifras = tarjeta.querySelectorAll(".comparacion");
-    expect(cifras).toHaveLength(3);
-    expect(cifras[0]).toHaveTextContent("Tiempo fuera del examen");
-    expect(within(cifras[0] as HTMLElement).getAllByRole("term").map((t) => t.textContent)).toEqual([
-      "Esta sesión", "Una sesión habitual",
-    ]);
-    expect(cifras[1]).toHaveTextContent("unas 6 salidas cada 10 minutos");
-    expect(cifras[1]).toHaveTextContent("0 salidas cada 10 minutos");
-    expect(cifras[2]).toHaveTextContent("45 s");
-    expect(within(tarjeta).getByText("Las cifras son las del momento de la sesión en que más se notó.")).toBeInTheDocument();
-    // No se lee como un párrafo corrido: no queda ningún signo de viñeta suelto ni la tabla vieja.
-    expect(screen.queryByText(/•/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
-  });
-
-  it("las barras van ocultas para los lectores de pantalla y los valores siempre están escritos", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({ alerts: [alerta({ explanation: MODELO_453 })] })
-    );
-    const { container } = render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
-
-    const pistas = container.querySelectorAll(".comparacion__pista");
-    expect(pistas.length).toBe(6);
-    for (const pista of pistas) expect(pista).toHaveAttribute("aria-hidden", "true");
-    const valores = Array.from(container.querySelectorAll(".comparacion__valor")).map((v) => v.textContent);
-    expect(valores).toEqual([
-      "301 caracteres", "0 caracteres",
-      "2 pegados cada 10 preguntas", "0 pegados cada 10 preguntas",
-      "2 min 56 s", "1 min 8 s",
-    ]);
-    // El medidor también: la palabra ya dice el nivel.
-    expect(container.querySelector(".medidor")).toHaveAttribute("aria-hidden", "true");
-  });
-
-  it("si los dos valores son cero, la cifra va sin barras", async () => {
+  it("las notas del motor (la combinación, la conexión) salen tal cual, con el ícono de información", async () => {
+    const combinacion = "Ninguna de estas cosas llama la atención por sí sola. Lo poco común es que se den juntas.";
+    const conexion = "Parte de esto puede deberse a cortes de la conexión a internet, que no dependen del alumno.";
     const texto = [
+      "Esta sesión se rindió de una forma bastante distinta a lo común en un examen.",
+      "Lo que más llamó la atención:",
+      "• La conexión a internet se cortó más veces de lo común.",
+      combinacion,
+      conexion,
+    ].join("\n");
+    await mostrar(analisis({ alerts: [alerta({ explanation: texto })] }));
+
+    const notas = Array.from(document.querySelectorAll(".analisis__nota"));
+    expect(notas.map((n) => n.textContent)).toEqual([combinacion, conexion]);
+    for (const n of notas) expect(n.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("un renglón que el panel no conoce sale como nota, idéntico", async () => {
+    const raro = "Un renglón nuevo que el motor escribió (con 2 cifras: 7 y 8).";
+    await mostrar(analisis({ alerts: [alerta({ explanation: `${EVENTO_453}\n${raro}` })] }));
+
+    expect(document.querySelector(".analisis__nota")).toHaveTextContent(raro);
+  });
+
+  it("un rótulo de lista sin viñetas no abre una lista vacía: sale como nota", async () => {
+    await mostrar(analisis({ alerts: [alerta({ explanation: "Algo pasó.\nLo que más llamó la atención:" })] }));
+
+    expect(screen.queryByRole("heading", { name: "Lo que más llamó la atención" })).not.toBeInTheDocument();
+    expect(document.querySelector(".analisis__nota")).toHaveTextContent("Lo que más llamó la atención:");
+  });
+
+  it("una alerta vieja sin volver a analizar se lee igual, pero sin el cierre", async () => {
+    const vieja = [
       "Esta sesión se aparta levemente de lo habitual.",
       "Lo que más pesó:",
-      "• Salida más larga del examen: 0 segundos (lo esperado: 0 segundos)",
+      "• Pegado más largo: 301 caracteres (lo esperado: 0 caracteres)",
       "Esto describe lo observado y no atribuye intención: la revisión es del docente.",
     ].join("\n");
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis({ alerts: [alerta({ explanation: texto })] }));
-    const { container } = render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
+    await mostrar(analisis({ alerts: [alerta({ explanation: vieja })] }));
 
-    expect(container.querySelector(".comparacion__pista")).toBeNull();
-    expect(container.querySelector(".comparacion")).toHaveTextContent("0 s");
+    expect(screen.getByText("Esta sesión se aparta levemente de lo habitual.")).toBeInTheDocument();
+    expect(screen.getByText("Pegado más largo: 301 caracteres (lo esperado: 0 caracteres)")).toBeInTheDocument();
+    expect(screen.queryByText(/no atribuye intención/)).not.toBeInTheDocument();
   });
 
-  it("la nota de apoyo aparece una sola vez arriba, y el cierre no se repite en cada tarjeta", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({ alerts: [alerta({ explanation: MODELO_453 }), alerta({ origin: "event", explanation: EVENTO_453 })] })
-    );
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
+  // ---- Lo que no tiene que aparecer -------------------------------------------------------------
 
-    expect(screen.getAllByText(/la revisión es del docente/)).toHaveLength(1);
-    expect(screen.getAllByText(/no atribuye intención/)).toHaveLength(1);
-    expect(within(resumen()).getByText(/Una alerta señala algo para mirar con atención/)).toBeInTheDocument();
-    for (const tarjeta of tarjetasDeAlerta()) expect(tarjeta).not.toHaveTextContent(/no atribuye intención/);
+  it("con las explicaciones reales no aparece ninguna palabra técnica ni nada de lo rechazado", async () => {
+    const { container } = await mostrar(analisis({
+      alerts: [alerta({ level: "high", explanation: MODELO_454 }), alerta({ origin: "event", explanation: EVENTO_453 })],
+    }));
+
+    expect(container.textContent).not.toMatch(TECNICAS);
+    expect(container.textContent).not.toMatch(RECHAZADOS);
+    expect(container.querySelector(".comparacion, .resumen__nota, .resumen__motivos, .analisis__aclaracion")).toBeNull();
   });
 
-  it("una alerta guardada con el formato viejo, en un párrafo, se lee entera y la nota no falta", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({
-        alerts: [alerta({
-          explanation: "El índice de la sesión es 60 de 100: su comportamiento se parece al de menos del 1 % de las sesiones esperadas.",
-        })],
-      })
-    );
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
+  it("la 453 y la 457 tampoco muestran palabras técnicas ni lo rechazado", async () => {
+    const r453 = await mostrar(analisis({ alerts: ALERTAS_453 }));
+    expect(r453.container.textContent).not.toMatch(TECNICAS);
+    expect(r453.container.textContent).not.toMatch(RECHAZADOS);
+    r453.unmount();
+    vi.restoreAllMocks();
 
-    const texto = screen.getByText(/Su comportamiento se parece al de menos del 1 % de las sesiones habituales/);
-    expect(texto).toBeInTheDocument();
-    // Sin estructura no hay titular: se muestra como texto común y no en grande y en negrita.
-    expect(texto).not.toHaveClass("analisis__titular");
-    expect(screen.queryByText(/índice/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/sesiones esperadas/)).not.toBeInTheDocument();
-    expect(screen.getByText("Hay 1 alerta para revisar.")).toBeInTheDocument();
-    expect(screen.getAllByText(/la revisión es del docente/)).toHaveLength(1);
-  });
-
-  it("una viñeta sin la forma esperada se muestra tal cual, sin perderse", async () => {
-    const texto = [
-      "Esta sesión se aparta de lo habitual.",
-      "Lo que más pesó:",
-      "• Algo que el motor escribió de otra forma",
-      "Esto describe lo observado y no atribuye intención: la revisión es del docente.",
-    ].join("\n");
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis({ alerts: [alerta({ explanation: texto })] }));
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
-
-    expect(screen.getByText("Algo que el motor escribió de otra forma")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Lo que más pesó" })).toBeInTheDocument();
-  });
-
-  it("sin evidencia suficiente lo dice en llano, y el requisito queda dentro de un desplegable cerrado", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({
-        state: "insufficient_evidence",
-        reason: "Hay muy poca actividad registrada para analizar la sesión: se necesitan al menos 1 minuto observado y 5 eventos de actividad.",
-      })
-    );
-    const { container } = render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
-
-    expect(screen.getByText("Hubo muy poca actividad para analizar esta sesión.")).toBeInTheDocument();
-    expect(screen.getByText("Con tan pocos datos no se puede decir si se aparta de lo habitual.")).toBeInTheDocument();
-    const desplegable = container.querySelector("details") as HTMLDetailsElement;
-    expect(desplegable).not.toBeNull();
-    expect(desplegable.open).toBe(false);
-    expect(within(desplegable).getByText("Qué hace falta para analizarla").tagName).toBe("SUMMARY");
-    expect(within(desplegable).getByText("Se necesitan al menos 1 minuto observado y 5 eventos de actividad.")).toBeInTheDocument();
-    expect(screen.queryByText(/no tiene alertas/)).not.toBeInTheDocument();
-  });
-
-  it("sin evidencia y sin motivo no hay desplegable", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis({ state: "insufficient_evidence", reason: null }));
-    const { container } = render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
-
-    expect(screen.getByText("Hubo muy poca actividad para analizar esta sesión.")).toBeInTheDocument();
-    expect(container.querySelector("details")).toBeNull();
-  });
-
-  it("con la captura incompleta no dice que hubo poca actividad", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({
-        state: "insufficient_evidence",
-        reason: "La captura no arrancó en esta sesión: el servidor de Moodle avisó que el complemento no llegó a capturar.",
-      })
-    );
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
-
-    expect(screen.getByText("Esta sesión no se pudo analizar porque la captura quedó incompleta.")).toBeInTheDocument();
-    expect(screen.queryByText(/poca actividad/)).not.toBeInTheDocument();
-  });
-
-  it("si el análisis no está disponible lo dice, y la alerta de un momento puntual se sigue mostrando", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({
-        state: "unavailable",
-        reason: "No hay un modelo cargado.",
-        alerts: [alerta({ origin: "event", level: "low", explanation: "Se pegó un bloque de 250 caracteres." })],
-      })
-    );
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
-
-    expect(screen.getByText("Hay 1 alerta para revisar.")).toBeInTheDocument();
-    expect(screen.getByText(/El análisis de la sesión en conjunto no está disponible por ahora, pero se marcó un momento puntual/)).toBeInTheDocument();
-    expect(screen.queryByText(/modelo/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Se pegó un bloque de 250 caracteres/)).toBeInTheDocument();
-  });
-
-  it("sin evidencia suficiente pero con la alerta de un momento puntual, dice qué faltó y que igual se marcó algo", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({
-        state: "insufficient_evidence",
-        reason: "Hay muy poca actividad registrada para analizar la sesión.",
-        alerts: [alerta({ origin: "event", level: "high", explanation: "Se pegó un bloque de 4.370 caracteres." })],
-      })
-    );
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
-
-    expect(screen.getByText("Hay 1 alerta para revisar.")).toBeInTheDocument();
-    expect(screen.getByText("Hubo poca actividad para analizar la sesión en conjunto, pero se marcó un momento puntual.")).toBeInTheDocument();
-    expect(screen.queryByText(/Hay muy poca actividad registrada/)).not.toBeInTheDocument();
-    expect(screen.getByText(/Se pegó un bloque de 4.370 caracteres/)).toBeInTheDocument();
-  });
-
-  it("no disponible y sin alertas dice solo que no está disponible por ahora, sin el motivo técnico", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({ state: "unavailable", reason: "No hay un modelo cargado: MODEL_PATH no está configurado." })
-    );
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
-
-    expect(screen.getByText("El análisis de esta sesión no está disponible por ahora.")).toBeInTheDocument();
-    expect(screen.getByText("Los eventos de la sesión se pueden revisar igual, más abajo.")).toBeInTheDocument();
-    expect(screen.queryByText(/MODEL_PATH|modelo cargado/)).not.toBeInTheDocument();
-  });
-
-  it("con las explicaciones reales no aparece ninguna palabra técnica en pantalla", async () => {
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
-      analisis({ alerts: [alerta({ level: "high", explanation: MODELO_454 }), alerta({ origin: "event", explanation: EVENTO_453 })] })
-    );
-    const { container } = render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
-
-    expect(container.textContent).not.toMatch(
-      /modelo|variable|sesiones esperadas|cálculo|índice|proporción|mediana|percentil|severidad|puntaje/i
-    );
+    const r457 = await mostrar(analisis({ state: "insufficient_evidence", reason: SIN_EVIDENCIA_457 }), CERRADA);
+    expect(r457.container.textContent).not.toMatch(TECNICAS);
+    expect(r457.container.textContent).not.toMatch(/eventos de actividad|se necesitan/);
   });
 
   it("no muestra el índice de integridad ni las métricas, aunque el servidor los mandara", async () => {
     const conDeMas = {
       ...analisis({ alerts: [alerta({ explanation: "Su índice es 38,5 de 100: menos del 1 % de las sesiones esperadas se comporta así." })] }),
-      index: 38.5, integrity_index: 38.5, variables: { largest_paste_chars: 1240 },
+      index: 38.5, integrity_index: 38.5, variables: { largest_paste_chars: 1240 }, dimensions: [{ name: "clipboard" }],
     };
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(conDeMas as Analisis);
-    render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
+    await mostrar(conDeMas as Analisis);
 
     expect(screen.queryByText(/38[,.]5/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/largest_paste_chars/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/largest_paste_chars|clipboard/)).not.toBeInTheDocument();
     expect(screen.queryByText(/historial|cronolog/i)).not.toBeInTheDocument();
   });
 
-  it("no muestra la severidad de la alerta, que revelaría el índice, aunque el servidor la mandara", async () => {
-    const conSeveridad = { ...alerta({ explanation: MODELO_454 }), severity: 61.5, variables: [{ name: "outside_time_ratio" }] };
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis({ alerts: [conSeveridad as AlertaDeSesion] }));
-    const { container } = render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
-    await esperar();
+  it("no muestra la severidad de la alerta ni sus variables, aunque el servidor las mandara", async () => {
+    const conSeveridad = {
+      ...alerta({ explanation: MODELO_454 }), severity: 61.5,
+      variables: [{ name: "outside_time_ratio", observed: 0.288, expected: 0 }],
+    };
+    const { container } = await mostrar(analisis({ alerts: [conSeveridad as AlertaDeSesion] }));
 
-    expect(container.textContent).not.toMatch(/61[,.]5|38[,.]5|outside_time_ratio|severi|índice|puntaje/i);
+    expect(container.textContent).not.toMatch(/61[,.]5|0[,.]288|outside_time_ratio|severi|índice|puntaje/i);
+  });
+
+  it("no dibuja barras ni comparaciones: solo texto y el medidor del nivel, oculto para lectores", async () => {
+    const { container } = await mostrar(analisis({ alerts: ALERTAS_453 }));
+
+    expect(container.querySelector("[class*='comparacion'], [class*='barra'], [class*='pista']")).toBeNull();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    for (const medidor of container.querySelectorAll(".medidor")) expect(medidor).toHaveAttribute("aria-hidden", "true");
   });
 
   it("con la sesión abierta vuelve a preguntar y una alerta aparece o sube de nivel mientras se mira", async () => {
@@ -477,7 +407,7 @@ describe("AnalisisSesion", () => {
     traer.mockResolvedValueOnce(analisis());
     render(<AnalisisSesion sesion={sesionNumerada({ status: "open" })} onVencida={nada} />);
     await esperar();
-    expect(screen.getByText("Por ahora no se encontró nada fuera de lo habitual.")).toBeInTheDocument();
+    expect(screen.getByText("Por ahora no hay nada para revisar.")).toBeInTheDocument();
 
     traer.mockResolvedValueOnce(analisis({ alerts: [alerta({ level: "low" })] }));
     await esperar(sesionesService.CADENCIA_MS);
@@ -519,7 +449,7 @@ describe("AnalisisSesion", () => {
     await esperar();
 
     expect(screen.getByText("No se pudo traer el análisis de esta sesión.")).toBeInTheDocument();
-    expect(screen.queryByText(/no tiene alertas/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/nada para revisar/)).not.toBeInTheDocument();
     expect(screen.queryByText("Cargando el análisis…")).not.toBeInTheDocument();
   });
 

@@ -310,10 +310,10 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
               mirando está completo. Sin segundos: las filas los tienen. */}
           {primerEvento ? (
             <span className="detalle__extremos cifra">
-              <span className="detalle__punto" aria-hidden="true">· </span>
+              <span className="detalle__punto" aria-hidden="true">, </span>
               {eventos.length === 1
                 ? `a las ${horaCorta(primerEvento.received_at)}`
-                : `el primero a las ${horaCorta(primerEvento.received_at)}, el último a las ${horaCorta(ultimoEvento.received_at)}`}
+                : `de ${horaCorta(primerEvento.received_at)} a ${horaCorta(ultimoEvento.received_at)}`}
             </span>
           ) : null}
         </header>

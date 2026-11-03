@@ -439,8 +439,9 @@ describe("DetalleSesion", () => {
 
     const encabezado = screen.getByRole("heading", { name: "Registro de eventos" }).parentElement!;
     expect(within(encabezado).getByText("3 eventos")).toBeInTheDocument();
+    expect(encabezado).toHaveTextContent(`3 eventos, de ${horaCorta(primero)} a ${horaCorta(ultimo)}`);
     expect(encabezado.querySelector(".detalle__extremos")).toHaveTextContent(
-      `· el primero a las ${horaCorta(primero)}, el último a las ${horaCorta(ultimo)}`
+      `, de ${horaCorta(primero)} a ${horaCorta(ultimo)}`
     );
     expect(encabezado.textContent).not.toMatch(/\d{2}:\d{2}:\d{2}/);
     // Y el orden se dice a la vista, no solo para los lectores de pantalla.

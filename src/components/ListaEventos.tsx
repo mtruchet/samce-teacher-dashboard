@@ -96,7 +96,7 @@ export function ListaEventos({ eventos, vacio }: Props) {
         <table className="eventos">
           <caption className="solo-lectores">
             Eventos de la sesión, del más reciente al más viejo, uno por fila. Cada fila dice a
-            qué hora llegó al servidor, qué pasó y el detalle que trajo el evento.
+            qué hora se registró, qué pasó y el detalle que trajo el evento.
           </caption>
           <thead>
             <tr>
