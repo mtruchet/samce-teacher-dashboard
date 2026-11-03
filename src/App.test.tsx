@@ -29,6 +29,10 @@ describe("Enrutado y acceso", () => {
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([]);
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([]);
     vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
+    // El apartado «Análisis de la sesión» hace su propia consulta: sin esta simulación sale a buscar al backend de verdad.
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue({
+      state: "not_analyzed", reason: null, calculated_at: null, alerts: [],
+    });
   });
 
   it("muestra la página pública en la raíz", async () => {
