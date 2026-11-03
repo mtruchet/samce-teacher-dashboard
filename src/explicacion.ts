@@ -1,47 +1,38 @@
 /**
- * Ordena la explicación de una alerta para mostrarla.
+ * Ordena la explicación de una alerta para mostrarla, sin cambiarle una palabra.
  *
- * El motor la escribe con un renglón por cosa (ver el docstring de `alertas.py`): primero el
- * titular y su aclaración; después, si hay variables, la línea «Lo que más pesó:» y una viñeta
- * por variable con la forma `• Nombre: lo observado (lo esperado: lo esperado)`; y al final la
- * aclaración de que describe lo observado sin atribuir intención.
+ * El motor escribe cada explicación para el docente, en lenguaje llano, con un renglón por cosa
+ * (ver el docstring de `alertas.py`):
  *
- * Una explicación que no tiene ese formato (las alertas guardadas antes de que existiera, que
- * son un solo párrafo) no se pierde: sale entera como titular. Nunca se descarta ni se corta
- * un renglón por no entenderlo, con una única excepción: el panel no muestra nunca el índice de
- * integridad, así que se quita la cláusula «el índice … es N de 100» de las alertas viejas que la
- * traen (las nuevas ya no la escriben).
+ * 1. El primer renglón es el hecho: «Esta sesión se rindió de una forma un poco distinta a lo
+ *    común en un examen.» o «Pegó de una sola vez un texto largo en una respuesta que todavía
+ *    estaba vacía, algo poco común en un examen.».
+ * 2. Un renglón que termina en «:» abre la lista («Lo que más llamó la atención:»).
+ * 3. Los renglones que empiezan con «• » son las viñetas de esa lista.
+ * 4. Cualquier otro renglón es una nota y sale tal cual («Ninguna de estas cosas llama la
+ *    atención por sí sola…», el aviso de la conexión).
+ *
+ * El panel no traduce nada: si el motor cambia una frase, en pantalla se lee la frase nueva.
+ * Nunca se descarta un renglón por no entenderlo, con dos excepciones que solo tocan a las
+ * alertas guardadas antes de que el motor cambiara sus textos y que nadie volvió a analizar: el
+ * cierre «…no atribuye intención…», que ya no se muestra, y la cláusula «el índice … es N de
+ * 100», porque el panel no muestra nunca el índice de integridad.
  */
 
-export interface VariableExplicada {
-  /** Qué se midió, en lenguaje llano. */
-  etiqueta: string;
-  /** Lo que se observó en la sesión, con su unidad. */
-  observado: string;
-  /** Lo que se espera de una sesión normal, con su unidad. */
-  esperado: string;
-}
-
 export interface ExplicacionOrdenada {
-  titular: string;
-  /** Los renglones que aclaran el titular, antes de la lista. */
-  detalle: string[];
-  /** «Lo que más pesó:» si hay lista. */
+  /** El renglón 1: lo que pasó, en una oración. */
+  hecho: string;
+  /** Las notas escritas entre el hecho y la lista. Solo las alertas viejas las traen. */
+  notasAntes: string[];
+  /** El rótulo de la lista sin los dos puntos («Lo que más llamó la atención»), o null. */
   encabezadoDeLista: string | null;
-  variables: VariableExplicada[];
-  /**
-   * Las viñetas como texto, si alguna no tiene la forma esperada: entonces no se arma la tabla de
-   * `variables` y se muestran todas como lista simple, sin perder ni cortar ninguna.
-   */
-  viñetasSinForma: string[];
-  /** Los renglones que siguen a la lista, antes del cierre. */
-  despues: string[];
-  /** La aclaración de que describe lo observado y no atribuye intención. */
-  cierre: string | null;
+  /** Las viñetas, sin el «• » de adelante y con el texto tal cual. */
+  viñetas: string[];
+  /** Las notas que siguen a la lista, o todas si no hay lista. */
+  notas: string[];
 }
 
-const VIÑETA = "•";
-const FORMA = /^•\s+(.+?):\s+(.+?)\s+\(lo esperado:\s+(.+)\)$/;
+const VIÑETA = /^•\s+/;
 
 // Sin `\b` delante de la «í»: en JavaScript `\b` es ASCII y entre un espacio y la «í» no hay límite de palabra.
 const CLAUSULA_DEL_INDICE = /índice[^\n]*\bde 100\b/i;
@@ -60,6 +51,7 @@ function sinElIndice(renglones: string[]): string[] {
   return renglones;
 }
 
+/** El cierre que el motor agregaba antes a cada alerta. Las alertas nuevas ya no lo traen. */
 function esCierre(renglon: string): boolean {
   return renglon.includes("no atribuye intención");
 }
@@ -70,62 +62,26 @@ export function ordenarExplicacion(texto: string): ExplicacionOrdenada {
       .split(/\r?\n/)
       .map((r) => r.trim())
       .filter((r) => r.length > 0)
-  );
+  ).filter((r) => !esCierre(r));
 
-  const vacia: ExplicacionOrdenada = {
-    titular: "",
-    detalle: [],
-    encabezadoDeLista: null,
-    variables: [],
-    viñetasSinForma: [],
-    despues: [],
-    cierre: null,
-  };
-  if (renglones.length === 0) return vacia;
-  // Un solo renglón: el formato viejo, o una explicación corta. Sale entera.
-  if (renglones.length === 1) return { ...vacia, titular: renglones[0] };
+  const [hecho = "", ...resto] = renglones;
+  const ordenada: ExplicacionOrdenada = { hecho, notasAntes: [], encabezadoDeLista: null, viñetas: [], notas: [] };
+  let empezoLaLista = false;
 
-  const ultimo = renglones[renglones.length - 1];
-  const cierre = esCierre(ultimo) ? ultimo : null;
-  const cuerpo = cierre ? renglones.slice(0, -1) : renglones;
-
-  const [titular, ...resto] = cuerpo;
-  const primeraViñeta = resto.findIndex((r) => r.startsWith(VIÑETA));
-  if (primeraViñeta === -1) {
-    return { ...vacia, titular, detalle: resto, cierre };
-  }
-
-  // La línea justo antes de la primera viñeta es el encabezado de la lista si termina en «:».
-  let inicioDeLista = primeraViñeta;
-  let encabezadoDeLista: string | null = null;
-  if (primeraViñeta > 0 && resto[primeraViñeta - 1].endsWith(":")) {
-    encabezadoDeLista = resto[primeraViñeta - 1];
-    inicioDeLista = primeraViñeta - 1;
-  }
-  const detalle = resto.slice(0, inicioDeLista);
-
-  const viñetas: string[] = [];
-  const despues: string[] = [];
-  let enLista = true;
-  for (const renglon of resto.slice(primeraViñeta)) {
-    if (enLista && renglon.startsWith(VIÑETA)) {
-      viñetas.push(renglon);
+  for (const renglon of resto) {
+    if (VIÑETA.test(renglon)) {
+      empezoLaLista = true;
+      ordenada.viñetas.push(renglon.replace(VIÑETA, ""));
+    } else if (!empezoLaLista && renglon.endsWith(":")) {
+      empezoLaLista = true;
+      ordenada.encabezadoDeLista = renglon.slice(0, -1).trim();
+    } else if (!empezoLaLista) {
+      ordenada.notasAntes.push(renglon);
     } else {
-      enLista = false;
-      despues.push(renglon);
+      ordenada.notas.push(renglon);
     }
   }
-
-  const armadas = viñetas.map((v) => FORMA.exec(v));
-  if (armadas.every((partes) => partes !== null)) {
-    const variables = armadas.map((partes) => ({
-      etiqueta: partes![1], observado: partes![2], esperado: partes![3],
-    }));
-    return { titular, detalle, encabezadoDeLista, variables, viñetasSinForma: [], despues, cierre };
-  }
-  // Alguna viñeta no tiene la forma esperada: se muestran todas tal cual, como lista.
-  return {
-    titular, detalle, encabezadoDeLista, variables: [],
-    viñetasSinForma: viñetas.map((v) => v.replace(/^•\s*/, "")), despues, cierre,
-  };
+  // Sin lista no hay un «antes»: todas las notas van juntas, debajo del hecho.
+  if (!empezoLaLista) return { ...ordenada, notasAntes: [], notas: ordenada.notasAntes };
+  return ordenada;
 }
