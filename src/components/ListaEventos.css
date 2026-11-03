@@ -153,3 +153,24 @@ th.eventos__que {
     width: 38%;
   }
 }
+
+/* En un teléfono la tabla no tiene de dónde sacar ancho: con los rellenos de
+   escritorio, «movimientos» no entraba en su columna y la fila quedaba cortada
+   en el borde de la lámina. Se achican los rellenos y la hora toma solo lo que
+   ocupa; si aun así una palabra no entra sola, se parte antes que cortarse. */
+@media (max-width: 640px) {
+  .eventos th,
+  .eventos td,
+  .eventos th:first-child,
+  .eventos td:first-child {
+    padding-inline: var(--e2);
+  }
+
+  .eventos__hora {
+    width: auto;
+  }
+
+  .eventos__detalle {
+    overflow-wrap: break-word;
+  }
+}

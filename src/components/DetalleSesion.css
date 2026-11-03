@@ -38,6 +38,9 @@
 /* Hasta dónde llega el registro. Pesa como la cuenta de al lado: es una
    precisión sobre lo que se está mirando, no el asunto de la lámina. */
 .detalle__extremos {
+  /* Pegado a la cuenta, como una sola frase: el hueco del encabezado separa
+     el título de lo que lo acompaña, no la cuenta de su precisión. */
+  margin-left: calc(-1 * var(--e2));
   font-size: var(--panel-nota);
   color: var(--tinta-media);
 }
@@ -110,5 +113,16 @@
 
   .detalle__sesion {
     gap: var(--e1) var(--e4);
+  }
+
+  /* En un teléfono los extremos no entran al lado de la cuenta: bajan a su
+     propio renglón, y sin el punto, que al comienzo de una línea no une nada. */
+  .detalle__extremos {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+
+  .detalle__punto {
+    display: none;
   }
 }
