@@ -19,3 +19,4 @@ Los 6 PR mergeados desde el 15/10/2026 (`gh pr list --state merged`):
 - #20: TT_S4_03: la prueba del registro de eventos dice lo que prueba (1.16) (2026-10-28)
 - #21: TT_S4_03: contraste de los textos atenuados (1.14) (2026-10-28)
 - #22: TT_S4_03: «desde las HH:MM», sin evidencia al lado de una alerta, sin textos técnicos y región viva (1.11, 1.12, 1.13, 1.15) (2026-10-28)
+- #24: pruebas del panel sin salir al backend real (2026-11-02)
