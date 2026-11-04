@@ -67,15 +67,22 @@
   --analisis-tinta-atenuada: var(--tinta-media); /* sobre --sup-1: 8,1:1; sobre --sup-2: 7,8:1 */
 
   /* ---- El nivel de una alerta -------------------------------------------- */
-  /* De frío a cálido y de suave a intenso: azul petróleo, ámbar y terracota. Antes eran tres ocres de claro a
+  /* De frío a cálido y de suave a intenso: azul petróleo, ocre y ámbar. Antes eran tres ocres de claro a
      hondo, y el alto (marrón oscuro) se veía menos que el bajo (dorado): a simple vista las tarjetas parecían
      iguales. Después el bajo fue una arena gris, que se leía como algo desactivado (ronda 2): ahora tiene un
-     tono propio, frío y suave, pero visible. No reemplazan a los --nivel-*, que usan otros cinco componentes. Son trazos y rellenos (el borde
+     tono propio, frío y suave, pero visible. El alto era un terracota, y con el borde más grueso se leía como una
+     condena (ronda 3): ahora es un ámbar tostado, que se distingue igual del bajo. No reemplazan a los --nivel-*, que usan otros cinco componentes. Son trazos y rellenos (el borde
      de la tarjeta y el medidor), nunca texto: el nivel siempre va escrito al lado, en --tinta. Piden 3:1
      sobre su fondo (WCAG 1.4.11); se comprueba en AnalisisSesion.contraste.test.ts. */
   --alerta-tono-low: #4f8a9a; /* 3,71:1 sobre --sup-2 */
-  --alerta-tono-medium: #b4650f; /* 4,19:1 */
-  --alerta-tono-high: #a8321a; /* 6,43:1 */
+  --alerta-tono-medium: #987016; /* 4,32:1 */
+  --alerta-tono-high: #ad5a0f; /* 4,75:1 */
+
+  /* ---- El veredicto sin alertas ------------------------------------------ */
+  /* Un verde suave solo en el cuadro del ícono de «No hay alertas para revisar» (ronda 3), para que se distinga de
+     «no se pudo analizar» sin depender del texto. No es el color de ningún nivel. */
+  --veredicto-bien-fondo: #dcefe1;
+  --veredicto-bien-tinta: #246b3c; /* 5,39:1 sobre su fondo */
 
   /* ---- Tipografía -------------------------------------------------------- */
   /* Una sola familia en todo el sistema. Los datos y los códigos se alinean

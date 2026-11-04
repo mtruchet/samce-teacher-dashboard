@@ -30,18 +30,24 @@ import "./AnalisisSesion.css";
  * (`explicacion.ts` solo los ordena por renglón).
  *
  * No muestra el índice de integridad (decisión vigente), ni las métricas, el historial o la
- * cronología (HU05), ni un nivel de la sesión (HU03): el veredicto cuenta las alertas, pero nunca
- * dice un nivel ni usa su color. El nivel es de cada alerta y va en su tarjeta.
+ * cronología (HU05), ni un nivel de la sesión (HU03): el veredicto cuenta las alertas y dice de qué
+ * tratan, pero nunca dice un nivel ni usa su color. El nivel es de cada alerta y va en su tarjeta,
+ * dicho como lo que le pide al docente («Para mirar si hay tiempo», `NIVELES`).
  *
  * Mientras la sesión sigue abierta, y unos minutos después de la entrega, vuelve a preguntar
  * cada pocos segundos: el análisis se recalcula con cada tanda de eventos, y una alerta puede
  * aparecer o subir de nivel mientras el docente mira.
  */
 
+/**
+ * El nivel de cada alerta, dicho como lo que le pide al docente y no como «Nivel bajo» o «Nivel alto»: solos,
+ * se leían como el nivel del alumno o como un «nivel de trampa», y el docente no sabía si una alerta baja había
+ * que mirarla o se podía seguir de largo (ronda 3). El medidor de al lado dice lo mismo en dibujo.
+ */
 const NIVELES: Record<AlertaDeSesion["level"], string> = {
-  low: "Nivel bajo",
-  medium: "Nivel medio",
-  high: "Nivel alto",
+  low: "Para mirar si hay tiempo",
+  medium: "Para mirar",
+  high: "Para mirar con atención",
 };
 
 /**
@@ -84,8 +90,9 @@ function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
             <span className="analisis__separador" aria-hidden="true">·</span>{" "}
             <span className="analisis__origen">{ORIGENES[alerta.origin]}</span>
           </span>
-          {/* Sin hora: la que da la API es la del análisis y no la del hecho, y no coincidía con el registro
-              (ver `lenguajeAlerta.ts`). Dónde fue lo dice el texto del motor («En la pregunta 3, …»). */}
+          {/* Sin hora en la cabecera: la que da la API es la del análisis y no la del hecho, y no coincidía con
+              el registro (ver `lenguajeAlerta.ts`). Cuándo y dónde fue lo dice el texto del motor, con la hora de
+              la fila del registro: «A las 09:35, en la pregunta 3, …». */}
         </div>
 
         <p className="analisis__hecho">{e.hecho}</p>
@@ -110,17 +117,25 @@ function cuantas(n: number): string {
   return n === 1 ? "Hay 1 alerta para revisar." : `Hay ${n} alertas para revisar.`;
 }
 
+/**
+ * Con una alerta de cada origen, de qué trata cada una (ronda 3): sin esto, «Hay 2 alertas» con el mismo pegado
+ * nombrado en las dos se leía como el mismo hecho contado dos veces. Dice de qué tratan, nunca un nivel.
+ */
+const UNA_DE_CADA = "Una es sobre toda la sesión y la otra, sobre un momento puntual.";
+
 interface Veredicto {
   icono: Icon;
   frase: string;
   bajadas: string[];
+  /** «sin-alertas» le da al ícono un fondo verde suave: «todo bien» se distingue de «no se pudo analizar». */
+  tono?: "sin-alertas";
 }
 
 /**
- * Que no se pudiera analizar no es una señal sobre el examen: sin esto, el estado se leía como una sanción. Va en
- * la misma oración que la remisión al registro, para que el estado entero sean dos frases (ronda 2).
+ * Que no se pudiera analizar no es una señal sobre el examen: sin esto, el estado se leía como una sanción. En dos
+ * frases cortas y sin volver a decir «analizar» (ronda 3).
  */
-const SIN_PROBLEMA = "Que no se haya podido analizar no indica ningún problema en el examen; lo que sí se registró está más abajo.";
+const SIN_PROBLEMA = "Esto no indica ningún problema en el examen. Abajo está todo lo que se registró.";
 
 /**
  * Qué dice el veredicto de arriba en cada estado: una frase, su ícono y, si hace falta, una bajada.
@@ -131,16 +146,19 @@ const SIN_PROBLEMA = "Que no se haya podido analizar no indica ningún problema 
  * El motivo de una sesión que no se pudo analizar es el del motor, tal cual. El de «no
  * disponible» no se repite, porque dice lo mismo que la frase.
  */
-function veredictoDe(analisis: Analisis, alertas: number, abierta: boolean): Veredicto {
+function veredictoDe(analisis: Analisis, alertas: AlertaDeSesion[], abierta: boolean): Veredicto {
   const motivo = analisis.reason?.trim() || null;
-  if (alertas > 0) {
+  if (alertas.length > 0) {
+    const origenes = new Set(alertas.map((a) => a.origin));
     const bajadas =
       analisis.state === "insufficient_evidence"
         ? ["La sesión completa no se pudo analizar, pero hubo un momento que conviene mirar.", ...(motivo ? [motivo] : [])]
         : analisis.state === "unavailable"
           ? ["El análisis de la sesión completa no está disponible en este momento."]
-          : [];
-    return { icono: Ojo, frase: cuantas(alertas), bajadas };
+          : origenes.has("model") && origenes.has("event")
+            ? [UNA_DE_CADA]
+            : [];
+    return { icono: Ojo, frase: cuantas(alertas.length), bajadas };
   }
   switch (analisis.state) {
     case "analyzed":
@@ -148,11 +166,13 @@ function veredictoDe(analisis: Analisis, alertas: number, abierta: boolean): Ver
         ? {
             icono: Check, frase: "Por ahora no hay alertas para revisar.",
             bajadas: ["La sesión se sigue analizando mientras el alumno rinde."],
+            tono: "sin-alertas",
           }
         : {
             icono: Check, frase: "No hay alertas para revisar.",
             // Sin repetir el título («no surgió ninguna alerta» decía lo mismo dos veces).
             bajadas: ["Se analizó todo el examen."],
+            tono: "sin-alertas",
           };
     case "not_analyzed":
       return {
@@ -172,11 +192,11 @@ function veredictoDe(analisis: Analisis, alertas: number, abierta: boolean): Ver
   }
 }
 
-function Veredicto({ analisis, alertas, abierta }: { analisis: Analisis; alertas: number; abierta: boolean }) {
+function Veredicto({ analisis, alertas, abierta }: { analisis: Analisis; alertas: AlertaDeSesion[]; abierta: boolean }) {
   const v = veredictoDe(analisis, alertas, abierta);
   const Icono = v.icono;
   return (
-    <div className="veredicto">
+    <div className={v.tono ? `veredicto veredicto--${v.tono}` : "veredicto"}>
       <span className="veredicto__icono" aria-hidden="true">
         <Icono size={28} />
       </span>
@@ -266,7 +286,7 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
         // nombre porque el componente ya tiene otros dos `role="status"` (el aviso sin conexión y «Cargando»). El
         // veredicto va primero, así es lo primero que se anuncia.
         <div className="analisis__region" role="status" aria-live="polite" aria-label="Alertas de la sesión">
-          <Veredicto analisis={analisis} alertas={alertas.length} abierta={abierta} />
+          <Veredicto analisis={analisis} alertas={alertas} abierta={abierta} />
           {alertas.length > 0 ? (
             <ul className="analisis__alertas">
               {alertas.map((alerta) => <Alerta key={alerta.origin} alerta={alerta} />)}

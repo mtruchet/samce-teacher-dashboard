@@ -59,6 +59,8 @@ describe("contraste del texto atenuado y de los trazos del análisis", () => {
     ["--tinta-media", "--sup-2"],
     ["--tinta-media", "--sup-3"],
     ["--celeste-hondo", "--sup-1"],
+    // El tilde del veredicto sin alertas sobre su cuadro verde suave (ronda 3).
+    ["--veredicto-bien-tinta", "--veredicto-bien-fondo"],
   ];
 
   it.each(pares)("%s sobre %s tiene al menos 4,5:1", (tinta, fondo) => {

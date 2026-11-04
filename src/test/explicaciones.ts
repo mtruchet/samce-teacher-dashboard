@@ -5,23 +5,23 @@
  */
 
 /**
- * Intento 453: la alerta de toda la sesión. El pegado se dice una sola vez, con la pregunta y con las mismas palabras
- * que la alerta del pegado, sin nombrar «la otra alerta»; el tiempo por pregunta va al final y «en general».
+ * Intento 453: la alerta de toda la sesión. El pegado se nombra sin volver a contarlo, con la misma hora y la misma
+ * pregunta que la alerta del pegado y sin nombrar «la otra alerta»; el tiempo por pregunta va al final y «en general».
  */
 export const MODELO_453 = [
-  "Este examen se rindió de una forma un poco distinta a la mayoría de los exámenes.",
+  "Este examen se desarrolló de una forma un poco distinta a lo que suele verse en una evaluación.",
   "Lo que más se notó:",
-  "• En la pregunta 3 pegó de una sola vez un texto largo.",
-  "• En general, tardó más que la mayoría en responder las preguntas.",
+  "• El texto largo que pegó a las 09:35 en la pregunta 3.",
+  "• En general, se tomó más tiempo que la mayoría para responder.",
 ].join("\n");
 
-/** Intento 453: la alerta de un momento de la sesión, con la pregunta en la que pasó. */
+/** Intento 453: la alerta de un momento de la sesión, con la hora (la de su fila en el registro) y la pregunta. */
 export const EVENTO_453 =
-  "En la pregunta 3, pegó de una sola vez un texto largo en una respuesta que todavía estaba vacía, algo poco común en un examen.";
+  "A las 09:35, en la pregunta 3, pegó de una sola vez un texto largo en una respuesta que todavía estaba vacía, algo poco común en un examen.";
 
 /** Intento 454: la alerta de toda la sesión, de nivel alto. Las salidas, de lo general a lo particular. */
 export const MODELO_454 = [
-  "Este examen se rindió de una forma muy distinta a la mayoría de los exámenes.",
+  "Este examen se desarrolló de una forma muy distinta a lo que suele verse en una evaluación.",
   "Lo que más se notó:",
   "• Pasó a otra ventana 11 veces.",
   "• En total, estuvo unos 8 minutos fuera de la ventana del examen, de los 28 que duró.",
@@ -30,7 +30,7 @@ export const MODELO_454 = [
 
 /** Intento 457: el motivo de la sesión que no se pudo analizar. */
 export const SIN_EVIDENCIA_457 =
-  "Se registró menos de un minuto del examen, y con tan poco tiempo no se puede analizar.";
+  "Se registró menos de un minuto del examen, y con tan poco tiempo no alcanza para analizarlo.";
 
 /** El motivo de «no disponible». */
 export const NO_DISPONIBLE = "El análisis no está disponible en este momento.";

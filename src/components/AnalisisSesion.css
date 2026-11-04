@@ -63,10 +63,12 @@
    sin alertas y sin poder analizar se reconocen de un vistazo y pesan lo mismo. Nunca el color de un
    nivel: el veredicto no es el nivel de la sesión (HU03). Neutro, sin verde ni rojo: el tilde dice que
    se miró, no que el alumno «aprobó». */
+/* El ícono va arriba, a la altura del título, en todos los estados: centrado contra un bloque de tres
+   renglones quedaba más abajo que la frase (ronda 3). */
 .veredicto {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
   gap: var(--e4);
 }
 
@@ -86,10 +88,19 @@
   height: 36px;
 }
 
+/* Sin alertas, el cuadro del ícono va en un verde suave: «todo bien» se distingue de un vistazo de «no se pudo
+   analizar», sin depender solo del texto (ronda 3). Es el único estado con color, y no es el de ningún nivel. */
+.veredicto--sin-alertas .veredicto__icono {
+  background: var(--veredicto-bien-fondo);
+  color: var(--veredicto-bien-tinta);
+}
+
+/* El primer renglón queda a la altura del centro del cuadro del ícono, y la bajada sigue debajo. */
 .veredicto__texto {
   display: grid;
   gap: var(--e1);
   max-width: var(--medida);
+  padding-top: 13px;
 }
 
 .veredicto__frase {
@@ -117,11 +128,11 @@
   list-style: none;
 }
 
-/* El nivel se lee en la palabra, en el medidor y en el borde izquierdo. El tono sube en calidez y en
-   intensidad con el nivel (azul petróleo, ámbar, terracota), así la alerta alta es la que más se ve, y
-   la de nivel alto suma un borde más grueso. Todas tienen el mismo fondo: el fondo tibio de la alta se
-   leía como una condena antes de que el docente revisara nada (ronda 2). La palabra va siempre escrita
-   al lado, en --tinta, para no depender del color. */
+/* El nivel se lee en la palabra, en el medidor y en el borde izquierdo. El tono sube en calidez con el
+   nivel (azul petróleo, ocre, ámbar), y el alto se distingue por los tres segmentos llenos. Todas tienen
+   el mismo fondo y el mismo borde: el fondo tibio de la alta se leía como una condena (ronda 2), y el
+   terracota con el borde más grueso, también (ronda 3). La palabra va siempre escrita al lado, en
+   --tinta, para no depender del color. */
 .analisis__alerta {
   display: grid;
   gap: var(--e4);
@@ -142,7 +153,6 @@
 
 .analisis__alerta--high {
   --tono: var(--alerta-tono-high);
-  border-left-width: 6px;
 }
 
 .analisis__cuerpo {

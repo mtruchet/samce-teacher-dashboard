@@ -3,11 +3,11 @@ import type { AlertaDeSesion } from "./services/sesionesService";
 /**
  * El orden de las alertas de una sesión (TT_S4_02).
  *
- * Las alertas no llevan hora. La API da la hora en que el análisis encontró el hecho, no la del
- * hecho: en la 453, la alerta decía «Se detectó a las 09:36» y el pegado figura en el registro a las
- * 09:35:08, y los docentes buscaban 09:36 y no lo encontraban (ronda 2). Para ubicarlo alcanza con
- * la pregunta, que el texto del motor dice con el mismo número que el registro. La hora del hecho
- * no viaja hoy al panel.
+ * Las tarjetas no llevan una hora propia. La API da la hora en que el análisis encontró el hecho, no
+ * la del hecho: en la 453, la alerta decía «Se detectó a las 09:36» y el pegado figura en el registro
+ * a las 09:35:08, y los docentes buscaban 09:36 y no lo encontraban (ronda 2). La hora del hecho la
+ * escribe el motor en el texto, con la misma hora y el mismo número de pregunta que la fila del
+ * registro: «A las 09:35, en la pregunta 3, …» (ronda 3).
  *
  * Acá no se traduce ningún texto: las frases que lee el docente las escribe el motor, en lenguaje
  * llano, y el panel las muestra tal cual (`explicacion.ts` solo las ordena por renglón).

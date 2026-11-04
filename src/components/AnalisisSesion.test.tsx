@@ -31,6 +31,13 @@ const MARCADOS_EN_LA_RONDA_1 =
  */
 const MARCADOS_EN_LA_RONDA_2 =
   /habitual|otra alerta|alerta de (abajo|arriba)|Pegó texto una sola vez|en cada pregunta|\b(dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez) (minutos|segundos|veces)\b|Se detectó|no surgió ninguna alerta/i;
+/**
+ * Lo que marcaron en la ronda 3: «se rindió de una forma» y «la mayoría de los exámenes» en el titular, «tardó más»
+ * (sonaba a castigo), «Nivel bajo» y «Nivel alto» solos (se leían como el nivel del alumno o un «nivel de trampa») y
+ * la segunda frase de la 457, que giraba sobre sí misma.
+ */
+const MARCADOS_EN_LA_RONDA_3 =
+  /se rindió de una forma|la mayoría de los exámenes|tardó más|Nivel (bajo|medio|alto)|Que no se haya podido analizar|lo que sí se registró/i;
 /** Palabras técnicas que el docente no tiene por qué conocer. */
 const TECNICAS =
   /caracteres|sesiones habituales|sesiones esperadas|99 de cada 100|%|modelo|variable|cálculo|índice|proporción|mediana|percentil|severidad|puntaje|captura|complemento|Moodle|backend/i;
@@ -148,10 +155,14 @@ describe("AnalisisSesion", () => {
     expect(within(veredicto()).getByText("La sesión se sigue analizando mientras el alumno rinde.")).toBeInTheDocument();
   });
 
-  it("con alertas: cuántas hay, sin bajada", async () => {
+  it("con una alerta de cada origen: cuántas hay y de qué trata cada una, sin decir un nivel", async () => {
     await mostrar(analisis({ alerts: ALERTAS_453 }));
 
-    expect(veredicto()).toHaveTextContent(/^Hay 2 alertas para revisar\.$/);
+    // Ronda 3: «Hay 2 alertas» con el mismo pegado nombrado en las dos se leía como el mismo hecho cobrado dos veces.
+    expect(within(veredicto()).getByText("Hay 2 alertas para revisar.")).toBeInTheDocument();
+    expect(Array.from(veredicto().querySelectorAll(".veredicto__bajada")).map((b) => b.textContent)).toEqual([
+      "Una es sobre toda la sesión y la otra, sobre un momento puntual.",
+    ]);
   });
 
   it("todos los estados tienen la misma forma: la frase y el ícono en su cuadro, nunca el de prohibido", async () => {
@@ -168,15 +179,22 @@ describe("AnalisisSesion", () => {
     dibujoProhibido.unmount();
     expect(prohibido).toBeTruthy();
     const formas = [];
+    const tonos = [];
     for (const caso of casos) {
       const { unmount } = await mostrar(caso, CERRADA);
-      formas.push([veredicto().className, veredicto().querySelector(".veredicto__icono svg")?.getAttribute("width")]);
+      // La forma es la misma; solo «No hay alertas» suma el verde suave del cuadro del ícono (ronda 3).
+      tonos.push(veredicto().classList.contains("veredicto--sin-alertas"));
+      formas.push([
+        veredicto().className.replace(" veredicto--sin-alertas", ""),
+        veredicto().querySelector(".veredicto__icono svg")?.getAttribute("width"),
+      ]);
       expect(veredicto().querySelector(".veredicto__frase")).not.toBeNull();
       expect(veredicto().innerHTML).not.toContain(prohibido);
       unmount();
       vi.restoreAllMocks();
     }
     expect(new Set(formas.map((f) => f.join("|"))).size).toBe(1);
+    expect(tonos).toEqual([false, true, false, false, false]);
   });
 
   it("con una sola alerta, en singular", async () => {
@@ -190,11 +208,13 @@ describe("AnalisisSesion", () => {
 
     const bajadas = Array.from(veredicto().querySelectorAll(".veredicto__bajada")).map((b) => b.textContent);
     expect(within(veredicto()).getByText("Esta sesión no se pudo analizar.")).toBeInTheDocument();
-    // Dos frases: el motivo del motor y, en una sola, que no indica un problema y dónde mirar.
+    // El motivo del motor y, en dos frases cortas, que no indica un problema y dónde mirar, sin volver a decir
+    // «analizar» (ronda 3).
     expect(bajadas).toEqual([
       SIN_EVIDENCIA_457,
-      "Que no se haya podido analizar no indica ningún problema en el examen; lo que sí se registró está más abajo.",
+      "Esto no indica ningún problema en el examen. Abajo está todo lo que se registró.",
     ]);
+    expect(veredicto().textContent?.match(/analiz/g)).toHaveLength(2);
     expect(container.querySelector("details")).toBeNull();
     // Ni «Analizada a las»: contradecía al título.
     expect(container.querySelector(".analisis__ultima")).toBeNull();
@@ -271,8 +291,9 @@ describe("AnalisisSesion", () => {
     await mostrar(analisis({ alerts: ALERTAS_453 }));
 
     const [modelo, evento] = tarjetasDeAlerta();
-    expect(modelo.querySelector(".analisis__rotulo")).toHaveTextContent("Nivel bajo · En toda la sesión");
-    expect(evento.querySelector(".analisis__rotulo")).toHaveTextContent("Nivel bajo · En un momento de la sesión");
+    // El nivel dicho como lo que le pide al docente, no «Nivel bajo» (ronda 3).
+    expect(modelo.querySelector(".analisis__rotulo")).toHaveTextContent("Para mirar si hay tiempo · En toda la sesión");
+    expect(evento.querySelector(".analisis__rotulo")).toHaveTextContent("Para mirar si hay tiempo · En un momento de la sesión");
 
     expect(modelo.querySelector(".analisis__hecho")).toHaveTextContent(MODELO_453.split("\n")[0]);
     expect(within(modelo).getByRole("heading", { name: "Lo que más se notó" })).toBeInTheDocument();
@@ -281,16 +302,20 @@ describe("AnalisisSesion", () => {
 
     expect(evento.querySelector(".analisis__hecho")).toHaveTextContent(EVENTO_453);
     expect(evento.querySelector(".analisis__lista")).toBeNull();
-    // El pegado se nombra una sola vez en la lista, con su pregunta y con las palabras de la alerta del pegado, para
-    // que se reconozca como el mismo hecho sin remitir a «la otra alerta».
-    expect(viñetas.filter((v) => /[Pp]eg/.test(v ?? ""))).toEqual(["En la pregunta 3 pegó de una sola vez un texto largo."]);
-    expect(EVENTO_453).toContain("pegó de una sola vez un texto largo");
-    expect(EVENTO_453).toMatch(/^En la pregunta 3, /);
-    // El tiempo por pregunta va al final, sin cifras y «en general»: es un promedio, no todas las preguntas.
-    expect(viñetas[viñetas.length - 1]).toBe("En general, tardó más que la mayoría en responder las preguntas.");
+    // El pegado se nombra una sola vez en la lista y sin volver a contarlo (ronda 3: la misma frase en las dos
+    // tarjetas se leía como dos pegados), con la misma hora y la misma pregunta que la alerta del pegado, para que
+    // se reconozca como el mismo hecho sin remitir a «la otra alerta».
+    expect(viñetas.filter((v) => /[Pp]eg/.test(v ?? ""))).toEqual(["El texto largo que pegó a las 09:35 en la pregunta 3."]);
+    expect(viñetas.join(" ")).not.toContain("de una sola vez");
+    // La alerta del pegado dice cuándo fue, con la hora de su fila en el registro (09:35:08), para encontrarlo.
+    expect(EVENTO_453).toMatch(/^A las 09:35, en la pregunta 3, pegó de una sola vez un texto largo/);
+    // El tiempo por pregunta va al final, sin cifras, «en general» y sin sonar a castigo.
+    expect(viñetas[viñetas.length - 1]).toBe("En general, se tomó más tiempo que la mayoría para responder.");
     // «Habitual» no aparece en ningún lado de la tarjeta: el titular dice contra qué se compara.
     expect(modelo.textContent).not.toMatch(/habitual/);
-    expect(modelo.querySelector(".analisis__hecho")).toHaveTextContent("a la mayoría de los exámenes");
+    expect(modelo.querySelector(".analisis__hecho")).toHaveTextContent(
+      "Este examen se desarrolló de una forma un poco distinta a lo que suele verse en una evaluación."
+    );
     // Ningún signo de viñeta suelto: la lista los dibuja.
     expect(screen.queryByText(/•/)).not.toBeInTheDocument();
   });
@@ -301,8 +326,9 @@ describe("AnalisisSesion", () => {
     const [tarjeta] = tarjetasDeAlerta();
     expect(tarjeta).toHaveClass("analisis__alerta--high");
     expect(tarjeta.querySelector(".analisis__hecho")).toHaveTextContent(
-      "Este examen se rindió de una forma muy distinta a la mayoría de los exámenes."
+      "Este examen se desarrolló de una forma muy distinta a lo que suele verse en una evaluación."
     );
+    expect(tarjeta.querySelector(".analisis__rotulo")).toHaveTextContent("Para mirar con atención · En toda la sesión");
     // Las salidas, con las palabras del registro y con su número, sin suponer que se fue, de lo general a lo
     // particular y con todos los números en cifras.
     const viñetas = Array.from(tarjeta.querySelectorAll(".analisis__lista li")).map((li) => li.textContent);
@@ -319,9 +345,9 @@ describe("AnalisisSesion", () => {
     }));
 
     const [primera, segunda] = tarjetasDeAlerta();
-    expect(primera).toHaveTextContent("Nivel alto");
+    expect(primera).toHaveTextContent("Para mirar con atención");
     expect(primera).toHaveTextContent("En un momento de la sesión");
-    expect(segunda).toHaveTextContent("Nivel bajo");
+    expect(segunda).toHaveTextContent("Para mirar si hay tiempo");
     expect(segunda).toHaveTextContent("En toda la sesión");
   });
 
@@ -343,7 +369,7 @@ describe("AnalisisSesion", () => {
     expect(document.querySelector(".analisis__origen-icono")).toBeNull();
   });
 
-  it("ninguna alerta lleva hora: la que da la API es la del análisis, no la del hecho", async () => {
+  it("la cabecera de las tarjetas no lleva hora: la que da la API es la del análisis, no la del hecho", async () => {
     await mostrar(analisis({
       alerts: [
         alerta({ level: "medium", level_since: "2026-10-23T14:10:00.000Z", created_at: "2026-10-23T14:00:00.000Z" }),
@@ -355,11 +381,14 @@ describe("AnalisisSesion", () => {
     }));
 
     // En la 453, «Se detectó a las 09:36» no coincidía con el pegado del registro (09:35:08), y los docentes
-    // buscaban 09:36 sin encontrarlo. Dónde fue lo dice el texto del motor, con la pregunta.
+    // buscaban 09:36 sin encontrarlo. Cuándo y dónde fue lo dice el texto del motor, con la hora de la fila del
+    // registro y la pregunta; el panel no agrega ninguna.
     for (const tarjeta of tarjetasDeAlerta()) {
       expect(tarjeta.querySelector("time")).toBeNull();
-      expect(tarjeta.textContent).not.toMatch(/\d{2}:\d{2}|Se detectó|a las/);
+      expect(tarjeta.querySelector(".analisis__cabeza")?.textContent).not.toMatch(/\d{2}:\d{2}|Se detectó|a las/);
+      expect(tarjeta.textContent).not.toMatch(/14:0\d|11:0\d|Se detectó/);
     }
+    expect(tarjetasDeAlerta()[1].querySelector(".analisis__hecho")).toHaveTextContent(EVENTO_453);
   });
 
   it("ninguna hora del apartado lleva segundos", async () => {
@@ -376,7 +405,7 @@ describe("AnalisisSesion", () => {
     const combinacion = "Ninguna de estas cosas es rara por sí sola. Lo poco común es que se den juntas.";
     const conexion = "Parte de esto puede deberse a cortes de la conexión a internet, que no dependen del alumno.";
     const texto = [
-      "Este examen se rindió de una forma bastante distinta a la mayoría de los exámenes.",
+      "Este examen se desarrolló de una forma bastante distinta a lo que suele verse en una evaluación.",
       "Lo que más se notó:",
       "• La conexión a internet se cortó más veces que en la mayoría.",
       combinacion,
@@ -428,6 +457,7 @@ describe("AnalisisSesion", () => {
     expect(container.textContent).not.toMatch(RECHAZADOS);
     expect(container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_1);
     expect(container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_2);
+    expect(container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_3);
     expect(container.querySelector(".comparacion, .resumen__nota, .resumen__motivos, .analisis__aclaracion")).toBeNull();
   });
 
@@ -437,6 +467,7 @@ describe("AnalisisSesion", () => {
     expect(r453.container.textContent).not.toMatch(RECHAZADOS);
     expect(r453.container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_1);
     expect(r453.container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_2);
+    expect(r453.container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_3);
     r453.unmount();
     vi.restoreAllMocks();
 
@@ -444,6 +475,7 @@ describe("AnalisisSesion", () => {
     expect(r457.container.textContent).not.toMatch(TECNICAS);
     expect(r457.container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_1);
     expect(r457.container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_2);
+    expect(r457.container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_3);
     expect(r457.container.textContent).not.toMatch(/eventos de actividad|se necesitan/);
   });
 
@@ -486,16 +518,16 @@ describe("AnalisisSesion", () => {
 
     traer.mockResolvedValueOnce(analisis({ alerts: [alerta({ level: "low" })] }));
     await esperar(sesionesService.CADENCIA_MS);
-    expect(screen.getByText("Nivel bajo")).toBeInTheDocument();
+    expect(screen.getByText("Para mirar si hay tiempo")).toBeInTheDocument();
 
     traer.mockResolvedValue(analisis({ alerts: [alerta({ level: "high" })] }));
     await esperar(sesionesService.CADENCIA_MS);
-    expect(screen.getByText("Nivel alto")).toBeInTheDocument();
-    expect(screen.queryByText("Nivel bajo")).not.toBeInTheDocument();
+    expect(screen.getByText("Para mirar con atención")).toBeInTheDocument();
+    expect(screen.queryByText("Para mirar si hay tiempo")).not.toBeInTheDocument();
     // La alerta nueva queda dentro de la región viva con nombre, para que un lector de pantalla la anuncie.
     const region = screen.getByRole("status", { name: "Alertas de la sesión" });
     expect(region).toHaveAttribute("aria-live", "polite");
-    expect(within(region).getByText("Nivel alto")).toBeInTheDocument();
+    expect(within(region).getByText("Para mirar con atención")).toBeInTheDocument();
   });
 
   it("una sesión entregada hace mucho no sigue preguntando", async () => {
@@ -538,7 +570,7 @@ describe("AnalisisSesion", () => {
     await esperar(sesionesService.CADENCIA_MS);
 
     expect(screen.getByText("No se pudo actualizar el análisis. Lo que se ve es lo último que llegó.")).toBeInTheDocument();
-    expect(screen.getByText("Nivel medio")).toBeInTheDocument();
+    expect(screen.getByText("Para mirar")).toBeInTheDocument();
 
     traer.mockResolvedValue(analisis());
     await esperar(sesionesService.CADENCIA_MS);

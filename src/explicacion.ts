@@ -4,12 +4,13 @@
  * El motor escribe cada explicación para el docente, en lenguaje llano, con un renglón por cosa
  * (ver el docstring de `alertas.py`):
  *
- * 1. El primer renglón es el hecho: «Este examen se rindió de una forma un poco distinta a la
- *    mayoría de los exámenes.» o «En la pregunta 3, pegó de una sola vez un texto largo en una
- *    respuesta que todavía estaba vacía, algo poco común en un examen.».
+ * 1. El primer renglón es el hecho: «Este examen se desarrolló de una forma un poco distinta a lo
+ *    que suele verse en una evaluación.» o «A las 09:35, en la pregunta 3, pegó de una sola vez un
+ *    texto largo en una respuesta que todavía estaba vacía, algo poco común en un examen.». La hora
+ *    y la pregunta que dice el motor son las de la fila del registro de eventos, y salen tal cual.
  * 2. Un renglón que termina en «:» abre la lista («Lo que más se notó:»).
- * 3. Los renglones que empiezan con «• » son las viñetas de esa lista («En la pregunta 3 pegó de
- *    una sola vez un texto largo.», «Pasó a otra ventana 11 veces.»), ya en el
+ * 3. Los renglones que empiezan con «• » son las viñetas de esa lista («El texto largo que pegó a
+ *    las 09:35 en la pregunta 3.», «Pasó a otra ventana 11 veces.»), ya en el
  *    orden en que se leen: el motor decide el orden, el panel no lo cambia.
  * 4. Cualquier otro renglón es una nota y sale tal cual («Ninguna de estas cosas es rara por sí
  *    sola. Lo poco común es que se den juntas.», el aviso de la conexión).

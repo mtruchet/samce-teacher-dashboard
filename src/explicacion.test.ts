@@ -6,7 +6,7 @@ describe("ordenarExplicacion", () => {
   it("la alerta de toda la sesión de la 453: el hecho, el rótulo sin los dos puntos y las viñetas tal cual", () => {
     const e = ordenarExplicacion(MODELO_453);
 
-    expect(e.hecho).toBe("Este examen se rindió de una forma un poco distinta a la mayoría de los exámenes.");
+    expect(e.hecho).toBe("Este examen se desarrolló de una forma un poco distinta a lo que suele verse en una evaluación.");
     expect(e.encabezadoDeLista).toBe("Lo que más se notó");
     expect(e.viñetas).toEqual(MODELO_453.split("\n").filter((r) => r.startsWith("• ")).map((r) => r.slice(2)));
     expect(e.viñetas.length).toBeGreaterThan(0);
@@ -16,7 +16,7 @@ describe("ordenarExplicacion", () => {
   it("la alerta de toda la sesión de la 454: lo mismo, con su titular de nivel alto", () => {
     const e = ordenarExplicacion(MODELO_454);
 
-    expect(e.hecho).toBe("Este examen se rindió de una forma muy distinta a la mayoría de los exámenes.");
+    expect(e.hecho).toBe("Este examen se desarrolló de una forma muy distinta a lo que suele verse en una evaluación.");
     expect(e.encabezadoDeLista).toBe("Lo que más se notó");
     expect(e.viñetas).toEqual([
       "Pasó a otra ventana 11 veces.",
@@ -35,11 +35,47 @@ describe("ordenarExplicacion", () => {
     expect(e.notas).toEqual([]);
   });
 
+  // Cada forma que escribe el motor para el pegado (rama `feature/textos-claros-para-el-docente`, ronda 3): la hora y
+  // la pregunta adelante, con lo que se sepa, y la viñeta que lo nombra sin volver a contarlo. El panel no las traduce:
+  // el hecho sale idéntico y la hora queda como la escribió el motor, sin segundos.
+  it.each([
+    "A las 09:35, en la pregunta 3, pegó de una sola vez un texto largo en una respuesta que todavía estaba vacía, algo poco común en un examen.",
+    "A las 09:35, pegó de una sola vez un texto bastante largo en una respuesta en la que había escrito poco antes.",
+    "En la pregunta 3, pegó de una sola vez un texto muy largo en una respuesta que todavía estaba vacía.",
+    "Pegó de una sola vez un texto largo en una respuesta que todavía estaba vacía.",
+  ])("la alerta de un pegado sale idéntica: %s", (texto) => {
+    const e = ordenarExplicacion(texto);
+    expect(e).toEqual({ hecho: texto, notasAntes: [], encabezadoDeLista: null, viñetas: [], notas: [] });
+  });
+
+  it.each([
+    "El texto largo que pegó a las 09:35 en la pregunta 3.",
+    "El texto bastante largo que pegó en la pregunta 2.",
+    "El texto largo que pegó de una sola vez.",
+    "Pegó texto 3 veces; el más largo, a las 09:35 en la pregunta 3.",
+    "Pegó texto 2 veces; una de ellas fue un texto largo, a las 09:35 en la pregunta 4.",
+    "A las 09:35, en la pregunta 3, pegó un texto largo.",
+    "En general, se tomó más tiempo que la mayoría para responder.",
+  ])("cada viñeta de los pegados y del tiempo sale tal cual: %s", (vineta) => {
+    const e = ordenarExplicacion(
+      ["Este examen se desarrolló de una forma un poco distinta a lo que suele verse en una evaluación.", "Lo que más se notó:", `• ${vineta}`].join("\n")
+    );
+    expect(e.viñetas).toEqual([vineta]);
+    expect(e.notas).toEqual([]);
+  });
+
+  it("los tres titulares de la alerta de toda la sesión salen tal cual", () => {
+    for (const cuanto of ["un poco", "bastante", "muy"]) {
+      const titular = `Este examen se desarrolló de una forma ${cuanto} distinta a lo que suele verse en una evaluación.`;
+      expect(ordenarExplicacion(titular).hecho).toBe(titular);
+    }
+  });
+
   it("las notas que siguen a la lista (la combinación, la conexión) salen tal cual y en orden", () => {
     const combinacion = "Ninguna de estas cosas es rara por sí sola. Lo poco común es que se den juntas.";
     const conexion = "Parte de esto puede deberse a cortes de la conexión a internet, que no dependen del alumno.";
     const e = ordenarExplicacion([
-      "Este examen se rindió de una forma bastante distinta a la mayoría de los exámenes.",
+      "Este examen se desarrolló de una forma bastante distinta a lo que suele verse en una evaluación.",
       "Lo que más se notó:",
       "• La conexión a internet se cortó más veces que en la mayoría.",
       combinacion,
@@ -66,7 +102,7 @@ describe("ordenarExplicacion", () => {
   });
 
   it("si el motor no manda lista, no hay lista", () => {
-    const e = ordenarExplicacion("Este examen se rindió de una forma un poco distinta a la mayoría de los exámenes.");
+    const e = ordenarExplicacion("Este examen se desarrolló de una forma un poco distinta a lo que suele verse en una evaluación.");
 
     expect(e.encabezadoDeLista).toBeNull();
     expect(e.viñetas).toEqual([]);
