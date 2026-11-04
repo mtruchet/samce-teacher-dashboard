@@ -162,8 +162,9 @@ th.eventos__que {
   color: var(--tinta);
 }
 
-/* En la tinta del texto y no en la media (ronda 3): en pantalla completa, el detalle en gris costaba leerlo. */
-.eventos__detalle {
+/* En la tinta del texto y no en la media (ronda 3): en pantalla completa, el detalle en gris costaba leerlo.
+   Con `td` delante, para ganarle a `.eventos td`. */
+.eventos td.eventos__detalle {
   color: var(--tinta);
 }
 
