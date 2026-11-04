@@ -462,9 +462,13 @@ describe("describirEvento", () => {
 
   it("el aviso del servidor de que la captura no estuvo se explica según el motivo", () => {
     expect(de("capture_status", { state: "js_disabled" })).toMatchObject({
-      titulo: "La captura no estuvo activa",
-      detalle: "una página del examen se cargó con JavaScript desactivado",
+      titulo: "No se registró lo que hizo en una página",
+      detalle: "el navegador tenía apagada una opción que hace falta para registrar",
     });
-    expect(de("capture_status", { state: "no_start" }).detalle).toContain("la captura no arrancó");
+    expect(de("capture_status", { state: "no_start" }).detalle).toBe("la página se abrió, pero no se empezó a registrar");
+    for (const state of ["js_disabled", "no_start"]) {
+      const r = de("capture_status", { state });
+      expect(`${r.titulo} ${r.detalle}`).not.toMatch(/captura|JavaScript|arrancó|Moodle/i);
+    }
   });
 });

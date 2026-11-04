@@ -583,14 +583,15 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">, contexto:
 
     case "capture_status":
       // Lo genera el servidor de Moodle, no el navegador del alumno: es lo único que puede
-      // afirmar que la captura no estuvo.
+      // afirmar que la captura no estuvo. Sin «captura» ni «JavaScript» en pantalla: el docente
+      // lee qué no quedó registrado y por qué, con palabras de todos los días.
       return {
         icono: SinNada,
-        titulo: "La captura no estuvo activa",
+        titulo: "No se registró lo que hizo en una página",
         detalle:
           d.state === "js_disabled"
-            ? "una página del examen se cargó con JavaScript desactivado"
-            : "una página del examen se cargó y la captura no arrancó",
+            ? "el navegador tenía apagada una opción que hace falta para registrar"
+            : "la página se abrió, pero no se empezó a registrar",
       };
 
     case "connection": {

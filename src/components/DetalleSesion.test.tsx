@@ -184,7 +184,7 @@ describe("DetalleSesion", () => {
 
     traer.mockResolvedValueOnce([evento(1, "capture_status", { state: "js_disabled" })]);
     await esperar(5000);
-    expect(screen.getByText("La captura no estuvo activa")).toBeInTheDocument();
+    expect(screen.getByText("No se registró lo que hizo en una página")).toBeInTheDocument();
 
     // Llegó: deja de preguntar y avisa que el registro ya no se actualiza.
     await esperar(30_000);
@@ -205,7 +205,7 @@ describe("DetalleSesion", () => {
     rerender(<DetalleSesion sesion={{ ...cerrada, capture: { state: "no_start" } }} onVencida={nada} />);
     await esperar();
     expect(traer).toHaveBeenCalledTimes(2);
-    expect(screen.getByText("La captura no estuvo activa")).toBeInTheDocument();
+    expect(screen.getByText("No se registró lo que hizo en una página")).toBeInTheDocument();
     await esperar(30_000);
     expect(traer).toHaveBeenCalledTimes(2);
   });
