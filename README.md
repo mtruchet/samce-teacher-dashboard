@@ -1,7 +1,8 @@
 # samce-teacher-dashboard
 
 El panel docente de SAMCE: muestra en vivo qué alumnos están rindiendo cada
-examen del aula virtual.
+examen del aula virtual, qué pasó durante cada intento y qué encontró el análisis
+en cada sesión.
 
 No tiene usuario ni contraseña propios. El docente entra desde Moodle por el
 complemento `local_samce`, que firma un token con su identidad y sus cursos; el
@@ -43,23 +44,50 @@ anterior a que el aula virtual empezara a mandarlo, la fila cae en el número, q
 alcanza para identificar a quien está rindiendo. Y si rindió más de una vez el
 mismo examen, aclara en cuál va, por orden de comienzo.
 
-Desde cada sesión se abre su registro: lo que pasó durante el intento, un evento
-por fila, con su hora, qué pasó y el detalle, del más reciente al más antiguo.
-Se actualiza mientras el alumno rinde y unos minutos después de la entrega,
-porque lo último del intento llega con retraso. El registro cuenta y no juzga:
-no tiene índice de integridad, nivel de riesgo, alertas ni orden por relevancia.
-La lista marca las sesiones cuya captura quedó incompleta, y el registro explica
-qué no quedó registrado.
+Desde cada sesión se abre su detalle. Arriba va una ficha de una sola línea con
+lo que la lista no alcanza a decir: si entregó, qué intento es, qué día y a qué
+hora empezó y cuánto duró. Debajo están el análisis y el registro.
+
+El registro cuenta lo que pasó durante el intento: un evento por fila, con su
+hora, qué pasó y el detalle, del más reciente al más antiguo. El encabezado dice
+cuántos eventos hay y entre qué horas («194 eventos, de 09:28 a 09:42»), y las
+filas están escritas en palabras de todos los días, sin abreviaturas ni términos
+técnicos («Movimiento del mouse», o «Volvió a la ventana del examen» con el
+detalle «45 segundos afuera»). Se recorre entero, de a tandas o con «Mostrar todos», y se lee igual en
+el teléfono. Se actualiza mientras el alumno rinde y unos minutos después de la
+entrega, porque lo último del intento llega con retraso. El registro cuenta y no
+juzga: no tiene índice de integridad, nivel de riesgo, alertas ni orden por
+relevancia. La lista marca las sesiones cuya captura quedó incompleta, y el
+registro explica qué no quedó registrado.
 
 Arriba del registro, el apartado **«Análisis de la sesión»** muestra lo que el
-análisis encontró: si la sesión todavía no se analizó, si se analizó (con o sin
-alertas), si no tuvo evidencia suficiente o si el análisis no está disponible, la
-hora del último cálculo y las **alertas vigentes**, cada una con su nivel (bajo,
-medio o alto, escrito) y su explicación en lenguaje llano. Es la versión mínima: no
-muestra el índice de integridad, las métricas, el historial ni la cronología, y no
-cambia la lista de sesiones. Una alerta señala algo para revisar y no una
-conclusión sobre el alumno. Se actualiza igual que el registro, mientras el alumno
-rinde y unos minutos después de la entrega, y lo pide a
+análisis encontró, en tres capas:
+
+- **El veredicto**, una frase con la misma forma en todos los estados: «Hay 2
+  alertas para revisar.», «No hay alertas para revisar.», «Esta sesión todavía no
+  se analizó.», «Esta sesión no se pudo analizar.» o «El análisis no está
+  disponible en este momento.». Cuenta las alertas y dice de qué tratan, pero
+  nunca dice un nivel. Cuando una sesión no se pudo analizar, da el motivo y
+  aclara que eso no indica ningún problema en el examen.
+- **Una tarjeta por alerta vigente**, con su nivel escrito con los nombres del
+  criterio de HU06 («Riesgo bajo», «Riesgo medio» o «Riesgo alto»), un medidor de
+  tres segmentos que dice lo mismo en dibujo y su origen: «En toda la sesión» o
+  «En un momento de la sesión». Debajo va el hecho en una oración; en un pegado,
+  con la hora y la pregunta de su fila en el registro («A las 09:35, en la
+  pregunta 3, pegó de una sola vez un texto largo en una respuesta que todavía
+  estaba vacía…»).
+- **«Lo que más se notó»**, en la alerta de toda la sesión: una frase por cosa,
+  con cifras que el docente puede comprobar en el registro («Pasó a otra ventana
+  11 veces.»).
+
+Los textos de las alertas y el motivo de una sesión que no se pudo analizar los
+escribe el motor de análisis para el docente, y el panel los muestra tal cual,
+sin traducirlos ni recortarlos. El apartado no muestra el índice de integridad,
+las métricas, el historial ni la cronología, y no cambia la lista de sesiones. Una
+alerta señala algo para revisar y no una conclusión sobre el alumno. Se actualiza
+igual que el registro, mientras el alumno rinde y unos minutos después de la
+entrega, y un lector de pantalla anuncia la alerta que aparece o sube de nivel
+mientras se mira. Lo pide a
 `GET /monitored-quizzes/{id}/sessions/{sessionId}/analysis`, que tiene el mismo
 control de acceso que el registro de eventos.
 
@@ -125,19 +153,22 @@ componentes: el sistema visual es propio y vive en `src/styles/tokens.css`.
 
 ```
 src/
-  pages/        una pantalla cada una: portada, traspaso, panel, sin sesión
-  components/   las piezas del panel y de la portada
-  services/     lo que habla con el backend
-  config/       las direcciones del backend y del campus
-  styles/       tokens y estilos base
-  eventos.ts    cómo se cuenta cada evento en el registro
-  huecos.ts     los silencios entre eventos
-  captura.ts    el aviso de una captura incompleta
-  secciones.ts  las secciones de la portada
-  iconos.ts     los iconos, importados de a uno
-  test/         datos de prueba compartidos
-scripts/        el enlace de prueba para entrar sin Moodle
-docs/           notas de diseño
+  pages/            una pantalla cada una: portada, traspaso, panel, sin sesión
+  components/       las piezas del panel y de la portada
+  services/         lo que habla con el backend
+  config/           las direcciones del backend y del campus
+  styles/           tokens y estilos base
+  eventos.ts        cómo se cuenta cada evento en el registro
+  huecos.ts         los silencios entre eventos
+  captura.ts        el aviso de una captura incompleta
+  explicacion.ts    cómo se ordena, renglón por renglón, el texto de una alerta
+  lenguajeAlerta.ts el orden de las alertas de una sesión
+  seguimiento.ts    hasta cuándo se sigue preguntando por una sesión cerrada
+  secciones.ts      las secciones de la portada
+  iconos.ts         los iconos, importados de a uno
+  test/             datos de prueba compartidos
+scripts/            el enlace de prueba para entrar sin Moodle
+docs/               notas de diseño
 ```
 
 Los iconos se importan uno por uno y no desde el índice del paquete: ese índice
