@@ -41,7 +41,7 @@
   /* Pegado a la cuenta, como una sola frase: el hueco del encabezado separa
      el título de lo que lo acompaña, no la cuenta de su precisión. */
   margin-left: calc(-1 * var(--e3));
-  font-size: var(--paso-apoyo);
+  font-size: var(--panel-nota);
   color: var(--tinta-media);
 }
 
@@ -78,13 +78,13 @@
 
 .detalle__registro .lista__titulo {
   margin: 0;
-  font-size: var(--paso-subtitulo);
+  font-size: var(--panel-pieza);
   line-height: 1.25;
   letter-spacing: normal;
 }
 
 .detalle__registro .lista__cuenta {
-  font-size: var(--paso-apoyo);
+  font-size: var(--panel-nota);
 }
 
 /* Los dos avisos de la vista de eventos. Comparten la forma del vacío del
@@ -115,7 +115,7 @@
   margin: 0 0 0.75rem;
   padding: 0.6rem 0.9rem;
   border-left: 3px solid currentColor;
-  font-size: 0.9rem;
+  font-size: var(--panel-fila);
 }
 
 @media (max-width: 760px) {

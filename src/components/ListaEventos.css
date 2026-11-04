@@ -26,7 +26,7 @@
   background: var(--sup-2);
   text-align: left;
   /* En minúscula inicial y sin espaciado, como el resto del detalle. */
-  font-size: var(--panel-nota);
+  font-size: var(--panel-rotulo);
   font-weight: 600;
   color: var(--tinta-media);
   white-space: nowrap;
@@ -36,7 +36,7 @@
    un tamaño y un contraste que se leen: es lo primero que hace falta saber. */
 .eventos__orden {
   margin: calc(-1 * var(--e2)) 0 var(--e3);
-  font-size: var(--paso-apoyo);
+  font-size: var(--panel-nota);
   color: var(--tinta-media);
 }
 
@@ -54,7 +54,7 @@
 
 .eventos__vistos {
   margin: 0;
-  font-size: var(--paso-apoyo);
+  font-size: var(--panel-nota);
   color: var(--tinta-media);
 }
 
@@ -74,7 +74,7 @@
   background: var(--sup-1);
   box-shadow: inset 0 0 0 1px var(--sup-4);
   font: inherit;
-  font-size: var(--paso-apoyo);
+  font-size: var(--panel-fila);
   font-weight: 500;
   color: var(--pizarra);
   cursor: pointer;
@@ -99,7 +99,7 @@
      pantalla en un registro de doscientos. La letra, un punto más grande que la de una fila de la tabla de
      sesiones: acá se leen frases, no nombres. */
   padding: var(--e2) var(--e4);
-  font-size: var(--panel-cuerpo);
+  font-size: var(--panel-fila);
   line-height: 20px;
   color: var(--tinta-media);
   vertical-align: middle;
