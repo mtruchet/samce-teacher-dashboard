@@ -3,14 +3,12 @@
    columnas menos la primera, pensado para una columna de nombres y dos de
    tiempos, y acá la que se lleva el espacio es la última. */
 
-/* El mismo alto que `.lista__marco`, a propósito. Las dos tablas viven a un
-   clic de distancia y el scroll interno existe para que la barra quede siempre
-   en el mismo lugar: con dos altos distintos el ojo la tiene que volver a
-   buscar cada vez que se entra a una sesión. */
+/* Sin desplazamiento interno: la tabla crece con la página y se muestra de a
+   tandas, con «Mostrar más» abajo (`ListaEventos`). Con el alto fijo de antes,
+   quien miraba el registro veía diez filas y no encontraba cómo llegar al
+   resto. */
 .eventos__marco {
-  max-height: min(52vh, 520px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow-x: auto;
 }
 
 .eventos {
@@ -23,14 +21,73 @@
   top: 0;
   z-index: 1;
   padding: 0 var(--e4) var(--e2);
-  background: var(--sup-1);
+  /* El mismo fondo que la lámina del registro: el encabezado queda fijo arriba
+     al desplazar, y las filas pasan por debajo sin verse a través. */
+  background: var(--sup-2);
   text-align: left;
+  /* En minúscula inicial y sin espaciado, como el resto del detalle. */
   font-size: var(--panel-rotulo);
   font-weight: 600;
-  letter-spacing: var(--track-rotulo);
-  text-transform: uppercase;
   color: var(--tinta-media);
   white-space: nowrap;
+}
+
+/* Cómo está ordenada la tabla, a la vista y no solo para lectores de pantalla. En
+   un tamaño y un contraste que se leen: es lo primero que hace falta saber. */
+.eventos__orden {
+  margin: calc(-1 * var(--e2)) 0 var(--e3);
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+}
+
+/* Debajo de la tabla: cuántos se ven y los dos botones para ver el resto. */
+.eventos__mas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3) var(--e5);
+  margin-top: var(--e4);
+  padding-top: var(--e4);
+  box-shadow: inset 0 1px 0 var(--sup-4);
+}
+
+.eventos__vistos {
+  margin: 0;
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+}
+
+.eventos__botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e3);
+}
+
+/* Botones secundarios: el registro es para ubicar un momento, no la acción
+   principal de la pantalla. */
+.eventos__boton {
+  height: 40px;
+  padding-inline: var(--e5);
+  border: 0;
+  border-radius: var(--radio-chip);
+  background: var(--sup-1);
+  box-shadow: inset 0 0 0 1px var(--sup-4);
+  font: inherit;
+  font-size: var(--panel-fila);
+  font-weight: 500;
+  color: var(--pizarra);
+  cursor: pointer;
+  transition: background var(--mov-estado) var(--curva);
+}
+
+.eventos__boton:hover {
+  background: var(--sup-3);
+}
+
+.eventos__boton:focus-visible {
+  outline: 2px solid var(--pizarra);
+  outline-offset: 2px;
 }
 
 .eventos td {
@@ -38,7 +95,10 @@
      tiene que poder crecer, y con la altura fija el texto se montaba sobre la
      fila de abajo. El relleno deja el mismo paso que la tabla de sesiones en
      el caso normal, que es de una línea. */
-  padding: var(--e3) var(--e4);
+  /* Más junto que la tabla de sesiones (ronda 3): con el relleno de antes entraban unos ocho eventos por
+     pantalla en un registro de doscientos. La letra, un punto más grande que la de una fila de la tabla de
+     sesiones: acá se leen frases, no nombres. */
+  padding: var(--e2) var(--e4);
   font-size: var(--panel-fila);
   line-height: 20px;
   color: var(--tinta-media);
@@ -50,7 +110,7 @@
 }
 
 .eventos tbody tr:hover {
-  background: var(--sup-2);
+  background: var(--sup-3);
 }
 
 .eventos th:first-child,
@@ -67,9 +127,12 @@
    título, empujado a la derecha, y ahí cada fila lo arrancaba en un lugar
    distinto según lo largo que fuera: la lista se leía en zigzag. Simularlo con
    un ancho mínimo alineaba, pero sólo mientras el título entrara; una columna
-   de tabla alinea siempre. */
+   de tabla alinea siempre. Toma lo que ocupa el título más largo y no más: con
+   un 30 % fijo quedaba un hueco grande entre «Qué pasó» y el detalle. */
 .eventos__que {
-  width: 30%;
+  width: 1%;
+  padding-right: var(--e4);
+  white-space: nowrap;
 }
 
 /* El flex va en un envoltorio y no en la celda: un `td` con `display: flex`
@@ -99,8 +162,10 @@ th.eventos__que {
   color: var(--tinta);
 }
 
-.eventos__detalle {
-  color: var(--tinta-media);
+/* En la tinta del texto y no en la media (ronda 3): en pantalla completa, el detalle en gris costaba leerlo.
+   Con `td` delante, para ganarle a `.eventos td`. */
+.eventos td.eventos__detalle {
+  color: var(--tinta);
 }
 
 /* ==== Un rato sin que llegara nada ===================================== */
@@ -115,7 +180,7 @@ th.eventos__que {
    la pantalla miente sin querer. */
 .eventos tbody tr.eventos__hueco:hover,
 .eventos__hueco {
-  background: var(--sup-2);
+  background: var(--sup-3);
 }
 
 .eventos__hueco td {
@@ -143,5 +208,28 @@ th.eventos__que {
      y el detalle envuelve debajo. */
   .eventos__que {
     width: 38%;
+    padding-right: var(--e4);
+    white-space: normal;
+  }
+}
+
+/* En un teléfono la tabla no tiene de dónde sacar ancho: con los rellenos de
+   escritorio, «movimientos» no entraba en su columna y la fila quedaba cortada
+   en el borde de la lámina. Se achican los rellenos y la hora toma solo lo que
+   ocupa; si aun así una palabra no entra sola, se parte antes que cortarse. */
+@media (max-width: 640px) {
+  .eventos th,
+  .eventos td,
+  .eventos th:first-child,
+  .eventos td:first-child {
+    padding-inline: var(--e2);
+  }
+
+  .eventos__hora {
+    width: auto;
+  }
+
+  .eventos__detalle {
+    overflow-wrap: break-word;
   }
 }

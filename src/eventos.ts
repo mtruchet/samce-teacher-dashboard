@@ -106,8 +106,11 @@ export function horaCorta(iso: string): string {
 }
 
 /**
- * «4 s», «2 min 5 s», «2 h 15 min». Por debajo del segundo no vale la pena el
- * detalle.
+ * «4 segundos», «2 minutos y 5 segundos», «2 horas y 15 minutos». Por debajo
+ * del segundo no vale la pena el detalle.
+ *
+ * Con las unidades escritas enteras: «4 s» y «2 min» son abreviaturas técnicas,
+ * y los docentes que revisaron el detalle de la sesión no las leían de corrido.
  *
  * Pasa a horas con el mismo criterio que la columna «Transcurrido». El docente
  * ve las dos en pantallas consecutivas —de la lista de sesiones pasa al
@@ -120,48 +123,64 @@ export function horaCorta(iso: string): string {
  */
 export function duracion(ms: number): string {
   const segundos = Math.round(ms / 1000);
-  if (segundos < 1) return "menos de 1 s";
-  if (segundos < 60) return `${segundos} s`;
+  if (segundos < 1) return "menos de un segundo";
+  if (segundos < 60) return unidad(segundos, "segundo", "segundos");
   const minutos = Math.floor(segundos / 60);
   if (minutos < 60) {
     const resto = segundos % 60;
-    return resto === 0 ? `${minutos} min` : `${minutos} min ${resto} s`;
+    const enMinutos = unidad(minutos, "minuto", "minutos");
+    return resto === 0 ? enMinutos : `${enMinutos} y ${unidad(resto, "segundo", "segundos")}`;
   }
   const horas = Math.floor(minutos / 60);
   const resto = minutos % 60;
-  return resto === 0 ? `${horas} h` : `${horas} h ${resto} min`;
+  const enHoras = unidad(horas, "hora", "horas");
+  return resto === 0 ? enHoras : `${enHoras} y ${unidad(resto, "minuto", "minutos")}`;
 }
 
+/** «1 segundo», «4 segundos». */
+function unidad(n: number, singular: string, plural: string): string {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
+
+/**
+ * El tipo de pregunta como lo diría un docente, con su preposición: «de
+ * desarrollo» y no «ensayo», que es el nombre del tipo en Moodle.
+ */
 const TIPOS_DE_PREGUNTA: Record<string, string> = {
-  essay: "ensayo",
-  multichoice: "opción múltiple",
-  truefalse: "verdadero/falso",
-  shortanswer: "respuesta corta",
+  essay: "de desarrollo",
+  multichoice: "de opción múltiple",
+  truefalse: "de verdadero o falso",
+  shortanswer: "de respuesta corta",
   numerical: "numérica",
-  match: "emparejar",
-  gapselect: "completar con opciones",
-  ddwtos: "arrastrar palabras",
-  ddimageortext: "arrastrar sobre imagen",
-  ddmarker: "marcar sobre imagen",
-  multianswer: "respuesta incrustada",
+  match: "de emparejar",
+  gapselect: "de completar con opciones",
+  ddwtos: "de arrastrar palabras",
+  ddimageortext: "de arrastrar sobre una imagen",
+  ddmarker: "de marcar sobre una imagen",
+  multianswer: "con respuestas incrustadas",
   calculated: "calculada",
   calculatedmulti: "calculada de opción múltiple",
   calculatedsimple: "calculada simple",
-  ordering: "ordenar",
+  ordering: "de ordenar",
 };
 
-/** «pregunta 3 (ensayo)», o lo que se pueda decir si falta alguno de los dos. */
+/**
+ * «pregunta 3», o «pregunta de desarrollo» si falta el número.
+ *
+ * Sin el tipo cuando se sabe el número: «(de desarrollo)» se repetía en decenas de filas seguidas y los
+ * docentes de la ronda 3 lo leían como ruido. El número alcanza para ubicar la pregunta en el examen.
+ */
 function pregunta(datos: Datos): string {
   const posicion = numero(datos.slot);
   const crudo = typeof datos.qtype === "string" ? datos.qtype : null;
   // Un tipo de pregunta de un plugin de Moodle que este panel no conoce se
   // muestra igual, con los guiones bajos hechos espacios: es un dato del
   // examen y esconderlo sería peor que mostrarlo sin traducir.
-  const tipo = crudo === null ? null : (TIPOS_DE_PREGUNTA[crudo] ?? crudo.replace(/_/g, " "));
+  const tipo = crudo === null ? null : (TIPOS_DE_PREGUNTA[crudo] ?? `de tipo ${crudo.replace(/_/g, " ")}`);
   // El tipo se muestra aunque no se sepa de qué pregunta es: que falte el
   // número no vuelve inútil al otro dato.
-  if (posicion === null) return tipo ? `pregunta de ${tipo}` : "";
-  return tipo ? `pregunta ${posicion} (${tipo})` : `pregunta ${posicion}`;
+  if (posicion === null) return tipo ? `pregunta ${tipo}` : "";
+  return `pregunta ${posicion}`;
 }
 
 /**
@@ -184,24 +203,6 @@ function afuera(datos: Datos): string {
 }
 
 /**
- * Cuánto hacía que no se tecleaba en esta misma pregunta.
- *
- * El complemento lo mide entre ventanas, que es justo donde se perdía: la
- * ventana se descarta en cada vaciado y con ella el hueco entre la última tecla
- * de una y la primera de la siguiente.
- */
-function desde(datos: Datos): string {
-  const ms = numero(datos.gap_before_ms);
-  // Por debajo de lo que el propio complemento considera una pausa (dos
-  // segundos, `PAUSE_MS` en sig_input.js), el hueco no es un hecho: es que
-  // siguió escribiendo y el resumen se cortó en el medio. En pantalla salía
-  // «5 teclas, menos de 1 s desde el tecleo anterior», que ocupa medio renglón
-  // para decir que no pasó nada.
-  const PAUSA = 2000;
-  return ms === null || ms < PAUSA ? "" : `${duracion(ms)} desde el tecleo anterior`;
-}
-
-/**
  * Cuántas preguntas estaban a la vista al mismo tiempo.
  *
  * Solo se dice cuando fue más de una, porque con una sola el número repite lo
@@ -215,18 +216,19 @@ function juntas(datos: Datos): string {
   return cuantas === null || cuantas <= 1 ? "" : `${cuantas} en pantalla a la vez`;
 }
 
-/** «paró 3 veces» y, si el evento la trae, cuánto duró la más larga. */
-function paradas(pausas: number, datos: Datos): string {
-  const veces = `paró ${pausas} ${pausas === 1 ? "vez" : "veces"}`;
-  const mayor = numero(datos.max_pause_ms);
-  // Dicho entero y no «hasta 9 s»: las partes del detalle van separadas por
-  // comas, así que un dato suelto al lado de otro se lee como uno más de la
-  // lista y no como la aclaración del anterior.
-  return mayor === null || mayor <= 0 ? veces : `${veces}, la más larga de ${duracion(mayor)}`;
+/**
+ * «1 tecla presionada», «31 teclas presionadas». Con el participio: «pregunta 2, 1 tecla» quedaba
+ * suelto y los docentes de la ronda 3 no sabían qué contaba.
+ */
+function teclas(n: number): string {
+  return n === 1 ? "1 tecla presionada" : `${n.toLocaleString("es-AR")} teclas presionadas`;
 }
 
 /**
- * Con qué apunta el equipo del alumno.
+ * Desde qué clase de equipo abrió el examen: «una computadora», «un celular o
+ * una tableta». Es lo que un docente entiende de los tres campos de punteros;
+ * «equipo sin pantalla táctil» o «apunta con mouse o trackpad» eran el dato
+ * técnico sin la conclusión obvia.
  *
  * `is_touch` da verdadero en cualquier notebook con pantalla táctil, así que no
  * distingue una tablet. El puntero principal y si hay alguno fino sí, y son dos
@@ -236,37 +238,87 @@ function paradas(pausas: number, datos: Datos): string {
  * —puntero principal fino— repetir «tiene mouse o trackpad» es el mismo hecho
  * dos veces, y son cuarenta renglones los que lo pagan.
  */
-function punteros(datos: Datos): string[] {
+function equipo(datos: Datos): string {
   const grueso = typeof datos.pointer_coarse === "boolean" ? datos.pointer_coarse : null;
   const fino = typeof datos.any_pointer_fine === "boolean" ? datos.any_pointer_fine : null;
+  const tactil = typeof datos.is_touch === "boolean" ? datos.is_touch : null;
 
-  // Un equipo sin pantalla táctil no puede apuntar con el dedo, así que decir
-  // además «apunta con mouse o trackpad» es el mismo hecho escrito dos veces,
-  // y es el caso de casi todas las sesiones. Con pantalla táctil sí distinguen:
-  // ahí el puntero principal es lo que separa una tablet de una notebook.
-  if (datos.is_touch === false && grueso !== true) return [];
+  // Los dos campos de punteros juntos pueden decir cosas que no se sostienen
+  // entre sí: un puntero principal que no es grueso, y a la vez ningún puntero
+  // fino en todo el equipo. Ahí no se elige cuál creer: no se dice nada.
+  if (grueso === false && fino === false) return "";
 
-  // Los dos campos juntos pueden decir cosas que no se sostienen entre sí: un
-  // puntero principal que no es grueso, y a la vez ningún puntero fino en todo
-  // el equipo. Ahí el par no afirma nada y la frase salía contradiciéndose sola
-  // («apunta con mouse o trackpad, sin mouse ni trackpad»). No se elige cuál de
-  // los dos creer: no se dice ninguno.
-  if (grueso === false && fino === false) return [];
-
-  if (grueso === null) {
-    if (fino === null) return [];
-    return [fino ? "tiene mouse o trackpad" : "sin mouse ni trackpad"];
+  // Con el dedo como puntero principal es un celular o una tableta; que además
+  // tenga uno fino es el mouse conectado, un dato aparte.
+  if (grueso === true) {
+    if (tactil === false) return "";
+    return fino === true ? "un celular o una tableta, con mouse o trackpad" : "un celular o una tableta";
   }
-
-  if (!grueso) return ["apunta con mouse o trackpad"];
-
-  // Con el dedo como puntero principal, que además haya uno fino es un dato
-  // aparte y no una repetición: es la tablet con un mouse conectado.
-  const conDedo = ["apunta con el dedo"];
-  return fino === true ? [...conDedo, "tiene mouse o trackpad"] : conDedo;
+  // `is_touch` da verdadero en cualquier notebook con pantalla táctil: con un
+  // puntero principal fino, es una computadora.
+  if (tactil === true) return grueso === false ? "una computadora con pantalla táctil" : "un equipo con pantalla táctil";
+  // Las tres ramas a propósito: con una sola comparación, el campo ausente
+  // afirmaba algo que el evento no trae.
+  if (tactil === false || grueso === false) return "una computadora";
+  return fino === true ? "un equipo con mouse o trackpad" : "";
 }
 
-export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripcion {
+/**
+ * El largo de un texto copiado o pegado, en palabras: «unas 50 palabras».
+ *
+ * «301 caracteres» era justo la palabra que los docentes no entendían, y no les
+ * decía cuánto era. Una palabra en castellano son unas seis letras contando el
+ * espacio, así que es una cuenta aproximada y lo dice («unas»). No es un umbral:
+ * no esconde ni elige nada, cambia la unidad del mismo dato.
+ */
+function palabras(letras: number): string {
+  if (letras <= 0) return "";
+  const n = Math.max(1, Math.round(letras / 6));
+  return n === 1 ? "alrededor de una palabra" : `unas ${n.toLocaleString("es-AR")} palabras`;
+}
+
+/**
+ * Lo que una fila sabe de las de al lado. Hoy, solo cuánto estuvo cortada la conexión, para la fila de
+ * la vuelta (ver `cortesDeConexion`).
+ */
+export interface Contexto {
+  cortadaMs?: number;
+}
+
+/**
+ * Cuánto estuvo cortada la conexión, para cada evento de vuelta: `id` de la vuelta → milisegundos.
+ *
+ * El aviso del corte no puede salir mientras no hay conexión: llega junto con el de la vuelta, en el mismo
+ * envío, y en el registro los dos quedaban con la misma hora del servidor. Así, «Se cortó la conexión» y
+ * «Volvió la conexión» en el mismo segundo se leían como una falla del sistema (ronda 3). La duración no
+ * sale de la hora del servidor, que en este caso mide la cola del navegador: sale de las dos horas del
+ * reloj del alumno, que pueden estar corridas pero se corren igual, así que la resta vale. Es la
+ * duración de un solo corte, como el tiempo afuera que trae cada vuelta a la ventana, y nunca una suma.
+ *
+ * Empareja cada vuelta con el corte anterior del mismo origen, en el orden en que se generaron (`seq`).
+ * Una vuelta sin corte antes, o con una resta imposible, no lleva duración.
+ */
+export function cortesDeConexion(eventos: ReadonlyArray<Pick<Evento, "id" | "seq" | "type" | "data" | "occurred_at">>): Map<number, number> {
+  const cortes = new Map<number, number>();
+  const abiertos = new Map<string, number>();
+  const enOrden = eventos.filter((e) => e.type === "connection").sort((a, b) => a.seq - b.seq);
+  for (const e of enOrden) {
+    const d: Datos = e.data && typeof e.data === "object" ? e.data : {};
+    if (typeof d.online !== "boolean" || typeof d.source !== "string") continue;
+    const hora = Date.parse(e.occurred_at);
+    if (!Number.isFinite(hora)) continue;
+    if (!d.online) {
+      abiertos.set(d.source, hora);
+      continue;
+    }
+    const desde = abiertos.get(d.source);
+    abiertos.delete(d.source);
+    if (desde !== undefined && hora >= desde) cortes.set(e.id, hora - desde);
+  }
+  return cortes;
+}
+
+export function describirEvento(evento: Pick<Evento, "type" | "data">, contexto: Contexto = {}): Descripcion {
   const d: Datos = evento.data && typeof evento.data === "object" ? evento.data : {};
 
   switch (evento.type) {
@@ -277,20 +329,18 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       // FxiOS, y ninguno matchea. Traducirlo es lo mismo que se hace con el
       // identificador negativo de una sesión que no se pudo descifrar. Que el
       // campo no venga, en cambio, no habilita a decir nada.
+      //
+      // «Abrió el examen · desde una computadora, con Chrome»: sin la versión
+      // del navegador ni «equipo sin pantalla táctil», que son datos técnicos
+      // (ronda 2 de los docentes). La versión sigue guardada.
       const familia = typeof d.browser_family === "string" ? d.browser_family : "";
-      const navegador = familia === "Other" ? "" : familia;
-      const version = numero(d.browser_major);
+      const desdeDonde = equipo(d);
       return {
         icono: Navegador,
-        titulo: "Navegador del alumno",
+        titulo: "Abrió el examen",
         detalle: unir([
-          familia === "Other" && "navegador no identificado",
-          navegador && version ? `${navegador} ${version}` : navegador,
-          // Las tres ramas a propósito: con una sola comparación, el campo
-          // ausente afirmaba que el equipo no tiene pantalla táctil, que es un
-          // hecho que el evento no trae.
-          d.is_touch === true ? "equipo con pantalla táctil" : d.is_touch === false ? "equipo sin pantalla táctil" : "",
-          ...punteros(d),
+          desdeDonde && `desde ${desdeDonde}`,
+          familia === "Other" ? "con un navegador que no se pudo identificar" : familia && `con ${familia}`,
         ]),
       };
     }
@@ -348,7 +398,6 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       const pegadas = numero(origen.paste) ?? 0;
       const arrastradas = numero(origen.drop) ?? 0;
       const reemplazadas = numero(origen.replacement) ?? 0;
-      const pausas = numero(d.pauses) ?? 0;
       // Cada origen con su verbo, en vez de un total y un paréntesis que hay
       // que restar: «120 entradas (1 pegada)» obliga a hacer la cuenta para
       // saber cuánto escribió de verdad, y «entrada» no es una palabra que un
@@ -356,22 +405,29 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       // tecleado; si no viene, se cae al total.
       const tecleadas = numero(origen.typed);
       const desglosado = (tecleadas ?? 0) + pegadas + arrastradas + reemplazadas > 0;
+      // Lo pegado no se nombra: la fila del pegado, en el mismo segundo, ya lo dice con su largo, y «Escribió ·
+      // pegó un texto» al lado de «Pegó un texto» se leía como dos pegados (ronda 3). Si en el tramo solo entró
+      // lo pegado, la fila no dice «Escribió», que contradecía a la de al lado: dice que la respuesta cambió.
+      //
+      // Sin las pausas ni el rato sin escribir de antes («hizo 1 pausa de 3 segundos», «después de 6 segundos
+      // sin escribir»): los docentes de la ronda 3 no sabían leer esos números, y para decidir les alcanza con
+      // saber en qué pregunta escribió y cuánto. Siguen guardados y los lee el motor de análisis.
+      const soloPegado =
+        desglosado && pegadas > 0 && (tecleadas ?? 0) === 0 && arrastradas === 0 && reemplazadas === 0 && borrados === 0;
       return {
         icono: Teclado,
-        titulo: "Tecleo",
+        titulo: soloPegado ? "Cambió la respuesta" : "Escribió",
         detalle: unir([
           pregunta(d),
           desglosado
             ? unir([
-                (tecleadas ?? 0) > 0 && plural(tecleadas ?? 0, "tecla", "teclas"),
-                pegadas > 0 && `${plural(pegadas, "pegada", "pegadas")}`,
-                arrastradas > 0 && `${plural(arrastradas, "arrastrada", "arrastradas")}`,
-                reemplazadas > 0 && `${plural(reemplazadas, "autocompletada", "autocompletadas")}`,
+                (tecleadas ?? 0) > 0 && teclas(tecleadas ?? 0),
+                arrastradas > 0 &&
+                  (arrastradas === 1 ? "arrastró un texto" : `arrastró ${plural(arrastradas, "texto", "textos")}`),
+                reemplazadas > 0 && plural(reemplazadas, "palabra autocompletada", "palabras autocompletadas"),
               ])
             : inserciones > 0 && plural(inserciones, "entrada de texto", "entradas de texto"),
-          borrados > 0 && plural(borrados, "borrado", "borrados"),
-          pausas > 0 && paradas(pausas, d),
-          desde(d),
+          borrados > 0 && (borrados === 1 ? "borró una vez" : `borró ${borrados.toLocaleString("es-AR")} veces`),
         ]),
       };
     }
@@ -388,7 +444,8 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       // - Sin movimientos (`moves: 0`), es el aviso de que el mouse quedó quieto:
       //   sale una sola vez, al pasar los 15 s que el complemento considera
       //   quietud, y cuenta desde el último movimiento real, que puede ser de
-      //   antes del tramo. Por eso ahí se escribe «desde hace».
+      //   antes del tramo. Se escribe igual, «1 minuto y 16 segundos sin
+      //   mover»: «sin movimiento desde hace…» se leía raro en algo que ya pasó.
       //
       // El largo del tramo (`window_ms`) no se muestra: es un dato de cómo
       // resume el complemento, no del examen.
@@ -401,24 +458,23 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       // en el mismo renglón que la pausa del tramo, y distinguir una de otra
       // obliga a saber que el complemento resume de a tramos, que es justo lo
       // que se decidió no pedirle al docente. El dato sigue guardado y lo lee
-      // el motor de análisis. En el tecleo sí se muestra (ver `desde()`)
-      // porque ahí es lo único que dice cuánto se dejó de escribir en una
-      // pregunta.
+      // el motor de análisis. En el tecleo tampoco se muestra desde la ronda 3.
       //
       // Y si `moves` no es un número, no se dice «sin movimiento»: eso
       // afirmaría que el alumno no movió el mouse, cuando lo único que pasa es
       // que el dato no sirve.
-      const detalle =
-        movimientos === null
-          ? rato
-            ? `${rato} sin mover`
-            : ""
-          : movimientos === 0
-            ? rato
-              ? `sin movimiento desde hace ${rato}`
-              : "sin movimiento"
-            : unir([plural(movimientos, "movimiento", "movimientos"), rato && `${rato} sin mover`]);
-      return { icono: Raton, titulo: "Mouse", detalle };
+      //
+      // Con movimientos, la fila no lleva detalle (ronda 3): «3 movimientos, 4 segundos sin mover» ocupaba media
+      // tabla y no le decía nada al docente. Cuántos movimientos hubo y la pausa dentro del tramo siguen
+      // guardados. Un rato largo quieto no se pierde: tiene su propia fila, «El mouse quedó quieto», con cuánto.
+      if (movimientos === 0) {
+        return { icono: Raton, titulo: "El mouse quedó quieto", detalle: rato ?? "" };
+      }
+      return {
+        icono: Raton,
+        titulo: "Movimiento del mouse",
+        detalle: movimientos === null && rato ? `${rato} sin mover` : "",
+      };
     }
     case "mouse_leave":
       return { icono: ArrowUpRight, titulo: "El mouse salió del área del examen", detalle: "" };
@@ -434,20 +490,24 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
 
     case "question_time": {
       const ms = numero(d.ms);
+      // Negativo es imposible y el backend no mira adentro de `data`.
+      // `duracion()` lo mostraba como «menos de un segundo», que es afirmar un
+      // tiempo que el dato no sostiene; callarlo es más honesto.
+      const tiempo = ms === null || ms < 0 ? "" : duracion(ms);
+      const cual = pregunta(d);
       return {
         icono: Cronometro,
-        // «A la vista» y no «tiempo en la pregunta», por dos motivos. Uno: el
-        // complemento mide cuánto estuvo VISIBLE en pantalla, no cuánto le
-        // dedicó el alumno. Dos: el evento sale como mucho cada minuto y ahí
-        // reinicia su cuenta, así que cada fila es un tramo y no el total;
-        // cuatro filas seguidas de la misma pregunta son cuatro tramos.
-        titulo: "Tiempo a la vista",
+        // «Tiempo en una pregunta» y no «Tiempo a la vista», que no se
+        // entendía. El complemento mide cuánto estuvo la pregunta en pantalla,
+        // y el evento sale como mucho cada minuto y ahí reinicia su cuenta, así
+        // que cada fila es un tramo y no el total: cuatro filas seguidas de la
+        // misma pregunta son cuatro tramos.
+        titulo: "Tiempo en una pregunta",
         detalle: unir([
-          pregunta(d),
-          // Negativo es imposible y el backend no mira adentro de `data`.
-          // `duracion()` lo mostraba como «menos de 1 s», que es afirmar un
-          // tiempo que el dato no sostiene; callarlo es más honesto.
-          ms === null || ms < 0 ? "" : duracion(ms),
+          // «sumó 47 segundos en la pregunta 5»: «sumó» dice que es un tramo que se agrega a los anteriores de la
+          // misma pregunta y no el total. Con «1 minuto en la pregunta 5» repetido en filas seguidas, los docentes
+          // de la ronda 3 no sabían si era un acumulado o un tramo.
+          tiempo && cual ? `sumó ${tiempo} en la ${cual}` : tiempo ? `sumó ${tiempo}` : cual,
           // Cuántas preguntas había en pantalla en ese tramo. Con más de una,
           // el mismo segundo se le suma entero a cada una: el número está para
           // que eso se vea, no para que el panel lo reparta por su cuenta.
@@ -465,10 +525,12 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
         : d.action === "cut" ? "Cortó"
         : d.action === "copy" ? "Copió"
         : "Usó";
-      const accion = d.action === "paste" ? "Pegó desde el portapapeles"
-        : d.action === "cut" ? "Cortó al portapapeles"
-        : d.action === "copy" ? "Copió al portapapeles"
-        : "Usó el portapapeles";
+      // Sin «portapapeles», que es una palabra técnica: «Pegó un texto». Lo
+      // copiado sale de la propia página, y por eso lo dice («del examen»).
+      const accion = d.action === "paste" ? "Pegó un texto"
+        : d.action === "cut" ? "Cortó un texto"
+        : d.action === "copy" ? "Copió un texto del examen"
+        : "Copió o pegó un texto";
       const largo = numero(d.length);
       // Pegar un archivo o una imagen no es texto y no tiene largo.
       if (d.non_text === true) {
@@ -480,7 +542,7 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
         titulo: accion,
         detalle: unir([
           pregunta(d),
-          largo === null ? "" : plural(largo, "carácter", "caracteres"),
+          largo === null ? "" : palabras(largo),
         ]),
       };
     }
@@ -506,41 +568,30 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       };
     }
 
-    case "resize": {
-      const ancho = numero(d.w);
-      const alto = numero(d.h);
-      // Los píxeles, escritos. «1280 × 720» son dos números sin decir de qué,
-      // y la cruz de multiplicar no todos los lectores de pantalla la
-      // pronuncian: quedaba «mil doscientos ochenta setecientos veinte».
-      //
-      // Y si llegó un solo lado se muestra ese: descartar los dos sería
-      // esconder un dato que sí está por culpa de otro que falta.
-      const medidas =
-        ancho !== null && alto !== null
-          ? `${ancho} por ${alto} píxeles`
-          : ancho !== null
-            ? `${ancho} píxeles de ancho`
-            : alto !== null
-              ? `${alto} píxeles de alto`
-              : "";
-      // El primero de cada sesión no lo hizo el alumno: es el tamaño con el que arrancó.
+    case "resize":
+      // Sin los píxeles: «1360 por 860 píxeles» es un dato técnico que no le
+      // sirve al docente para corregir, y para entenderlo hay que saber el
+      // tamaño de la pantalla del alumno, que el evento no trae. Se guardan y
+      // los lee el motor de análisis. El primero de cada sesión no lo hizo el
+      // alumno: es la ventana con la que arrancó.
       return {
         icono: Marco,
-        titulo: d.initial === true ? "Tamaño de la ventana al empezar" : "Cambió el tamaño de la ventana",
-        detalle: medidas,
+        // «Ventana del examen al empezar» no decía qué se había registrado.
+        titulo: d.initial === true ? "Se registró el tamaño de la ventana" : "Cambió el tamaño de la ventana",
+        detalle: "",
       };
-    }
 
     case "capture_status":
       // Lo genera el servidor de Moodle, no el navegador del alumno: es lo único que puede
-      // afirmar que la captura no estuvo.
+      // afirmar que la captura no estuvo. Sin «captura» ni «JavaScript» en pantalla: el docente
+      // lee qué no quedó registrado y por qué, con palabras de todos los días.
       return {
         icono: SinNada,
-        titulo: "La captura no estuvo activa",
+        titulo: "No se registró lo que hizo en una página",
         detalle:
           d.state === "js_disabled"
-            ? "una página del examen se cargó con JavaScript desactivado"
-            : "una página del examen se cargó y la captura no arrancó",
+            ? "el navegador tenía apagada una opción que hace falta para registrar"
+            : "la página se abrió, pero no se empezó a registrar",
       };
 
     case "connection": {
@@ -557,8 +608,9 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       // - `send`: fallaron varios envíos seguidos, o volvieron a salir. La
       //   falla puede ser del alumno, pero también de Moodle o del servidor de
       //   SAMCE con el alumno conectado, así que escribir «Se perdió la
-      //   conexión» le atribuiría un corte que el dato no sostiene. Se cuenta
-      //   lo que sí se sabe: que los eventos no se pudieron enviar.
+      //   conexión» le atribuiría un corte que el dato no sostiene. Se dice
+      //   «Se cortó la conexión», sin decir de quién: «No se pudieron enviar
+      //   los eventos» hablaba del monitoreo y sonaba a falla (ronda 2).
       //
       // El `source` no se escribe: solo elige el
       // nombre. Si no llega, o llega un valor que el complemento no manda, no
@@ -572,14 +624,16 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
               : "Se perdió la conexión"
             : d.source === "send"
               ? volvio
-                ? "Se reanudó el envío"
-                : "No se pudieron enviar los eventos"
+                ? "Volvió la conexión"
+                : "Se cortó la conexión"
               : "Conexión";
-      // Con el rótulo neutro, el icono tampoco se inclina.
+      // Con el rótulo neutro, el icono tampoco se inclina. La vuelta dice cuánto duró el corte, si se sabe:
+      // «estuvo cortada menos de un segundo».
+      const cortada = contexto.cortadaMs;
       return {
         icono: titulo === "Conexión" ? Broadcast : volvio ? Wifi : WifiCortado,
         titulo,
-        detalle: "",
+        detalle: volvio === true && cortada !== undefined && cortada >= 0 ? `estuvo cortada ${duracion(cortada)}` : "",
       };
     }
 

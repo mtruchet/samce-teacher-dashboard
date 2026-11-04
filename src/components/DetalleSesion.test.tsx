@@ -35,13 +35,13 @@ describe("DetalleSesion", () => {
     const filas = screen.getAllByRole("row").slice(1);
     expect(filas).toHaveLength(2);
     expect(filas[0]).toHaveTextContent("Pegó");
-    expect(filas[0]).toHaveTextContent("pregunta 1 (ensayo), 340 caracteres");
+    expect(filas[0]).toHaveTextContent("pregunta 1, unas 57 palabras");
     expect(filas[1]).toHaveTextContent("Pasó a otra ventana");
     // Quién es el alumno lo dice el título de la pantalla, no esta vista, con
     // o sin nombre. El estado sí, porque es lo único que cambia solo.
     expect(screen.queryByText("Ana Gómez")).not.toBeInTheDocument();
     expect(screen.queryByText(/Alumno 41/)).not.toBeInTheDocument();
-    expect(screen.getByText("rindiendo ahora")).toBeInTheDocument();
+    expect(screen.getByText("Rindiendo ahora")).toBeInTheDocument();
   });
 
   it("el análisis de la sesión va en su apartado, aparte del registro de eventos", async () => {
@@ -60,7 +60,7 @@ describe("DetalleSesion", () => {
     await esperar();
 
     const analisis = screen.getByRole("region", { name: "Análisis de la sesión" });
-    expect(analisis).toHaveTextContent("Nivel alto");
+    expect(analisis).toHaveTextContent("Riesgo alto");
     expect(analisis).toHaveTextContent("Se pegó un bloque de 4.370 caracteres.");
     // El registro sigue siendo solo lo que pasó: la alerta no entra en su tabla.
     const registro = screen.getByRole("heading", { name: "Registro de eventos" }).closest("section");
@@ -139,7 +139,7 @@ describe("DetalleSesion", () => {
     await esperar(15000);
     // La de hace una hora se consulta una sola vez; la reciente siguió sus consultas.
     expect(traer.mock.calls.filter(([, sesion]) => sesion === 9)).toHaveLength(1);
-    expect(screen.getAllByText("entregó")).toHaveLength(2);
+    expect(screen.getAllByText("Entregó")).toHaveLength(2);
   });
 
   it("al cerrarse la sesión conserva lo mostrado, pide solo lo que falta y deja de preguntar", async () => {
@@ -184,7 +184,7 @@ describe("DetalleSesion", () => {
 
     traer.mockResolvedValueOnce([evento(1, "capture_status", { state: "js_disabled" })]);
     await esperar(5000);
-    expect(screen.getByText("La captura no estuvo activa")).toBeInTheDocument();
+    expect(screen.getByText("No se registró lo que hizo en una página")).toBeInTheDocument();
 
     // Llegó: deja de preguntar y avisa que el registro ya no se actualiza.
     await esperar(30_000);
@@ -205,7 +205,7 @@ describe("DetalleSesion", () => {
     rerender(<DetalleSesion sesion={{ ...cerrada, capture: { state: "no_start" } }} onVencida={nada} />);
     await esperar();
     expect(traer).toHaveBeenCalledTimes(2);
-    expect(screen.getByText("La captura no estuvo activa")).toBeInTheDocument();
+    expect(screen.getByText("No se registró lo que hizo en una página")).toBeInTheDocument();
     await esperar(30_000);
     expect(traer).toHaveBeenCalledTimes(2);
   });
@@ -280,8 +280,10 @@ describe("DetalleSesion", () => {
     // «abandoned» es justo lo que no se entregó. La lista, del mismo dato,
     // dice «sin entregar»: dos pantallas del mismo registro no pueden
     // contradecirse.
-    expect(screen.getByText("sin entregar")).toBeInTheDocument();
-    expect(screen.queryByText("entregó")).not.toBeInTheDocument();
+    expect(screen.getByText("Sin entregar")).toBeInTheDocument();
+    expect(screen.queryByText("Entregó")).not.toBeInTheDocument();
+    // Sin duración, como en la lista: el cierre de un abandono no es cuándo dejó de rendir.
+    expect(screen.queryByText(/Duró/)).not.toBeInTheDocument();
   });
 
   it("junta varias páginas cuando la sesión tiene más eventos que los que entran en una", async () => {
@@ -321,7 +323,8 @@ describe("DetalleSesion", () => {
     // <time>, no su `datetime`. Con las aserciones puestas sobre los atributos,
     // cambiar la línea a `occurred_at` mostraba el reloj del alumno —el que el
     // proyecto declara no confiable— y la suite seguía en verde.
-    const hora = document.querySelector("time");
+    // La de la tabla: la ficha de arriba también tiene una hora, la del comienzo.
+    const hora = document.querySelector(".eventos time");
     expect(hora).toHaveTextContent(horaExacta("2026-09-21T14:00:00.000Z"));
     expect(hora?.getAttribute("datetime")).toBe("2026-09-21T14:00:00.000Z");
     expect(hora?.getAttribute("title")).toBe(`Según el reloj del alumno: ${horaExacta("2026-09-21T13:00:00.000Z")}`);
@@ -388,7 +391,66 @@ describe("DetalleSesion", () => {
     );
     expect(filas[2]).toHaveTextContent("Pasó a otra ventana");
     // Y el silencio no se cuenta como un evento más.
-    expect(screen.getByText("2", { selector: ".lista__cuenta" })).toBeInTheDocument();
+    expect(screen.getByText("2 eventos", { selector: ".lista__cuenta" })).toBeInTheDocument();
+  });
+
+  it("la ficha dice si entregó, qué intento es, cuándo empezó y cuánto duró, en una sola fila", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
+    const entregada = {
+      ...SESION, intento: 5, intentos: 5, status: "closed" as const,
+      started_at: "2026-11-03T12:11:33Z", closed_at: "2026-11-03T12:27:46Z",
+    };
+
+    const { container } = render(<DetalleSesion sesion={entregada} onVencida={nada} />);
+    await esperar();
+
+    const ficha = container.querySelector(".detalle__sesion") as HTMLElement;
+    expect(within(ficha).getByText("Entregó")).toBeInTheDocument();
+    expect(ficha).toHaveTextContent("Intento 5 de 5");
+    // Con la fecha: con varios parciales, la hora sola no decía qué día (ronda 3).
+    const dia = new Date("2026-11-03T12:11:33Z").toLocaleDateString("es-AR", { day: "numeric", month: "numeric", year: "numeric" });
+    expect(dia).toMatch(/^\d{1,2}\/11\/2026$/);
+    expect(ficha).toHaveTextContent(`Empezó el ${dia} a las ${horaCorta("2026-11-03T12:11:33Z")}`);
+    // El estado, como una etiqueta.
+    expect(within(ficha).getByText("Entregó")).toHaveClass("detalle__estado");
+    // La misma duración que la lista de sesiones, con el mismo componente.
+    expect(ficha).toHaveTextContent("Duró 16 min");
+    // El estado una sola vez: ya no hay un segundo rótulo que lo repita con otras palabras.
+    expect(screen.getAllByText("Entregó")).toHaveLength(1);
+  });
+
+  it("con un solo intento no dice qué intento es, y abierta no dice cuánto duró", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
+    const { container } = render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    const ficha = container.querySelector(".detalle__sesion") as HTMLElement;
+    expect(ficha).not.toHaveTextContent(/Intento/);
+    expect(ficha).not.toHaveTextContent(/Duró/);
+    expect(ficha).toHaveTextContent(/Empezó el \d{1,2}\/\d{1,2}\/\d{4} a las \d{2}:\d{2}/);
+  });
+
+  it("el encabezado del registro dice cuántos eventos hay y de qué hora a qué hora, sin segundos", async () => {
+    const primero = "2026-09-21T14:00:05.000Z";
+    const ultimo = "2026-09-21T14:03:55.000Z";
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
+      evento(1, "focus_lost", {}, { id: 1, received_at: primero, occurred_at: primero }),
+      evento(2, "focus_gained", {}, { id: 2, received_at: "2026-09-21T14:01:00.000Z", occurred_at: "2026-09-21T14:01:00.000Z" }),
+      evento(3, "mouse_leave", {}, { id: 3, received_at: ultimo, occurred_at: ultimo }),
+    ]);
+
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    const encabezado = screen.getByRole("heading", { name: "Registro de eventos" }).parentElement!;
+    expect(within(encabezado).getByText("3 eventos")).toBeInTheDocument();
+    expect(encabezado).toHaveTextContent(`3 eventos, de ${horaCorta(primero)} a ${horaCorta(ultimo)}`);
+    expect(encabezado.querySelector(".detalle__extremos")).toHaveTextContent(
+      `, de ${horaCorta(primero)} a ${horaCorta(ultimo)}`
+    );
+    expect(encabezado.textContent).not.toMatch(/\d{2}:\d{2}:\d{2}/);
+    // Y el orden se dice a la vista, no solo para los lectores de pantalla.
+    expect(screen.getByText("Lo más reciente va arriba.")).toBeInTheDocument();
   });
 
   it("aclara el número de intento cuando el alumno rindió más de una vez", async () => {
@@ -397,7 +459,7 @@ describe("DetalleSesion", () => {
     render(<DetalleSesion sesion={{ ...SESION, intento: 2, intentos: 2 }} onVencida={nada} />);
     await esperar();
 
-    expect(screen.getByText(/intento 2 de 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Intento 2 de 2/)).toBeInTheDocument();
   });
 
   // El panel se redibuja con cada respuesta de su propia consulta y le pasa a

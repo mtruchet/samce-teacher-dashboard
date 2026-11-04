@@ -9,11 +9,12 @@ import {
   type Evento,
   type SesionNumerada,
 } from "../services/sesionesService";
-import { horaExacta } from "../eventos";
+import { horaCorta } from "../eventos";
 import { recienCerrada } from "../seguimiento";
 
 import { AnalisisSesion } from "./AnalisisSesion";
 import { ListaEventos } from "./ListaEventos";
+import { Transcurrido } from "./Transcurrido";
 import "./ListaSesiones.css";
 import "./DetalleSesion.css";
 
@@ -56,22 +57,34 @@ import "./DetalleSesion.css";
 function esperaElAviso(captura: Captura["state"] | undefined, yaLlego: boolean): boolean {
   return (captura === "js_disabled" || captura === "no_start") && !yaLlego;
 }
+/** «3/11/2026». El día del examen, como lo escribe un docente. */
+function fechaCorta(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "numeric", year: "numeric" });
+}
+
+/** «194 eventos», «1 evento». */
+function cuentaDeEventos(n: number): string {
+  return n === 1 ? "1 evento" : `${n.toLocaleString("es-AR")} eventos`;
+}
+
 /** Tope de páginas por consulta, para que una sesión enorme no trabe el panel. */
 const PAGINAS_MAXIMAS = 20;
 
 /**
  * Cómo se llama en pantalla el estado de la sesión.
  *
- * Los tres que manda el backend, cada uno con su palabra. «sin entregar» es la
- * misma que usa la lista de sesiones: dos pantallas del mismo dato no pueden
- * decir cosas distintas. Un valor que este panel todavía no conozca no dice
- * nada, porque afirmar cualquiera de los polos es peor que no mostrar el rótulo.
+ * Los tres que manda el backend, cada uno con su palabra. Son las mismas que
+ * usa la lista de sesiones («sin entregar», «Rindiendo ahora», «Entregó»): dos
+ * pantallas del mismo dato no pueden decir cosas distintas. Van con mayúscula
+ * inicial porque encabezan la ficha. Un valor que este panel todavía no conozca
+ * no dice nada, porque afirmar cualquiera de los polos es peor que no mostrar
+ * el rótulo.
  */
 function estado(status: SesionNumerada["status"]): string {
   const nombres: Record<string, string> = {
-    open: "rindiendo ahora",
-    closed: "entregó",
-    abandoned: "sin entregar",
+    open: "Rindiendo ahora",
+    closed: "Entregó",
+    abandoned: "Sin entregar",
   };
   return nombres[status] ?? "";
 }
@@ -233,22 +246,34 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
 
   return (
     <div className="detalle">
-      {/* Quién es el alumno ya lo dicen el título de la pantalla y las migas.
-          Acá va lo que allá no entra, y nada más. El número del aula virtual no
-          está: en la tabla de sesiones se lee porque cuelga del nombre, y acá
-          quedaba suelto debajo del título, repitiéndolo cuando el alumno no
-          tiene nombre y sin decir nada cuando sí lo tiene. El estado va
-          apartado a la derecha porque es lo único que cambia solo mientras la
-          pantalla está abierta. */}
+      {/* La ficha de la sesión. Quién es el alumno ya lo dicen el título de la
+          pantalla y las migas; acá va lo que allá no entra, en una sola fila:
+          si entregó, qué intento es, cuándo empezó y cuánto duró. El número
+          del aula virtual no está: en la tabla de sesiones se lee porque
+          cuelga del nombre, y acá quedaba suelto debajo del título. La
+          duración no es un dato nuevo: es la misma que muestra la lista, con
+          el mismo componente. Un intento sin entregar no la lleva, por lo
+          mismo que en la lista: su cierre es cuando Moodle procesó el
+          abandono, no cuando el alumno dejó de rendir. */}
       <div className="detalle__sesion">
-        <span className="detalle__datos">
-          {sesion.intentos > 1 ? (
-            <span className="cifra">intento {sesion.intento} de {sesion.intentos}</span>
-          ) : null}
-        </span>
         {rotulo ? (
           <span className={abierta ? "detalle__estado detalle__estado--vivo" : "detalle__estado"}>
             {rotulo}
+          </span>
+        ) : null}
+        {sesion.intentos > 1 ? (
+          <span className="detalle__dato cifra">Intento {sesion.intento} de {sesion.intentos}</span>
+        ) : null}
+        {/* Con la fecha (ronda 3): con varios parciales, «Empezó a las 09:11» no decía qué día. */}
+        <span className="detalle__dato">
+          Empezó el{" "}
+          <time className="cifra" dateTime={sesion.started_at}>
+            {fechaCorta(sesion.started_at)} a las {horaCorta(sesion.started_at)}
+          </time>
+        </span>
+        {sesion.status === "closed" && sesion.closed_at ? (
+          <span className="detalle__dato">
+            Duró <Transcurrido inicio={sesion.started_at} cierre={sesion.closed_at} />
           </span>
         ) : null}
       </div>
@@ -281,17 +306,23 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
 
       <AnalisisSesion sesion={sesion} onVencida={onVencida} />
 
-      <section className="lista" aria-labelledby="registro-de-eventos-titulo">
+      {/* El registro va en una lámina más liviana que la del análisis: el ojo
+          tiene que caer primero en el análisis, y el registro queda para
+          ubicar un momento. */}
+      <section className="lista detalle__registro" aria-labelledby="registro-de-eventos-titulo">
         <header className="lista__encabezado">
           <h2 className="lista__titulo" id="registro-de-eventos-titulo">Registro de eventos</h2>
-          {recibido ? <span className="lista__cuenta cifra">{eventos.length}</span> : null}
+          {recibido ? <span className="lista__cuenta cifra">{cuentaDeEventos(eventos.length)}</span> : null}
           {/* Los dos extremos son las marcas temporales de las filas de las
               puntas, no una medida de la sesión: dicen hasta dónde llega el
               registro, que es lo que hace falta para saber si lo que se está
-              mirando está completo. */}
+              mirando está completo. Sin segundos: las filas los tienen. */}
           {primerEvento ? (
             <span className="detalle__extremos cifra">
-              de {horaExacta(primerEvento.received_at)} a {horaExacta(ultimoEvento.received_at)}
+              <span className="detalle__punto" aria-hidden="true">, </span>
+              {eventos.length === 1
+                ? `a las ${horaCorta(primerEvento.received_at)}`
+                : `de ${horaCorta(primerEvento.received_at)} a ${horaCorta(ultimoEvento.received_at)}`}
             </span>
           ) : null}
         </header>

@@ -1,45 +1,45 @@
-/* El apartado «Análisis de la sesión»: una lámina aparte del registro de eventos, con las
-   alertas vigentes. Los tres niveles usan las tres superficies de nivel del sistema y,
-   además del color, llevan su nombre escrito: el color solo no alcanza para quien no lo
-   distingue. */
+/* El apartado «Análisis de la sesión»: la lámina principal del detalle, arriba del registro.
+   Pesa más que el registro (blanca y con sombra, sobre el fondo del panel) porque es lo primero
+   que el docente tiene que leer. Adentro, el veredicto arriba y una tarjeta por alerta.
+
+   Los textos de lectura van en los pasos del sitio y no en los del panel: son frases que el
+   docente lee enteras, no datos de una tabla. */
 .analisis {
   display: grid;
-  gap: var(--e3);
-  padding: var(--e5) var(--e6);
+  gap: var(--e5);
+  padding: var(--e5) var(--e6) var(--e6);
   border-radius: var(--radio-lamina);
   background: var(--sup-1);
+  box-shadow: var(--anillo), var(--elev-1);
 }
 
 .analisis__encabezado {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--e4);
+  gap: var(--e1) var(--e4);
 }
 
 .analisis__titulo {
   margin: 0;
   font-size: var(--panel-pieza);
   font-weight: 600;
+  line-height: 1.25;
   color: var(--tinta);
 }
 
-/* La hora del último cálculo se va al final del encabezado, como la cuenta del registro:
-   precisa lo que se está mirando, no es el asunto de la lámina. */
-.analisis__calculo {
+/* La hora del último análisis se va al final del encabezado: precisa lo que se está mirando, no
+   es el asunto de la lámina. */
+.analisis__ultima {
   margin-left: auto;
   font-size: var(--panel-nota);
   color: var(--tinta-media);
-  white-space: nowrap;
 }
 
 .analisis__estado {
   margin: 0;
-  font-size: var(--panel-cuerpo);
+  font-size: var(--panel-nota);
   color: var(--tinta);
-}
-
-.analisis__motivo {
-  color: var(--tinta-media);
 }
 
 .analisis__aviso {
@@ -48,156 +48,266 @@
   border-radius: max(0px, calc(var(--radio-panel) - var(--e5)));
   background: var(--nivel-1-fondo);
   box-shadow: inset 0 0 0 1px var(--nivel-1-borde);
-  font-size: var(--panel-cuerpo);
+  font-size: var(--panel-nota);
   color: var(--nivel-1-tinta);
 }
 
+.analisis__region {
+  display: grid;
+  gap: var(--e5);
+}
+
+/* ==== El veredicto ===================================================== */
+
+/* Una frase grande con su ícono en un cuadro, con la misma forma en todos los estados: con alertas,
+   sin alertas y sin poder analizar se reconocen de un vistazo y pesan lo mismo. Nunca el color de un
+   nivel: el veredicto no es el nivel de la sesión (HU03). Neutro, sin verde ni rojo: el tilde dice que
+   se miró, no que el alumno «aprobó». */
+/* El ícono va arriba, a la altura del título, en todos los estados: centrado contra un bloque de tres
+   renglones quedaba más abajo que la frase (ronda 3). */
+.veredicto {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--e4);
+}
+
+.veredicto__icono {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radio-ficha);
+  background: var(--sup-3);
+  color: var(--tinta-media);
+}
+
+.veredicto__icono svg {
+  width: 36px;
+  height: 36px;
+}
+
+/* Sin alertas, el cuadro del ícono va en un verde suave: «todo bien» se distingue de un vistazo de «no se pudo
+   analizar», sin depender solo del texto (ronda 3). Es el único estado con color, y no es el de ningún nivel. */
+.veredicto--sin-alertas .veredicto__icono {
+  background: var(--veredicto-bien-fondo);
+  color: var(--veredicto-bien-tinta);
+}
+
+/* El primer renglón queda a la altura del centro del cuadro del ícono, y la bajada sigue debajo. */
+.veredicto__texto {
+  display: grid;
+  gap: var(--e1);
+  max-width: var(--medida);
+  padding-top: 13px;
+}
+
+.veredicto__frase {
+  margin: 0;
+  font-size: var(--panel-pieza);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--tinta);
+}
+
+.veredicto__bajada {
+  margin: 0;
+  font-size: var(--panel-fila);
+  line-height: 1.5;
+  color: var(--tinta-media);
+}
+
+/* ==== Las alertas ====================================================== */
+
 .analisis__alertas {
   display: grid;
-  gap: var(--e3);
+  gap: var(--e4);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* El nivel se lee en la palabra, en el medidor y en el borde izquierdo. El tono sube en calidez con el
+   nivel (azul petróleo, ocre, ámbar), y el alto se distingue por los tres segmentos llenos. Todas tienen
+   el mismo fondo y el mismo borde: el fondo tibio de la alta se leía como una condena (ronda 2), y el
+   terracota con el borde más grueso, también (ronda 3). La palabra va siempre escrita al lado, en
+   --tinta, para no depender del color. */
 .analisis__alerta {
   display: grid;
-  gap: var(--e2);
-  padding: var(--e4) var(--e5);
+  gap: var(--e4);
+  padding: var(--e6);
+  border-left: 4px solid var(--tono);
   border-radius: var(--radio-ficha);
+  background: var(--fondo, var(--sup-2));
+  color: var(--tinta);
 }
 
 .analisis__alerta--low {
-  --atenuada: var(--analisis-tinta-atenuada-low);
-  background: var(--nivel-1-fondo);
-  box-shadow: inset 0 0 0 1px var(--nivel-1-borde);
-  color: var(--nivel-1-tinta);
+  --tono: var(--alerta-tono-low);
 }
 
 .analisis__alerta--medium {
-  --atenuada: var(--analisis-tinta-atenuada-medium);
-  background: var(--nivel-2-fondo);
-  box-shadow: inset 0 0 0 1px var(--nivel-2-borde);
-  color: var(--nivel-2-tinta);
+  --tono: var(--alerta-tono-medium);
 }
 
 .analisis__alerta--high {
-  --atenuada: var(--analisis-tinta-atenuada-high);
-  background: var(--nivel-3-fondo);
-  box-shadow: inset 0 0 0 1px var(--nivel-3-borde);
-  color: var(--nivel-3-tinta);
+  --tono: var(--alerta-tono-high);
+}
+
+.analisis__cuerpo {
+  display: grid;
+  gap: var(--e3);
+  min-width: 0;
 }
 
 .analisis__cabeza {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--e2) var(--e4);
+  align-items: center;
+  gap: var(--e1) var(--e4);
+  min-height: 32px;
+  font-size: var(--panel-fila);
+  color: var(--tinta-media);
+}
+
+.analisis__rotulo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e1) var(--e2);
 }
 
 .analisis__nivel {
-  font-size: var(--panel-rotulo);
-  font-weight: 700;
-  letter-spacing: var(--track-rotulo);
-  text-transform: uppercase;
-}
-
-/* «desde las HH:MM»: junto al nivel, para que se vea que el texto de la alerta es de ese momento. */
-.analisis__desde {
-  font-size: var(--panel-nota);
   font-weight: 600;
+  color: var(--tinta);
 }
 
-.analisis__origen {
-  font-size: var(--panel-nota);
-  color: var(--atenuada);
+/* Una línea vertical fina entre el nivel y el origen, sin ningún carácter en el texto. */
+.analisis__separador {
+  display: inline-block;
+  width: 1px;
+  height: 1.1em;
+  margin: 0 var(--e2);
+  vertical-align: -0.2em;
+  background: var(--tinta-suave);
+  opacity: 0.5;
 }
 
-/* El titular es lo primero que se lee: pesa más que el resto de la tarjeta. */
-.analisis__titular {
-  margin: 0;
-  font-size: var(--panel-pieza);
-  font-weight: 600;
-  line-height: 1.35;
+/* El medidor: tres segmentos, llenos según el nivel, en el tono de la tarjeta. */
+.medidor {
+  display: inline-flex;
+  gap: 3px;
+  margin-right: var(--e1);
 }
 
-.analisis__detalle {
+/* El segmento vacío lleva el contorno y un relleno suave del tono de la tarjeta: con el contorno gris de
+   1 px, el nivel bajo parecía un control desactivado (ronda 2). */
+.medidor__segmento {
+  width: 16px;
+  height: 10px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--tono) 14%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--tono);
+}
+
+.medidor__segmento--lleno {
+  background: var(--tono);
+  box-shadow: inset 0 0 0 1px var(--tono);
+}
+
+/* El hecho es lo primero que se lee de la tarjeta: pesa más que todo lo demás. */
+.analisis__hecho {
+  max-width: var(--medida);
   margin: 0;
   font-size: var(--panel-cuerpo);
-  line-height: 1.5;
+  font-weight: 600;
+  line-height: 1.4;
+  text-wrap: pretty;
 }
 
-/* Las variables que más pesaron, en una tabla chica: qué se midió, qué pasó en esta sesión y qué
-   se espera. Sin bordes pesados: una línea fina entre filas, con el color del texto de la tarjeta
-   atenuado, para que funcione igual en los tres niveles. */
-.analisis__lista {
+/* «Lo que más llamó la atención»: un rótulo legible, no un sobretítulo chico. */
+.analisis__atencion {
   display: grid;
   gap: var(--e2);
   margin-top: var(--e1);
 }
 
-.analisis__leyenda {
+.analisis__subtitulo {
   margin: 0;
-  font-size: var(--panel-rotulo);
-  font-weight: 700;
-  letter-spacing: var(--track-rotulo);
-  text-transform: uppercase;
-  color: var(--atenuada);
-}
-
-.analisis__tabla {
-  width: 100%;
-  border-collapse: collapse;
   font-size: var(--panel-fila);
-}
-
-.analisis__tabla th,
-.analisis__tabla td {
-  padding: var(--e2) var(--e3) var(--e2) 0;
-  text-align: left;
-  vertical-align: baseline;
-  border-top: 1px solid color-mix(in srgb, currentColor 22%, transparent);
-}
-
-.analisis__tabla thead th {
-  padding-top: 0;
-  border-top: 0;
-  font-size: var(--panel-rotulo);
   font-weight: 600;
-  letter-spacing: var(--track-rotulo);
-  text-transform: uppercase;
-  color: var(--atenuada);
+  color: var(--tinta);
 }
 
-/* El nombre de la variable es el rótulo de la fila; lo observado va resaltado y lo esperado, atenuado. */
-.analisis__tabla tbody th {
-  font-weight: 500;
-}
-
-.analisis__tabla td:nth-child(2) {
-  font-weight: 700;
-}
-
-.analisis__tabla td:nth-child(3) {
-  color: var(--atenuada);
-}
-
-.analisis__viñetas {
+/* Las viñetas, con un punto igual para todas: sin íconos elegidos por palabras del texto. Un punto
+   más chicas que el hecho y con el interlineado más junto: acompañan al hecho, no son otro bloque del
+   mismo peso. */
+.analisis__lista {
+  display: grid;
+  gap: var(--e2);
+  max-width: var(--medida);
   margin: 0;
-  padding-left: var(--e5);
+  padding: 0;
+  list-style: none;
   font-size: var(--panel-cuerpo);
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
-/* La aclaración de que describe lo observado y no atribuye intención: discreta, al final. */
-.analisis__cierre {
-  margin: var(--e1) 0 0;
-  font-size: var(--panel-nota);
-  color: var(--atenuada);
+.analisis__lista li {
+  position: relative;
+  padding-left: var(--e5);
 }
 
+.analisis__lista li::before {
+  content: "";
+  position: absolute;
+  top: calc(0.75em - 3px);
+  left: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tinta-suave);
+}
+
+/* Las notas del motor (que la combinación es lo poco común, que la conexión no depende del
+   alumno): en línea, sin recuadro, con un ícono de información. */
 .analisis__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e2);
+  max-width: var(--medida);
   margin: 0;
-  font-size: var(--panel-nota);
-  color: var(--analisis-tinta-atenuada);
+  font-size: var(--panel-fila);
+  line-height: 1.5;
+  color: var(--tinta-media);
+}
+
+.analisis__nota svg {
+  flex: none;
+  margin-top: 0.3em;
+  color: var(--tinta-suave);
+}
+
+@media (max-width: 760px) {
+  .analisis {
+    padding: var(--e4);
+  }
+
+  .analisis__alerta {
+    padding: var(--e4);
+  }
+}
+
+@media (max-width: 640px) {
+  /* La hora baja a su propio renglón. */
+  .analisis__alerta {
+    gap: var(--e3);
+    padding: var(--e4);
+  }
+
+  .analisis__ultima {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
 }

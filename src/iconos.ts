@@ -28,6 +28,17 @@ export { CircleDashedIcon as SinNada } from "@phosphor-icons/react/dist/icons/Ci
    una cruz ni una alerta: dice que quedó incompleto, no que algo esté mal. */
 export { FileDashedIcon as SinEntregar } from "@phosphor-icons/react/dist/icons/FileDashed";
 export { CheckIcon as Check } from "@phosphor-icons/react/dist/icons/Check";
+/* Las notas del motor dentro de una alerta: información, no advertencia. */
+export { InfoIcon as Info } from "@phosphor-icons/react/dist/icons/Info";
+/* El veredicto del análisis de la sesión. Ninguno de la familia de advertencia
+   ni de color: el ojo dice que hay algo para mirar; el reloj, que todavía no se
+   analizó; el círculo con raya, que no se pudo analizar. */
+export { ClockIcon as Reloj } from "@phosphor-icons/react/dist/icons/Clock";
+export { ProhibitIcon as NoSePudo } from "@phosphor-icons/react/dist/icons/Prohibit";
+/* El origen de una alerta: capas para la de toda la sesión, alfiler para la de
+   un momento. Salen del campo `origin`, nunca del texto. */
+export { StackIcon as Capas } from "@phosphor-icons/react/dist/icons/Stack";
+export { MapPinIcon as Alfiler } from "@phosphor-icons/react/dist/icons/MapPin";
 export { WarningIcon as Warning } from "@phosphor-icons/react/dist/icons/Warning";
 export { WarningCircleIcon as WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
 export { CaretDownIcon as CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";

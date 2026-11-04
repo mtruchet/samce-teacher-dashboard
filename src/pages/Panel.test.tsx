@@ -37,7 +37,7 @@ const EXAMEN: sesionesService.ExamenMonitoreado = {
 };
 
 const EN_VIVO = /En vivo, se actualiza en/;
-const QUIETO = "Intento terminado, el registro ya no se actualiza";
+const QUIETO = "Examen terminado";
 const SIN_CONEXION = "No se pudo actualizar esta pantalla. Reintentando.";
 
 /** Una sesión que se entregó hace una hora: el registro se pide una vez y listo. */
@@ -96,13 +96,16 @@ describe("El pulso del panel en el registro de un intento", () => {
     vi.restoreAllMocks();
   });
 
-  it("en una sesión cerrada hace más de diez minutos dice que el registro ya no se actualiza", async () => {
+  it("en una sesión cerrada hace más de diez minutos no muestra el pulso: el estado ya lo dice la ficha", async () => {
     montar("/panel?examen=1&sesion=5");
     await esperar();
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Ana Gómez");
-    expect(screen.getByText(QUIETO)).toBeInTheDocument();
+    // Ni «Examen terminado», que repetía el «Entregó» de la ficha, ni la tira de rayitas apagada.
+    expect(document.querySelector(".enlace")).toBeNull();
+    expect(screen.queryByText(QUIETO)).not.toBeInTheDocument();
     expect(screen.queryByText(EN_VIVO)).not.toBeInTheDocument();
+    expect(screen.queryByText("Esta pantalla ya no se actualiza")).not.toBeInTheDocument();
   });
 
   // Volver a un enlace guardado, o apretar F5, sobre una sesión que ya no entra
@@ -146,7 +149,7 @@ describe("El pulso del panel en el registro de un intento", () => {
   it("si se corta la lista de sesiones, eso se avisa antes que el registro quieto", async () => {
     montar("/panel?examen=1&sesion=5");
     await esperar();
-    expect(screen.getByText(QUIETO)).toBeInTheDocument();
+    expect(document.querySelector(".enlace")).toBeNull();
 
     vi.mocked(sesionesService.traerExamenes).mockRejectedValue(new Error("sin red"));
     await esperar(5000);
@@ -158,7 +161,7 @@ describe("El pulso del panel en el registro de un intento", () => {
   it("al entrar a otra sesión que sigue abierta, el pulso vuelve a decir «En vivo»", async () => {
     montar("/panel?examen=1&sesion=5");
     await esperar();
-    expect(screen.getByText(QUIETO)).toBeInTheDocument();
+    expect(document.querySelector(".enlace")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Primer Parcial" }));
     await esperar();

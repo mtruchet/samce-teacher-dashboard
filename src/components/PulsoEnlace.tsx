@@ -27,7 +27,10 @@ import "./PulsoEnlace.css";
 /**
  * `quieto` es el registro de un intento que terminó hace rato: la pantalla ya
  * no lo pide, y decir «se actualiza en N s» encima sería prometer algo que no
- * pasa.
+ * pasa. No muestra nada: doce rayitas apagadas parecían un código de barras,
+ * «Esta pantalla ya no se actualiza» sonaba a error, y «Examen terminado»
+ * repetía el «Entregó» de la ficha de la sesión, justo debajo (ronda 2). Que el
+ * examen terminó, y cómo, lo dice la ficha.
  */
 export type EstadoEnlace = "vivo" | "sin-conexion" | "quieto";
 
@@ -35,10 +38,9 @@ const MARCAS = 12;
 
 const CICLO = CADENCIA_MS / 1000;
 
-const TEXTO: Record<EstadoEnlace, (s: number) => string> = {
+const TEXTO: Record<Exclude<EstadoEnlace, "quieto">, (s: number) => string> = {
   vivo: (s) => `En vivo, se actualiza en ${Math.max(1, CICLO - s)} s`,
   "sin-conexion": () => "No se pudo actualizar esta pantalla. Reintentando.",
-  quieto: () => "Intento terminado, el registro ya no se actualiza",
 };
 
 interface Props {
@@ -48,6 +50,7 @@ interface Props {
 }
 
 export function PulsoEnlace({ estado, marca }: Props) {
+  if (estado === "quieto") return null;
   return (
     <p className={`enlace enlace--${estado}`}>
       <span className="enlace__tira" aria-hidden="true">
@@ -61,7 +64,7 @@ export function PulsoEnlace({ estado, marca }: Props) {
 }
 
 /** El texto, con los segundos desde que se montó: desde la última respuesta. */
-function Cuenta({ estado }: { estado: EstadoEnlace }) {
+function Cuenta({ estado }: { estado: Exclude<EstadoEnlace, "quieto"> }) {
   const [desde, setDesde] = useState(0);
   useEffect(() => {
     const reloj = window.setInterval(() => setDesde((s) => s + 1), 1000);
