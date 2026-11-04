@@ -292,8 +292,8 @@ describe("AnalisisSesion", () => {
 
     const [modelo, evento] = tarjetasDeAlerta();
     // El nivel dicho como lo que le pide al docente, no «Nivel bajo» (ronda 3).
-    expect(modelo.querySelector(".analisis__rotulo")).toHaveTextContent("Para mirar si hay tiempo · En toda la sesión");
-    expect(evento.querySelector(".analisis__rotulo")).toHaveTextContent("Para mirar si hay tiempo · En un momento de la sesión");
+    expect(modelo.querySelector(".analisis__rotulo")).toHaveTextContent("Riesgo bajo · En toda la sesión");
+    expect(evento.querySelector(".analisis__rotulo")).toHaveTextContent("Riesgo bajo · En un momento de la sesión");
 
     expect(modelo.querySelector(".analisis__hecho")).toHaveTextContent(MODELO_453.split("\n")[0]);
     expect(within(modelo).getByRole("heading", { name: "Lo que más se notó" })).toBeInTheDocument();
@@ -328,7 +328,7 @@ describe("AnalisisSesion", () => {
     expect(tarjeta.querySelector(".analisis__hecho")).toHaveTextContent(
       "Este examen se desarrolló de una forma muy distinta a lo que suele verse en una evaluación."
     );
-    expect(tarjeta.querySelector(".analisis__rotulo")).toHaveTextContent("Para mirar con atención · En toda la sesión");
+    expect(tarjeta.querySelector(".analisis__rotulo")).toHaveTextContent("Riesgo alto · En toda la sesión");
     // Las salidas, con las palabras del registro y con su número, sin suponer que se fue, de lo general a lo
     // particular y con todos los números en cifras.
     const viñetas = Array.from(tarjeta.querySelectorAll(".analisis__lista li")).map((li) => li.textContent);
@@ -345,9 +345,9 @@ describe("AnalisisSesion", () => {
     }));
 
     const [primera, segunda] = tarjetasDeAlerta();
-    expect(primera).toHaveTextContent("Para mirar con atención");
+    expect(primera).toHaveTextContent("Riesgo alto");
     expect(primera).toHaveTextContent("En un momento de la sesión");
-    expect(segunda).toHaveTextContent("Para mirar si hay tiempo");
+    expect(segunda).toHaveTextContent("Riesgo bajo");
     expect(segunda).toHaveTextContent("En toda la sesión");
   });
 
@@ -518,16 +518,16 @@ describe("AnalisisSesion", () => {
 
     traer.mockResolvedValueOnce(analisis({ alerts: [alerta({ level: "low" })] }));
     await esperar(sesionesService.CADENCIA_MS);
-    expect(screen.getByText("Para mirar si hay tiempo")).toBeInTheDocument();
+    expect(screen.getByText("Riesgo bajo")).toBeInTheDocument();
 
     traer.mockResolvedValue(analisis({ alerts: [alerta({ level: "high" })] }));
     await esperar(sesionesService.CADENCIA_MS);
-    expect(screen.getByText("Para mirar con atención")).toBeInTheDocument();
-    expect(screen.queryByText("Para mirar si hay tiempo")).not.toBeInTheDocument();
+    expect(screen.getByText("Riesgo alto")).toBeInTheDocument();
+    expect(screen.queryByText("Riesgo bajo")).not.toBeInTheDocument();
     // La alerta nueva queda dentro de la región viva con nombre, para que un lector de pantalla la anuncie.
     const region = screen.getByRole("status", { name: "Alertas de la sesión" });
     expect(region).toHaveAttribute("aria-live", "polite");
-    expect(within(region).getByText("Para mirar con atención")).toBeInTheDocument();
+    expect(within(region).getByText("Riesgo alto")).toBeInTheDocument();
   });
 
   it("una sesión entregada hace mucho no sigue preguntando", async () => {
@@ -570,7 +570,7 @@ describe("AnalisisSesion", () => {
     await esperar(sesionesService.CADENCIA_MS);
 
     expect(screen.getByText("No se pudo actualizar el análisis. Lo que se ve es lo último que llegó.")).toBeInTheDocument();
-    expect(screen.getByText("Para mirar")).toBeInTheDocument();
+    expect(screen.getByText("Riesgo medio")).toBeInTheDocument();
 
     traer.mockResolvedValue(analisis());
     await esperar(sesionesService.CADENCIA_MS);

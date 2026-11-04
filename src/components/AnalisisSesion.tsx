@@ -32,7 +32,7 @@ import "./AnalisisSesion.css";
  * No muestra el índice de integridad (decisión vigente), ni las métricas, el historial o la
  * cronología (HU05), ni un nivel de la sesión (HU03): el veredicto cuenta las alertas y dice de qué
  * tratan, pero nunca dice un nivel ni usa su color. El nivel es de cada alerta y va en su tarjeta,
- * dicho como lo que le pide al docente («Para mirar si hay tiempo», `NIVELES`).
+ * con los nombres del criterio de HU06 («Riesgo bajo», `NIVELES`).
  *
  * Mientras la sesión sigue abierta, y unos minutos después de la entrega, vuelve a preguntar
  * cada pocos segundos: el análisis se recalcula con cada tanda de eventos, y una alerta puede
@@ -40,14 +40,13 @@ import "./AnalisisSesion.css";
  */
 
 /**
- * El nivel de cada alerta, dicho como lo que le pide al docente y no como «Nivel bajo» o «Nivel alto»: solos,
- * se leían como el nivel del alumno o como un «nivel de trampa», y el docente no sabía si una alerta baja había
- * que mirarla o se podía seguir de largo (ronda 3). El medidor de al lado dice lo mismo en dibujo.
+ * El nivel de cada alerta, con los nombres del criterio de HU06 (riesgo bajo, medio o alto). «Riesgo» y no
+ * «Nivel»: «Nivel bajo» solo se leía como el nivel del alumno. El medidor de al lado dice lo mismo en dibujo.
  */
 const NIVELES: Record<AlertaDeSesion["level"], string> = {
-  low: "Para mirar si hay tiempo",
-  medium: "Para mirar",
-  high: "Para mirar con atención",
+  low: "Riesgo bajo",
+  medium: "Riesgo medio",
+  high: "Riesgo alto",
 };
 
 /**

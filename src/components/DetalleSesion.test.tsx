@@ -60,7 +60,7 @@ describe("DetalleSesion", () => {
     await esperar();
 
     const analisis = screen.getByRole("region", { name: "Análisis de la sesión" });
-    expect(analisis).toHaveTextContent("Para mirar con atención");
+    expect(analisis).toHaveTextContent("Riesgo alto");
     expect(analisis).toHaveTextContent("Se pegó un bloque de 4.370 caracteres.");
     // El registro sigue siendo solo lo que pasó: la alerta no entra en su tabla.
     const registro = screen.getByRole("heading", { name: "Registro de eventos" }).closest("section");

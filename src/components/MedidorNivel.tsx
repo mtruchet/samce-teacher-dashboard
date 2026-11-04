@@ -5,7 +5,7 @@ import type { AlertaDeSesion } from "../services/sesionesService";
  *
  * Es intensidad y no semáforo: los tres niveles usan el mismo tono, de claro a hondo, y lo que
  * cambia es cuántos segmentos van llenos. Va oculto para los lectores de pantalla porque la
- * palabra de al lado («Para mirar si hay tiempo», «Para mirar», «Para mirar con atención») ya lo dice; el color y la forma
+ * palabra de al lado («Riesgo bajo», «Riesgo medio», «Riesgo alto») ya lo dice; el color y la forma
  * solos no alcanzan para quien no los distingue.
  */
 
