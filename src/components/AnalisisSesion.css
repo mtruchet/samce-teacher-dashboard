@@ -183,8 +183,15 @@
   color: var(--tinta);
 }
 
+/* Una línea vertical fina entre el nivel y el origen, sin ningún carácter en el texto. */
 .analisis__separador {
-  color: var(--tinta-suave);
+  display: inline-block;
+  width: 1px;
+  height: 1.1em;
+  margin: 0 var(--e2);
+  vertical-align: -0.2em;
+  background: var(--tinta-suave);
+  opacity: 0.5;
 }
 
 /* El medidor: tres segmentos, llenos según el nivel, en el tono de la tarjeta. */

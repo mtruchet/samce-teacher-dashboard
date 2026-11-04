@@ -86,7 +86,7 @@ function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
           <span className="analisis__rotulo">
             <MedidorNivel nivel={alerta.level} />
             <span className="analisis__nivel">{NIVELES[alerta.level]}</span>{" "}
-            <span className="analisis__separador" aria-hidden="true">·</span>{" "}
+            <span className="analisis__separador" aria-hidden="true" />{" "}
             <span className="analisis__origen">{ORIGENES[alerta.origin]}</span>
           </span>
           {/* Sin hora en la cabecera: la que da la API es la del análisis y no la del hecho, y no coincidía con

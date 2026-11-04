@@ -292,8 +292,8 @@ describe("AnalisisSesion", () => {
 
     const [modelo, evento] = tarjetasDeAlerta();
     // El nivel dicho como lo que le pide al docente, no «Nivel bajo» (ronda 3).
-    expect(modelo.querySelector(".analisis__rotulo")).toHaveTextContent("Riesgo bajo · En toda la sesión");
-    expect(evento.querySelector(".analisis__rotulo")).toHaveTextContent("Riesgo bajo · En un momento de la sesión");
+    expect(modelo.querySelector(".analisis__rotulo")).toHaveTextContent("Riesgo bajo En toda la sesión");
+    expect(evento.querySelector(".analisis__rotulo")).toHaveTextContent("Riesgo bajo En un momento de la sesión");
 
     expect(modelo.querySelector(".analisis__hecho")).toHaveTextContent(MODELO_453.split("\n")[0]);
     expect(within(modelo).getByRole("heading", { name: "Lo que más se notó" })).toBeInTheDocument();
@@ -328,7 +328,7 @@ describe("AnalisisSesion", () => {
     expect(tarjeta.querySelector(".analisis__hecho")).toHaveTextContent(
       "Este examen se desarrolló de una forma muy distinta a lo que suele verse en una evaluación."
     );
-    expect(tarjeta.querySelector(".analisis__rotulo")).toHaveTextContent("Riesgo alto · En toda la sesión");
+    expect(tarjeta.querySelector(".analisis__rotulo")).toHaveTextContent("Riesgo alto En toda la sesión");
     // Las salidas, con las palabras del registro y con su número, sin suponer que se fue, de lo general a lo
     // particular y con todos los números en cifras.
     const viñetas = Array.from(tarjeta.querySelectorAll(".analisis__lista li")).map((li) => li.textContent);
