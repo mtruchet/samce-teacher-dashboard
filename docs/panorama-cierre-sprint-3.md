@@ -25,7 +25,8 @@ Los 6 PR mergeados desde el 15/10/2026 (`gh pr list --state merged`):
 
 Además del #24, que ya figura en la lista de arriba, después entró la rama
 `feature/detalle-sesion-mas-claro` (TT_S4_02, 03/11/2026 y 04/11/2026): el detalle de la sesión en
-lenguaje llano. Son diecinueve commits, de `7fd6978` a `0fb3959`:
+lenguaje llano, que llega a `main` con el #26. Son diecinueve commits, de `7fd6978` a
+`0fb3959`:
 
 - El análisis de la sesión con un veredicto en una frase y una tarjeta por alerta, y los textos de
   las alertas tal cual los escribe el motor, en tres rondas de revisión de los textos (`7fd6978`,
