@@ -8,8 +8,8 @@
  *    mayoría de los exámenes.» o «En la pregunta 3, pegó de una sola vez un texto largo en una
  *    respuesta que todavía estaba vacía, algo poco común en un examen.».
  * 2. Un renglón que termina en «:» abre la lista («Lo que más se notó:»).
- * 3. Los renglones que empiezan con «• » son las viñetas de esa lista («En la pregunta 3 pegó un
- *    texto largo (es el mismo de la otra alerta).», «Pasó a otra ventana 11 veces.»), ya en el
+ * 3. Los renglones que empiezan con «• » son las viñetas de esa lista («En la pregunta 3 pegó de
+ *    una sola vez un texto largo.», «Pasó a otra ventana 11 veces.»), ya en el
  *    orden en que se leen: el motor decide el orden, el panel no lo cambia.
  * 4. Cualquier otro renglón es una nota y sale tal cual («Ninguna de estas cosas es rara por sí
  *    sola. Lo poco común es que se den juntas.», el aviso de la conexión).

@@ -5,13 +5,13 @@
  */
 
 /**
- * Intento 453: la alerta de toda la sesión. El pegado se dice una sola vez, con la pregunta, y aclara que es el de la
- * otra alerta; el tiempo por pregunta va al final y «en general».
+ * Intento 453: la alerta de toda la sesión. El pegado se dice una sola vez, con la pregunta y con las mismas palabras
+ * que la alerta del pegado, sin nombrar «la otra alerta»; el tiempo por pregunta va al final y «en general».
  */
 export const MODELO_453 = [
   "Este examen se rindió de una forma un poco distinta a la mayoría de los exámenes.",
   "Lo que más se notó:",
-  "• En la pregunta 3 pegó un texto largo (es el mismo de la otra alerta).",
+  "• En la pregunta 3 pegó de una sola vez un texto largo.",
   "• En general, tardó más que la mayoría en responder las preguntas.",
 ].join("\n");
 

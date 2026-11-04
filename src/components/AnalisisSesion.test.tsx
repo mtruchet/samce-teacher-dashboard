@@ -26,11 +26,11 @@ const MARCADOS_EN_LA_RONDA_1 =
   /lo común|llamó la atención|por última vez|Apareció a las|sesión se rindió|aplicaciones|salida más larga|fuera del examen|\b1 vez|\b1 minuto|cuando lo común/i;
 /**
  * Lo que marcaron en la ronda 2: «habitual» sin decir contra qué (y repetido tres veces en la tarjeta), la viñeta que
- * remitía a «la otra alerta que describe», «una sola vez» en el pegado, «en cada pregunta», los números en letras al
+ * remitía a «la otra alerta» (sonaba a nota interna del sistema), «una sola vez» en el pegado, «en cada pregunta», los números en letras al
  * lado de los números en cifras, la hora del análisis («Se detectó a las») y la bajada que repetía el título de la 452.
  */
 const MARCADOS_EN_LA_RONDA_2 =
-  /habitual|que describe la otra alerta|Pegó texto una sola vez|en cada pregunta|\b(dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez) (minutos|segundos|veces)\b|Se detectó|no surgió ninguna alerta/i;
+  /habitual|otra alerta|alerta de (abajo|arriba)|Pegó texto una sola vez|en cada pregunta|\b(dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez) (minutos|segundos|veces)\b|Se detectó|no surgió ninguna alerta/i;
 /** Palabras técnicas que el docente no tiene por qué conocer. */
 const TECNICAS =
   /caracteres|sesiones habituales|sesiones esperadas|99 de cada 100|%|modelo|variable|cálculo|índice|proporción|mediana|percentil|severidad|puntaje|captura|complemento|Moodle|backend/i;
@@ -281,10 +281,10 @@ describe("AnalisisSesion", () => {
 
     expect(evento.querySelector(".analisis__hecho")).toHaveTextContent(EVENTO_453);
     expect(evento.querySelector(".analisis__lista")).toBeNull();
-    // El pegado se nombra una sola vez en la lista, con su pregunta, y aclara que es el de la otra alerta.
-    expect(viñetas.filter((v) => /[Pp]eg/.test(v ?? ""))).toEqual([
-      "En la pregunta 3 pegó un texto largo (es el mismo de la otra alerta).",
-    ]);
+    // El pegado se nombra una sola vez en la lista, con su pregunta y con las palabras de la alerta del pegado, para
+    // que se reconozca como el mismo hecho sin remitir a «la otra alerta».
+    expect(viñetas.filter((v) => /[Pp]eg/.test(v ?? ""))).toEqual(["En la pregunta 3 pegó de una sola vez un texto largo."]);
+    expect(EVENTO_453).toContain("pegó de una sola vez un texto largo");
     expect(EVENTO_453).toMatch(/^En la pregunta 3, /);
     // El tiempo por pregunta va al final, sin cifras y «en general»: es un promedio, no todas las preguntas.
     expect(viñetas[viñetas.length - 1]).toBe("En general, tardó más que la mayoría en responder las preguntas.");
