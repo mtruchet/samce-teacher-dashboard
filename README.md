@@ -52,8 +52,8 @@ El registro cuenta lo que pasó durante el intento: un evento por fila, con su
 hora, qué pasó y el detalle, del más reciente al más antiguo. El encabezado dice
 cuántos eventos hay y entre qué horas («194 eventos, de 09:28 a 09:42»), y las
 filas están escritas en palabras de todos los días, sin abreviaturas ni términos
-técnicos («Movimiento del mouse», «Volvió a la ventana del examen · 45 segundos
-afuera»). Se recorre entero, de a tandas o con «Mostrar todos», y se lee igual en
+técnicos («Movimiento del mouse», o «Volvió a la ventana del examen» con el
+detalle «45 segundos afuera»). Se recorre entero, de a tandas o con «Mostrar todos», y se lee igual en
 el teléfono. Se actualiza mientras el alumno rinde y unos minutos después de la
 entrega, porque lo último del intento llega con retraso. El registro cuenta y no
 juzga: no tiene índice de integridad, nivel de riesgo, alertas ni orden por
