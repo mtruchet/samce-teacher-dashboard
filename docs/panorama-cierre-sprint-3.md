@@ -23,7 +23,7 @@ Los 6 PR mergeados desde el 15/10/2026 (`gh pr list --state merged`):
 
 ## Completado después de este cierre
 
-Además del #24, que ya figura en la lista de arriba, entra con el PR de cierre final la rama
+Además del #24, que ya figura en la lista de arriba, después entró la rama
 `feature/detalle-sesion-mas-claro` (TT_S4_02, 03/11/2026 y 04/11/2026): el detalle de la sesión en
 lenguaje llano. Son diecinueve commits, de `7fd6978` a `0fb3959`:
 
