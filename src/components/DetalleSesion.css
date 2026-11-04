@@ -50,8 +50,15 @@
    pasa a tinta: el cambio de color dice que algo cambió, no que algo esté mal.
    En minúscula inicial y sin espaciado: se lee como una palabra, no como un
    sello. */
+/* El estado, como una etiqueta (ronda 3): en negrita suelta, «Entregó» solo se leía como estado si uno ya
+   lo sabía. */
 .detalle__estado {
   flex: none;
+  align-self: center;
+  padding: 2px var(--e3);
+  border-radius: var(--radio-chip);
+  background: var(--sup-3);
+  box-shadow: inset 0 0 0 1px var(--sup-4);
   font-weight: 600;
   color: var(--tinta);
 }

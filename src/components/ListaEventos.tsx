@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from "react";
 import type { Evento } from "../services/sesionesService";
-import { describirEvento, horaCorta, horaExacta } from "../eventos";
+import { cortesDeConexion, describirEvento, horaCorta, horaExacta } from "../eventos";
 import { conHuecos } from "../huecos";
 import { Silencio } from "../iconos";
 import "./ListaEventos.css";
@@ -66,8 +66,8 @@ function Hora({ evento }: { evento: Evento }) {
  * tanto. El evento de una fila ya guardada no cambia nunca, así que comparar la
  * referencia alcanza.
  */
-const Fila = memo(function Fila({ evento }: { evento: Evento }) {
-  const { titulo, detalle, icono: Icono } = describirEvento(evento);
+const Fila = memo(function Fila({ evento, cortadaMs }: { evento: Evento; cortadaMs?: number }) {
+  const { titulo, detalle, icono: Icono } = describirEvento(evento, { cortadaMs });
   return (
     <tr>
       <td className="eventos__hora"><Hora evento={evento} /></td>
@@ -91,6 +91,8 @@ export function ListaEventos({ eventos, vacio }: Props) {
   // Se recorre en el orden en que llegó, que es como está pensada la búsqueda
   // de huecos, y recién después se da vuelta para mostrarlo.
   const entradas = useMemo(() => conHuecos(eventos).reverse(), [eventos]);
+  // Cuánto duró cada corte de la conexión, para que la fila de la vuelta lo diga (ver `cortesDeConexion`).
+  const cortes = useMemo(() => cortesDeConexion(eventos), [eventos]);
   const [visibles, setVisibles] = useState(TANDA);
 
   if (eventos.length === 0) return <>{vacio}</>;
@@ -141,7 +143,7 @@ export function ListaEventos({ eventos, vacio }: Props) {
                 );
               }
 
-              return <Fila key={entrada.clave} evento={entrada.evento} />;
+              return <Fila key={entrada.clave} evento={entrada.evento} cortadaMs={cortes.get(entrada.evento.id)} />;
             })}
           </tbody>
         </table>

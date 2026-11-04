@@ -164,7 +164,12 @@ const TIPOS_DE_PREGUNTA: Record<string, string> = {
   ordering: "de ordenar",
 };
 
-/** «pregunta 3 (de desarrollo)», o lo que se pueda decir si falta alguno de los dos. */
+/**
+ * «pregunta 3», o «pregunta de desarrollo» si falta el número.
+ *
+ * Sin el tipo cuando se sabe el número: «(de desarrollo)» se repetía en decenas de filas seguidas y los
+ * docentes de la ronda 3 lo leían como ruido. El número alcanza para ubicar la pregunta en el examen.
+ */
 function pregunta(datos: Datos): string {
   const posicion = numero(datos.slot);
   const crudo = typeof datos.qtype === "string" ? datos.qtype : null;
@@ -175,7 +180,7 @@ function pregunta(datos: Datos): string {
   // El tipo se muestra aunque no se sepa de qué pregunta es: que falte el
   // número no vuelve inútil al otro dato.
   if (posicion === null) return tipo ? `pregunta ${tipo}` : "";
-  return tipo ? `pregunta ${posicion} (${tipo})` : `pregunta ${posicion}`;
+  return `pregunta ${posicion}`;
 }
 
 /**
@@ -198,26 +203,6 @@ function afuera(datos: Datos): string {
 }
 
 /**
- * Cuánto hacía que no se tecleaba en esta misma pregunta.
- *
- * El complemento lo mide entre ventanas, que es justo donde se perdía: la
- * ventana se descarta en cada vaciado y con ella el hueco entre la última tecla
- * de una y la primera de la siguiente.
- */
-function desde(datos: Datos): string {
-  const ms = numero(datos.gap_before_ms);
-  // Por debajo de lo que el propio complemento considera una pausa (dos
-  // segundos, `PAUSE_MS` en sig_input.js), el hueco no es un hecho: es que
-  // siguió escribiendo y el resumen se cortó en el medio. En pantalla salía
-  // «5 teclas, menos de 1 s desde el tecleo anterior», que ocupa medio renglón
-  // para decir que no pasó nada.
-  const PAUSA = 2000;
-  // «después de 5 segundos sin escribir» y no «5 segundos desde el tecleo anterior», que los docentes de la ronda 2
-  // no sabían cómo leer.
-  return ms === null || ms < PAUSA ? "" : `después de ${duracion(ms)} sin escribir`;
-}
-
-/**
  * Cuántas preguntas estaban a la vista al mismo tiempo.
  *
  * Solo se dice cuando fue más de una, porque con una sola el número repite lo
@@ -232,20 +217,11 @@ function juntas(datos: Datos): string {
 }
 
 /**
- * «hizo 1 pausa de 3 segundos», «hizo 3 pausas, la más larga de 12 segundos».
- *
- * Con «pausa» y no «paró 1 vez, la más larga de 3 segundos»: con una sola,
- * «la más larga» no tenía con qué compararse, y «paró» no decía qué.
+ * «1 tecla presionada», «31 teclas presionadas». Con el participio: «pregunta 2, 1 tecla» quedaba
+ * suelto y los docentes de la ronda 3 no sabían qué contaba.
  */
-function paradas(pausas: number, datos: Datos): string {
-  const mayor = numero(datos.max_pause_ms);
-  const conMayor = mayor !== null && mayor > 0;
-  if (pausas === 1) return conMayor ? `hizo 1 pausa de ${duracion(mayor)}` : "hizo 1 pausa";
-  const veces = `hizo ${pausas.toLocaleString("es-AR")} pausas`;
-  // Dicho entero y no «hasta 9 s»: las partes del detalle van separadas por
-  // comas, así que un dato suelto al lado de otro se lee como uno más de la
-  // lista y no como la aclaración del anterior.
-  return conMayor ? `${veces}, la más larga de ${duracion(mayor)}` : veces;
+function teclas(n: number): string {
+  return n === 1 ? "1 tecla presionada" : `${n.toLocaleString("es-AR")} teclas presionadas`;
 }
 
 /**
@@ -301,7 +277,48 @@ function palabras(letras: number): string {
   return n === 1 ? "alrededor de una palabra" : `unas ${n.toLocaleString("es-AR")} palabras`;
 }
 
-export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripcion {
+/**
+ * Lo que una fila sabe de las de al lado. Hoy, solo cuánto estuvo cortada la conexión, para la fila de
+ * la vuelta (ver `cortesDeConexion`).
+ */
+export interface Contexto {
+  cortadaMs?: number;
+}
+
+/**
+ * Cuánto estuvo cortada la conexión, para cada evento de vuelta: `id` de la vuelta → milisegundos.
+ *
+ * El aviso del corte no puede salir mientras no hay conexión: llega junto con el de la vuelta, en el mismo
+ * envío, y en el registro los dos quedaban con la misma hora del servidor. Así, «Se cortó la conexión» y
+ * «Volvió la conexión» en el mismo segundo se leían como una falla del sistema (ronda 3). La duración no
+ * sale de la hora del servidor, que en este caso mide la cola del navegador: sale de las dos horas del
+ * reloj del alumno, que pueden estar corridas pero se corren igual, así que la resta vale. Es la
+ * duración de un solo corte, como el tiempo afuera que trae cada vuelta a la ventana, y nunca una suma.
+ *
+ * Empareja cada vuelta con el corte anterior del mismo origen, en el orden en que se generaron (`seq`).
+ * Una vuelta sin corte antes, o con una resta imposible, no lleva duración.
+ */
+export function cortesDeConexion(eventos: ReadonlyArray<Pick<Evento, "id" | "seq" | "type" | "data" | "occurred_at">>): Map<number, number> {
+  const cortes = new Map<number, number>();
+  const abiertos = new Map<string, number>();
+  const enOrden = eventos.filter((e) => e.type === "connection").sort((a, b) => a.seq - b.seq);
+  for (const e of enOrden) {
+    const d: Datos = e.data && typeof e.data === "object" ? e.data : {};
+    if (typeof d.online !== "boolean" || typeof d.source !== "string") continue;
+    const hora = Date.parse(e.occurred_at);
+    if (!Number.isFinite(hora)) continue;
+    if (!d.online) {
+      abiertos.set(d.source, hora);
+      continue;
+    }
+    const desde = abiertos.get(d.source);
+    abiertos.delete(d.source);
+    if (desde !== undefined && hora >= desde) cortes.set(e.id, hora - desde);
+  }
+  return cortes;
+}
+
+export function describirEvento(evento: Pick<Evento, "type" | "data">, contexto: Contexto = {}): Descripcion {
   const d: Datos = evento.data && typeof evento.data === "object" ? evento.data : {};
 
   switch (evento.type) {
@@ -381,7 +398,6 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       const pegadas = numero(origen.paste) ?? 0;
       const arrastradas = numero(origen.drop) ?? 0;
       const reemplazadas = numero(origen.replacement) ?? 0;
-      const pausas = numero(d.pauses) ?? 0;
       // Cada origen con su verbo, en vez de un total y un paréntesis que hay
       // que restar: «120 entradas (1 pegada)» obliga a hacer la cuenta para
       // saber cuánto escribió de verdad, y «entrada» no es una palabra que un
@@ -389,26 +405,29 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       // tecleado; si no viene, se cae al total.
       const tecleadas = numero(origen.typed);
       const desglosado = (tecleadas ?? 0) + pegadas + arrastradas + reemplazadas > 0;
-      // «Escribió» y no «Tecleo». Lo que entró pegado se dice con el mismo verbo
-      // que la fila del pegado («pegó un texto»): «1 pegada» no se entendía y
-      // parecía otro hecho distinto del de al lado.
+      // Lo pegado no se nombra: la fila del pegado, en el mismo segundo, ya lo dice con su largo, y «Escribió ·
+      // pegó un texto» al lado de «Pegó un texto» se leía como dos pegados (ronda 3). Si en el tramo solo entró
+      // lo pegado, la fila no dice «Escribió», que contradecía a la de al lado: dice que la respuesta cambió.
+      //
+      // Sin las pausas ni el rato sin escribir de antes («hizo 1 pausa de 3 segundos», «después de 6 segundos
+      // sin escribir»): los docentes de la ronda 3 no sabían leer esos números, y para decidir les alcanza con
+      // saber en qué pregunta escribió y cuánto. Siguen guardados y los lee el motor de análisis.
+      const soloPegado =
+        desglosado && pegadas > 0 && (tecleadas ?? 0) === 0 && arrastradas === 0 && reemplazadas === 0 && borrados === 0;
       return {
         icono: Teclado,
-        titulo: "Escribió",
+        titulo: soloPegado ? "Cambió la respuesta" : "Escribió",
         detalle: unir([
           pregunta(d),
           desglosado
             ? unir([
-                (tecleadas ?? 0) > 0 && plural(tecleadas ?? 0, "tecla", "teclas"),
-                pegadas > 0 && (pegadas === 1 ? "pegó un texto" : `pegó ${plural(pegadas, "texto", "textos")}`),
+                (tecleadas ?? 0) > 0 && teclas(tecleadas ?? 0),
                 arrastradas > 0 &&
                   (arrastradas === 1 ? "arrastró un texto" : `arrastró ${plural(arrastradas, "texto", "textos")}`),
                 reemplazadas > 0 && plural(reemplazadas, "palabra autocompletada", "palabras autocompletadas"),
               ])
             : inserciones > 0 && plural(inserciones, "entrada de texto", "entradas de texto"),
-          borrados > 0 && plural(borrados, "borrado", "borrados"),
-          pausas > 0 && paradas(pausas, d),
-          desde(d),
+          borrados > 0 && (borrados === 1 ? "borró una vez" : `borró ${borrados.toLocaleString("es-AR")} veces`),
         ]),
       };
     }
@@ -439,24 +458,23 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
       // en el mismo renglón que la pausa del tramo, y distinguir una de otra
       // obliga a saber que el complemento resume de a tramos, que es justo lo
       // que se decidió no pedirle al docente. El dato sigue guardado y lo lee
-      // el motor de análisis. En el tecleo sí se muestra (ver `desde()`)
-      // porque ahí es lo único que dice cuánto se dejó de escribir en una
-      // pregunta.
+      // el motor de análisis. En el tecleo tampoco se muestra desde la ronda 3.
       //
       // Y si `moves` no es un número, no se dice «sin movimiento»: eso
       // afirmaría que el alumno no movió el mouse, cuando lo único que pasa es
       // que el dato no sirve.
-      const detalle =
-        movimientos === null
-          ? rato
-            ? `${rato} sin mover`
-            : ""
-          : movimientos === 0
-            ? rato
-              ? `${rato} sin mover`
-              : "sin movimiento"
-            : unir([plural(movimientos, "movimiento", "movimientos"), rato && `${rato} sin mover`]);
-      return { icono: Raton, titulo: "Movimiento del mouse", detalle };
+      //
+      // Con movimientos, la fila no lleva detalle (ronda 3): «3 movimientos, 4 segundos sin mover» ocupaba media
+      // tabla y no le decía nada al docente. Cuántos movimientos hubo y la pausa dentro del tramo siguen
+      // guardados. Un rato largo quieto no se pierde: tiene su propia fila, «El mouse quedó quieto», con cuánto.
+      if (movimientos === 0) {
+        return { icono: Raton, titulo: "El mouse quedó quieto", detalle: rato ?? "" };
+      }
+      return {
+        icono: Raton,
+        titulo: "Movimiento del mouse",
+        detalle: movimientos === null && rato ? `${rato} sin mover` : "",
+      };
     }
     case "mouse_leave":
       return { icono: ArrowUpRight, titulo: "El mouse salió del área del examen", detalle: "" };
@@ -486,8 +504,10 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
         // misma pregunta son cuatro tramos.
         titulo: "Tiempo en una pregunta",
         detalle: unir([
-          // «47 segundos en la pregunta 5 (de desarrollo)»: se lee como una frase.
-          tiempo && cual ? `${tiempo} en la ${cual}` : tiempo || cual,
+          // «sumó 47 segundos en la pregunta 5»: «sumó» dice que es un tramo que se agrega a los anteriores de la
+          // misma pregunta y no el total. Con «1 minuto en la pregunta 5» repetido en filas seguidas, los docentes
+          // de la ronda 3 no sabían si era un acumulado o un tramo.
+          tiempo && cual ? `sumó ${tiempo} en la ${cual}` : tiempo ? `sumó ${tiempo}` : cual,
           // Cuántas preguntas había en pantalla en ese tramo. Con más de una,
           // el mismo segundo se le suma entero a cada una: el número está para
           // que eso se vea, no para que el panel lo reparta por su cuenta.
@@ -606,11 +626,13 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">): Descripc
                 ? "Volvió la conexión"
                 : "Se cortó la conexión"
               : "Conexión";
-      // Con el rótulo neutro, el icono tampoco se inclina.
+      // Con el rótulo neutro, el icono tampoco se inclina. La vuelta dice cuánto duró el corte, si se sabe:
+      // «estuvo cortada menos de un segundo».
+      const cortada = contexto.cortadaMs;
       return {
         icono: titulo === "Conexión" ? Broadcast : volvio ? Wifi : WifiCortado,
         titulo,
-        detalle: "",
+        detalle: volvio === true && cortada !== undefined && cortada >= 0 ? `estuvo cortada ${duracion(cortada)}` : "",
       };
     }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describirEvento, duracion } from "./eventos";
+import { cortesDeConexion, describirEvento, duracion } from "./eventos";
 
 const de = (type: string, data: Record<string, unknown> = {}) => describirEvento({ type, data });
 
@@ -48,24 +48,29 @@ describe("describirEvento", () => {
 
     expect(evento.titulo).toBe("Escribió");
     // Cada origen con su verbo: un total con el desglose entre paréntesis
-    // obligaba a restar para saber cuánto escribió de verdad. Lo pegado, con el
-    // mismo verbo que la fila del pegado: «2 pegadas» no se entendía.
-    expect(evento.detalle).toBe(
-      "pregunta 3 (de desarrollo), 9 teclas, pegó 2 textos, 1 palabra autocompletada, 1 borrado, hizo 2 pausas"
-    );
+    // obligaba a restar para saber cuánto escribió de verdad. Sin el tipo de
+    // pregunta, sin lo pegado (lo dice su propia fila) y sin las pausas (ronda 3).
+    expect(evento.detalle).toBe("pregunta 3, 9 teclas presionadas, 1 palabra autocompletada, borró una vez");
+    expect(de("key_activity", { by_origin: { typed: 31 }, deletes: 2 }).detalle).toBe("31 teclas presionadas, borró 2 veces");
   });
 
-  it("lo que entró pegado dice «pegó un texto», como la fila del pegado (453)", () => {
-    // La fila que acompaña al pegado de la 453 decía «Tecleo · pregunta 3 (de desarrollo), 1 pegada».
+  it("lo pegado no se repite en la fila del tecleo, y si solo entró lo pegado no dice «Escribió» (453)", () => {
+    // Ronda 3: a las 09:35:08 de la 453 estaban «Escribió · pregunta 3 (de desarrollo), pegó un texto» y
+    // «Pegó un texto · pregunta 3 (de desarrollo), unas 50 palabras», y se leían como dos pegados.
     const fila = de("key_activity", { slot: 3, qtype: "essay", inserts: 1, by_origin: { typed: 0, paste: 1 } });
-    expect(fila).toMatchObject({ titulo: "Escribió", detalle: "pregunta 3 (de desarrollo), pegó un texto" });
-    expect(fila.detalle).not.toMatch(/pegada/);
+    expect(fila).toMatchObject({ titulo: "Cambió la respuesta", detalle: "pregunta 3" });
+    expect(fila.detalle).not.toMatch(/peg/);
+    // Con teclas además de lo pegado, sigue siendo «Escribió», con las teclas.
+    expect(de("key_activity", { slot: 3, by_origin: { typed: 4, paste: 1 } })).toMatchObject({
+      titulo: "Escribió",
+      detalle: "pregunta 3, 4 teclas presionadas",
+    });
     expect(de("key_activity", { by_origin: { drop: 1 } }).detalle).toBe("arrastró un texto");
     expect(de("key_activity", { by_origin: { drop: 3 } }).detalle).toBe("arrastró 3 textos");
   });
 
   it("no menciona lo que no pasó", () => {
-    // Los borrados se cuentan como las pegadas y las pausas: sólo si los hubo.
+    // Los borrados se cuentan como lo arrastrado: sólo si los hubo.
     // Un «0 borrados» repetido en las mil quinientas filas de tecleo de una
     // sesión es ruido que hay que leer para descartar.
     const detalle = de("key_activity", { inserts: 1, deletes: 0, by_origin: { paste: 0 }, pauses: 0 }).detalle;
@@ -83,6 +88,7 @@ describe("describirEvento", () => {
     // es que el dato no sirve.
     expect(de("mouse_activity", { moves: "muchos" }).detalle).toBe("");
     expect(de("mouse_activity", { moves: "muchos", idle_ms: 8000 }).detalle).toBe("8 segundos sin mover");
+    expect(de("mouse_activity", { moves: "muchos" }).titulo).toBe("Movimiento del mouse");
     expect(de("mouse_activity", {}).detalle).toBe("");
   });
 
@@ -90,10 +96,10 @@ describe("describirEvento", () => {
     // La 453: 301 letras son unas 50 palabras.
     expect(de("clipboard", { action: "paste", length: 301, slot: 3, qtype: "essay" })).toMatchObject({
       titulo: "Pegó un texto",
-      detalle: "pregunta 3 (de desarrollo), unas 50 palabras",
+      detalle: "pregunta 3, unas 50 palabras",
     });
     expect(de("clipboard", { action: "paste", length: 340, slot: 1, qtype: "essay" }).detalle)
-      .toBe("pregunta 1 (de desarrollo), unas 57 palabras");
+      .toBe("pregunta 1, unas 57 palabras");
     expect(de("clipboard", { action: "paste", length: 18_400 }).detalle).toBe("unas 3.067 palabras");
     expect(de("clipboard", { action: "copy", length: 1 }).detalle).toBe("alrededor de una palabra");
     expect(de("clipboard", { action: "copy", length: 8 }).detalle).toBe("alrededor de una palabra");
@@ -129,37 +135,35 @@ describe("describirEvento", () => {
     });
   });
 
-  it("cuenta el mouse: los movimientos y también el rato quieto", () => {
-    // El rato más largo sin mover llega en todos los eventos de mouse y antes
-    // se descartaba cuando hubo movimientos, que es el caso normal.
-    //
-    // Y se dice distinto según la rama, porque el complemento mide dos cosas
-    // distintas con el mismo campo: con movimientos es el hueco más largo de
-    // ese tramo, sin movimientos es cuánto hace que no se mueve, contado desde
-    // el último movimiento real y no desde que empezó el tramo.
-    expect(de("mouse_activity", { moves: 14, idle_ms: 9000 }).detalle).toBe("14 movimientos, 9 segundos sin mover");
-    expect(de("mouse_activity", { moves: 14, idle_ms: 0 }).detalle).toBe("14 movimientos");
-    expect(de("mouse_activity", { moves: 1 }).detalle).toBe("1 movimiento");
-    // Sin movimientos se dice igual: «sin movimiento desde hace…» se leía raro en algo que ya pasó.
-    expect(de("mouse_activity", { moves: 0, idle_ms: 20_000 }).detalle).toBe("20 segundos sin mover");
-    expect(de("mouse_activity", { moves: 0, idle_ms: 76_000 }).detalle).toBe("1 minuto y 16 segundos sin mover");
-    expect(de("mouse_activity", { moves: 0 }).detalle).toBe("sin movimiento");
+  it("cuenta el mouse: sin cifras cuando se movió, y con cuánto cuando quedó quieto", () => {
+    // Ronda 3: «3 movimientos, 4 segundos sin mover» ocupaba media tabla y no le decía nada al docente. Con
+    // movimientos, la fila dice solo que se movió; los números siguen guardados.
+    expect(de("mouse_activity", { moves: 14, idle_ms: 9000 })).toMatchObject({ titulo: "Movimiento del mouse", detalle: "" });
+    expect(de("mouse_activity", { moves: 14, idle_ms: 0 }).detalle).toBe("");
+    expect(de("mouse_activity", { moves: 1 }).detalle).toBe("");
+    // Sin movimientos es el aviso de que quedó quieto, contado desde el último movimiento real: tiene su propio nombre.
+    expect(de("mouse_activity", { moves: 0, idle_ms: 20_000 })).toMatchObject({
+      titulo: "El mouse quedó quieto",
+      detalle: "20 segundos",
+    });
+    expect(de("mouse_activity", { moves: 0, idle_ms: 76_000 }).detalle).toBe("1 minuto y 16 segundos");
+    expect(de("mouse_activity", { moves: 0 })).toMatchObject({ titulo: "El mouse quedó quieto", detalle: "" });
     expect(de("mouse_leave").titulo).toBe("El mouse salió del área del examen");
     expect(de("mouse_enter", { away_ms: 9000 }).titulo).toBe("El mouse volvió al área del examen");
   });
 
-  it("cuenta cuánto estuvo en cada pregunta, dicho como una frase", () => {
+  it("cuenta cuánto estuvo en cada pregunta como un tramo que se suma, no como el total", () => {
+    // Ronda 3: «1 minuto en la pregunta 5» en dos filas seguidas no decía si era un acumulado o un tramo.
     expect(de("question_time", { slot: 2, qtype: "multichoice", ms: 42_000 })).toMatchObject({
       titulo: "Tiempo en una pregunta",
-      detalle: "42 segundos en la pregunta 2 (de opción múltiple)",
+      detalle: "sumó 42 segundos en la pregunta 2",
     });
-    expect(de("question_time", { slot: 5, qtype: "essay", ms: 47_000 }).detalle).toBe(
-      "47 segundos en la pregunta 5 (de desarrollo)"
-    );
+    expect(de("question_time", { slot: 5, qtype: "essay", ms: 47_000 }).detalle).toBe("sumó 47 segundos en la pregunta 5");
     // Sin el tiempo, o sin la pregunta, lo que haya.
     expect(de("question_time", { slot: 5 }).detalle).toBe("pregunta 5");
-    expect(de("question_time", { ms: 3000 }).detalle).toBe("3 segundos");
-    expect(de("question_time", { qtype: "numerical", ms: 3000 }).detalle).toBe("3 segundos en la pregunta numérica");
+    expect(de("question_time", { ms: 3000 }).detalle).toBe("sumó 3 segundos");
+    // Sin el número, el tipo sigue sirviendo para ubicarla.
+    expect(de("question_time", { qtype: "numerical", ms: 3000 }).detalle).toBe("sumó 3 segundos en la pregunta numérica");
   });
 
   // El «cómo se supo» salió de la lista el 24/09/2026: el complemento marca si
@@ -243,6 +247,45 @@ describe("describirEvento", () => {
     expect(de("connection", { online: true, source: "otra" }).titulo).toBe("Conexión");
   });
 
+  // Ronda 3: en la 454, «Se cortó la conexión» y «Volvió la conexión» salían en el mismo segundo y se leían
+  // como una falla del sistema. La vuelta dice cuánto duró el corte, con las dos horas del reloj del alumno.
+  it("la vuelta de la conexión dice cuánto estuvo cortada", () => {
+    expect(describirEvento({ type: "connection", data: { online: true, source: "send" } }, { cortadaMs: 7162 }))
+      .toMatchObject({ titulo: "Volvió la conexión", detalle: "estuvo cortada 7 segundos" });
+    expect(describirEvento({ type: "connection", data: { online: true, source: "send" } }, { cortadaMs: 300 }).detalle)
+      .toBe("estuvo cortada menos de un segundo");
+    // El corte no lleva duración: todavía no se sabe cuánto va a durar cuando se registra.
+    expect(describirEvento({ type: "connection", data: { online: false, source: "send" } }, { cortadaMs: 7162 }).detalle)
+      .toBe("");
+    expect(describirEvento({ type: "connection", data: { online: true, source: "browser" } }, { cortadaMs: 61_000 }).detalle)
+      .toBe("estuvo cortada 1 minuto y 1 segundo");
+  });
+
+  it("empareja cada vuelta con el corte anterior del mismo origen, en el orden en que se generaron", () => {
+    // Los cuatro eventos de conexión de la 454, tal como están en la réplica.
+    const evento = (id: number, seq: number, online: boolean, occurred_at: string, source = "send") => ({
+      id, seq, type: "connection", occurred_at, data: { online, source },
+    });
+    const cortes = cortesDeConexion([
+      evento(15847, 4, true, "2026-11-03T13:10:05.174Z"),
+      evento(15788, 1, false, "2026-11-03T13:06:37.435Z"),
+      evento(15793, 2, true, "2026-11-03T13:06:44.597Z"),
+      evento(15844, 3, false, "2026-11-03T13:10:01.067Z"),
+      { id: 1, seq: 0, type: "focus_lost", occurred_at: "2026-11-03T13:00:00.000Z", data: {} },
+    ]);
+    expect([...cortes.entries()].sort()).toEqual([[15793, 7162], [15847, 4107]]);
+    // Una vuelta sin corte antes, de otro origen, o con una resta imposible, no lleva duración.
+    expect(cortesDeConexion([evento(1, 1, true, "2026-11-03T13:00:00.000Z")]).size).toBe(0);
+    expect(cortesDeConexion([
+      evento(1, 1, false, "2026-11-03T13:00:00.000Z", "browser"),
+      evento(2, 2, true, "2026-11-03T13:00:05.000Z", "send"),
+    ]).size).toBe(0);
+    expect(cortesDeConexion([
+      evento(1, 1, false, "2026-11-03T13:00:05.000Z"),
+      evento(2, 2, true, "2026-11-03T13:00:00.000Z"),
+    ]).size).toBe(0);
+  });
+
   it("cuenta desde qué equipo abrió el examen, sin el user agent ni la versión", () => {
     // La 457: «Navegador del alumno · Chrome 153, equipo sin pantalla táctil» era técnico.
     const la457 = { is_touch: false, browser_major: 153, browser_family: "Chrome", pointer_coarse: false, any_pointer_fine: true };
@@ -269,7 +312,9 @@ describe("describirEvento", () => {
   });
 
   it("un tipo de pregunta que no conoce lo muestra como viene", () => {
-    expect(de("question_time", { slot: 1, qtype: "stack", ms: 3000 }).detalle).toBe("3 segundos en la pregunta 1 (de tipo stack)");
+    expect(de("question_time", { qtype: "stack", ms: 3000 }).detalle).toBe("sumó 3 segundos en la pregunta de tipo stack");
+    // Con el número, el tipo ya no va: «(de desarrollo)» se repetía en decenas de filas (ronda 3).
+    expect(de("question_time", { slot: 1, qtype: "stack", ms: 3000 }).detalle).toBe("sumó 3 segundos en la pregunta 1");
   });
 
   // El largo del tramo que resume cada evento (`window_ms`) llega y no se
@@ -278,44 +323,37 @@ describe("describirEvento", () => {
   // la vista no cierran. El dato queda guardado y lo lee el análisis.
   it("no muestra el largo del tramo que resume cada evento", () => {
     expect(de("key_activity", { by_origin: { typed: 38 }, window_ms: 5000 }).detalle)
-      .toBe("38 teclas");
+      .toBe("38 teclas presionadas");
     expect(de("mouse_activity", { moves: 12, idle_ms: 0, window_ms: 800 }).detalle)
-      .toBe("12 movimientos");
+      .toBe("");
     // El caso que salía sin cerrar: «sin movimiento, 4 min 20 s, en 5 s». El
     // tramo dura 5 s y el rato quieto son 4 minutos, porque se cuenta desde el
     // último movimiento y no desde que empezó el tramo.
     expect(de("mouse_activity", { moves: 0, idle_ms: 260_000, window_ms: 5000 }).detalle)
-      .toBe("4 minutos y 20 segundos sin mover");
+      .toBe("4 minutos y 20 segundos");
   });
 
-  it("cuenta cuánto hacía que no se tecleaba en esa pregunta", () => {
-    // Por debajo de dos segundos no se dice: es que siguió escribiendo y el
-    // resumen se cortó en el medio, no un hueco que el docente tenga que ver.
-    expect(de("key_activity", { by_origin: { typed: 5 }, gap_before_ms: 800 }).detalle)
-      .toBe("5 teclas");
+  // Ronda 3: «después de 6 segundos sin escribir» y «hizo 1 pausa de 3 segundos» eran números que los docentes
+  // no sabían leer. Los datos siguen guardados y los lee el motor de análisis.
+  it("no muestra el rato sin escribir de antes ni las pausas", () => {
+    expect(de("key_activity", { by_origin: { typed: 5 }, gap_before_ms: 800 }).detalle).toBe("5 teclas presionadas");
     expect(de("key_activity", { slot: 2, by_origin: { typed: 4 }, gap_before_ms: 47_000 }).detalle)
-      .toBe("pregunta 2, 4 teclas, después de 47 segundos sin escribir");
+      .toBe("pregunta 2, 4 teclas presionadas");
+    expect(de("key_activity", { by_origin: { typed: 9 }, pauses: 3, max_pause_ms: 12_000 }).detalle)
+      .toBe("9 teclas presionadas");
+    expect(de("key_activity", { by_origin: { typed: 9 }, pauses: 1 }).detalle).toBe("9 teclas presionadas");
   });
 
-  it("cuenta cuánto duró la pausa más larga, además de cuántas hubo", () => {
-    expect(de("key_activity", { by_origin: { typed: 9 }, pauses: 3, max_pause_ms: 12_000 }).detalle)
-      .toBe("9 teclas, hizo 3 pausas, la más larga de 12 segundos");
-    // Con una sola, «la más larga» no tiene con qué compararse.
-    expect(de("key_activity", { by_origin: { typed: 1 }, pauses: 1, max_pause_ms: 3000 }).detalle)
-      .toBe("1 tecla, hizo 1 pausa de 3 segundos");
-    // Sin el campo, sigue diciendo sólo cuántas: inventar un «hasta 0 s» sería
-    // afirmar una duración que el evento no trae.
-    expect(de("key_activity", { by_origin: { typed: 9 }, pauses: 3 }).detalle)
-      .toBe("9 teclas, hizo 3 pausas");
-    expect(de("key_activity", { by_origin: { typed: 9 }, pauses: 1 }).detalle)
-      .toBe("9 teclas, hizo 1 pausa");
+  it("una sola tecla se dice con el participio, no suelta", () => {
+    // Ronda 3: «pregunta 2, 1 tecla» quedaba raro.
+    expect(de("key_activity", { slot: 2, by_origin: { typed: 1 } }).detalle).toBe("pregunta 2, 1 tecla presionada");
   });
 
   it("cuenta cuántas preguntas había a la vista, sólo cuando fue más de una", () => {
     expect(de("question_time", { slot: 1, ms: 45_000, visible_count: 4 }).detalle)
-      .toBe("45 segundos en la pregunta 1, 4 en pantalla a la vez");
+      .toBe("sumó 45 segundos en la pregunta 1, 4 en pantalla a la vez");
     expect(de("question_time", { slot: 1, ms: 45_000, visible_count: 1 }).detalle)
-      .toBe("45 segundos en la pregunta 1");
+      .toBe("sumó 45 segundos en la pregunta 1");
   });
 
   it("cuenta el tiempo que el puntero estuvo fuera de la página", () => {
@@ -374,7 +412,7 @@ describe("describirEvento", () => {
       by_origin: { typed: 36 }, interval_ms: { min: 137, median: 140, max: 143 },
     }).detalle;
 
-    expect(detalle).toBe("36 teclas");
+    expect(detalle).toBe("36 teclas presionadas");
     expect(detalle).not.toMatch(/ms/);
   });
 

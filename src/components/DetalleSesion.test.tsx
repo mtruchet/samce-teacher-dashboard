@@ -35,7 +35,7 @@ describe("DetalleSesion", () => {
     const filas = screen.getAllByRole("row").slice(1);
     expect(filas).toHaveLength(2);
     expect(filas[0]).toHaveTextContent("Pegó");
-    expect(filas[0]).toHaveTextContent("pregunta 1 (de desarrollo), unas 57 palabras");
+    expect(filas[0]).toHaveTextContent("pregunta 1, unas 57 palabras");
     expect(filas[1]).toHaveTextContent("Pasó a otra ventana");
     // Quién es el alumno lo dice el título de la pantalla, no esta vista, con
     // o sin nombre. El estado sí, porque es lo único que cambia solo.
@@ -60,7 +60,7 @@ describe("DetalleSesion", () => {
     await esperar();
 
     const analisis = screen.getByRole("region", { name: "Análisis de la sesión" });
-    expect(analisis).toHaveTextContent("Nivel alto");
+    expect(analisis).toHaveTextContent("Para mirar con atención");
     expect(analisis).toHaveTextContent("Se pegó un bloque de 4.370 caracteres.");
     // El registro sigue siendo solo lo que pasó: la alerta no entra en su tabla.
     const registro = screen.getByRole("heading", { name: "Registro de eventos" }).closest("section");
@@ -407,7 +407,12 @@ describe("DetalleSesion", () => {
     const ficha = container.querySelector(".detalle__sesion") as HTMLElement;
     expect(within(ficha).getByText("Entregó")).toBeInTheDocument();
     expect(ficha).toHaveTextContent("Intento 5 de 5");
-    expect(ficha).toHaveTextContent(`Empezó a las ${horaCorta("2026-11-03T12:11:33Z")}`);
+    // Con la fecha: con varios parciales, la hora sola no decía qué día (ronda 3).
+    const dia = new Date("2026-11-03T12:11:33Z").toLocaleDateString("es-AR", { day: "numeric", month: "numeric", year: "numeric" });
+    expect(dia).toMatch(/^\d{1,2}\/11\/2026$/);
+    expect(ficha).toHaveTextContent(`Empezó el ${dia} a las ${horaCorta("2026-11-03T12:11:33Z")}`);
+    // El estado, como una etiqueta.
+    expect(within(ficha).getByText("Entregó")).toHaveClass("detalle__estado");
     // La misma duración que la lista de sesiones, con el mismo componente.
     expect(ficha).toHaveTextContent("Duró 16 min");
     // El estado una sola vez: ya no hay un segundo rótulo que lo repita con otras palabras.
@@ -422,7 +427,7 @@ describe("DetalleSesion", () => {
     const ficha = container.querySelector(".detalle__sesion") as HTMLElement;
     expect(ficha).not.toHaveTextContent(/Intento/);
     expect(ficha).not.toHaveTextContent(/Duró/);
-    expect(ficha).toHaveTextContent("Empezó a las");
+    expect(ficha).toHaveTextContent(/Empezó el \d{1,2}\/\d{1,2}\/\d{4} a las \d{2}:\d{2}/);
   });
 
   it("el encabezado del registro dice cuántos eventos hay y de qué hora a qué hora, sin segundos", async () => {

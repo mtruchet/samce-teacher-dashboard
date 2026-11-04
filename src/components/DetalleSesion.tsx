@@ -57,6 +57,11 @@ import "./DetalleSesion.css";
 function esperaElAviso(captura: Captura["state"] | undefined, yaLlego: boolean): boolean {
   return (captura === "js_disabled" || captura === "no_start") && !yaLlego;
 }
+/** «3/11/2026». El día del examen, como lo escribe un docente. */
+function fechaCorta(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "numeric", year: "numeric" });
+}
+
 /** «194 eventos», «1 evento». */
 function cuentaDeEventos(n: number): string {
   return n === 1 ? "1 evento" : `${n.toLocaleString("es-AR")} eventos`;
@@ -259,8 +264,12 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
         {sesion.intentos > 1 ? (
           <span className="detalle__dato cifra">Intento {sesion.intento} de {sesion.intentos}</span>
         ) : null}
+        {/* Con la fecha (ronda 3): con varios parciales, «Empezó a las 09:11» no decía qué día. */}
         <span className="detalle__dato">
-          Empezó a las <time className="cifra" dateTime={sesion.started_at}>{horaCorta(sesion.started_at)}</time>
+          Empezó el{" "}
+          <time className="cifra" dateTime={sesion.started_at}>
+            {fechaCorta(sesion.started_at)} a las {horaCorta(sesion.started_at)}
+          </time>
         </span>
         {sesion.status === "closed" && sesion.closed_at ? (
           <span className="detalle__dato">

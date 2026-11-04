@@ -95,8 +95,11 @@
      tiene que poder crecer, y con la altura fija el texto se montaba sobre la
      fila de abajo. El relleno deja el mismo paso que la tabla de sesiones en
      el caso normal, que es de una línea. */
-  padding: var(--e3) var(--e4);
-  font-size: var(--panel-fila);
+  /* Más junto que la tabla de sesiones (ronda 3): con el relleno de antes entraban unos ocho eventos por
+     pantalla en un registro de doscientos. La letra, un punto más grande que la de una fila de la tabla de
+     sesiones: acá se leen frases, no nombres. */
+  padding: var(--e2) var(--e4);
+  font-size: var(--panel-cuerpo);
   line-height: 20px;
   color: var(--tinta-media);
   vertical-align: middle;
@@ -128,7 +131,7 @@
    un 30 % fijo quedaba un hueco grande entre «Qué pasó» y el detalle. */
 .eventos__que {
   width: 1%;
-  padding-right: var(--e6);
+  padding-right: var(--e4);
   white-space: nowrap;
 }
 
@@ -159,8 +162,9 @@ th.eventos__que {
   color: var(--tinta);
 }
 
+/* En la tinta del texto y no en la media (ronda 3): en pantalla completa, el detalle en gris costaba leerlo. */
 .eventos__detalle {
-  color: var(--tinta-media);
+  color: var(--tinta);
 }
 
 /* ==== Un rato sin que llegara nada ===================================== */
