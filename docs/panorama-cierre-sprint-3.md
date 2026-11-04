@@ -7,11 +7,11 @@ El panel muestra el análisis de cada sesión: el apartado «Análisis de la ses
 - **Accesibilidad:** contraste de los textos atenuados y una región viva que anuncia la alerta nueva.
 - **Prueba del registro de eventos** que dice lo que prueba.
 
-**Lo que queda abierto:** no pude comprobar desde acá que el despliegue de producción en Vercel esté en la última versión.
+**Despliegue:** la producción en Vercel quedó con lo último de `main` el 04/11/2026.
 
 ## Pull requests del sprint
 
-Los 6 PR mergeados desde el 15/10/2026 (`gh pr list --state merged`):
+Los 7 PR mergeados desde el 15/10/2026 (`gh pr list --state merged`):
 
 - #17: apartado «Análisis de la sesión» (2026-10-23)
 - #18: alertas más legibles (titular, tabla de variables y aclaración al pie) (2026-10-23)
