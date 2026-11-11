@@ -63,4 +63,18 @@ describe("ListaEventos", () => {
     const marco = container.querySelector(".eventos__marco") as HTMLElement;
     expect(marco.style.maxHeight).toBe("");
   });
+
+  it("lleva a una fila que no estaba entre las visibles: la muestra, le da el foco y la resalta", () => {
+    const muchos = Array.from({ length: TANDA + 20 }, (_, i) => evento(i + 1, "keystroke", { count: 1 }));
+    const { rerender } = render(<ListaEventos eventos={muchos} />);
+    // La primera fila del registro es la más reciente: la del id 1 queda fuera de la primera tanda.
+    expect(document.getElementById("evento-1")).toBeNull();
+
+    rerender(<ListaEventos eventos={muchos} destacado={{ id: 1, vez: 1 }} />);
+    const fila = document.getElementById("evento-1");
+    expect(fila).not.toBeNull();
+    expect(fila).toHaveFocus();
+    expect(fila).toHaveClass("eventos__fila--destacada");
+  });
 });
+

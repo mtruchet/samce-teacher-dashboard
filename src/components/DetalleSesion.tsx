@@ -13,6 +13,7 @@ import { horaCorta } from "../eventos";
 import { recienCerrada } from "../seguimiento";
 
 import { AnalisisSesion } from "./AnalisisSesion";
+import { CronologiaSesion } from "./CronologiaSesion";
 import { ListaEventos } from "./ListaEventos";
 import { Transcurrido } from "./Transcurrido";
 import "./ListaSesiones.css";
@@ -103,6 +104,8 @@ interface Props {
 
 export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
   const [eventos, setEventos] = useState<Evento[]>([]);
+  // El evento al que se pidió ir desde «Momentos para revisar».
+  const [destacado, setDestacado] = useState<{ id: number; vez: number } | null>(null);
   // La consulta corta a las `PAGINAS_MAXIMAS`, y sin esto el corte era mudo:
   // la pantalla mostraba una parte del registro y el contador decía que eso
   // era todo. Un registro incompleto que no se anuncia es peor que uno corto.
@@ -306,6 +309,12 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
 
       <AnalisisSesion sesion={sesion} onVencida={onVencida} />
 
+      {/* Los momentos para revisar se arman con los eventos que el detalle ya tiene, en el orden del registro,
+          y cada uno lleva a su fila. */}
+      {recibido ? (
+        <CronologiaSesion eventos={eventos} onIrAlEvento={(id) => setDestacado((d) => ({ id, vez: (d?.vez ?? 0) + 1 }))} />
+      ) : null}
+
       {/* El registro va en una lámina más liviana que la del análisis: el ojo
           tiene que caer primero en el análisis, y el registro queda para
           ubicar un momento. */}
@@ -332,6 +341,7 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
         ) : !recibido ? null : (
           <ListaEventos
             eventos={eventos}
+            destacado={destacado}
             vacio={
               <p className="panel__vacio">
                 {/* Tres casos y no dos. Que no haya llegado nada se decide con

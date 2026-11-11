@@ -648,3 +648,65 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">, contexto:
       };
   }
 }
+
+// ---- Momentos para revisar (HU05, criterio 3) -----------------------------------------------
+
+/** Un evento crítico de la sesión: el evento al que lleva (su fila en el registro) y cómo se nombra. */
+export interface EventoCritico {
+  evento: Evento;
+  titulo: string;
+}
+
+const PEGO = "Pegó un texto";
+const OTRA_VENTANA = "Pasó a otra ventana";
+const DEJO_DE_VERSE = "El examen dejó de verse en pantalla";
+const SALIO_DE_PANTALLA_COMPLETA = "Salió de pantalla completa";
+
+/**
+ * Los eventos críticos de una sesión, en el orden del registro, que es el que reciben. Tres tipos fijos
+ * (decisión 8 del Sprint 4): los pegados de texto, las salidas de la ventana o de la pestaña, y las salidas
+ * de la pantalla completa. Quedan afuera los cortes de conexión, el tecleo, el mouse y los cambios de tamaño.
+ *
+ * Todo se une por posición en el orden del registro, nunca restando horas: al pasar a otra pestaña el
+ * complemento emite una ocultación y una pérdida de foco sin una vuelta entre ellas, y son una sola salida
+ * («El examen dejó de verse en pantalla», con el salto a la primera de las dos). Una salida de pantalla
+ * completa es un `fullscreen` con `on: false` cuyo `fullscreen` anterior no fue también `on: false`.
+ */
+export function eventosCriticos(eventos: ReadonlyArray<Evento>): EventoCritico[] {
+  const criticos: EventoCritico[] = [];
+  // La salida a otra ventana o pestaña que todavía no tuvo su vuelta, para unirle la otra mitad.
+  let salidaAbierta: { indice: number; tipo: string } | null = null;
+  let ultimoFullscreen: boolean | null = null;
+
+  for (const evento of eventos) {
+    const d = (evento.data ?? {}) as Record<string, unknown>;
+    switch (evento.type) {
+      case "clipboard":
+        if (d.action === "paste") criticos.push({ evento, titulo: PEGO });
+        break;
+      case "focus_lost":
+      case "visibility_hidden": {
+        if (salidaAbierta && salidaAbierta.tipo !== evento.type) {
+          // La otra mitad de la misma salida: una sola fila, la de la primera, con el nombre de la ocultación.
+          criticos[salidaAbierta.indice] = { evento: criticos[salidaAbierta.indice].evento, titulo: DEJO_DE_VERSE };
+          salidaAbierta = null;
+          break;
+        }
+        criticos.push({ evento, titulo: evento.type === "focus_lost" ? OTRA_VENTANA : DEJO_DE_VERSE });
+        salidaAbierta = { indice: criticos.length - 1, tipo: evento.type };
+        break;
+      }
+      case "focus_gained":
+      case "visibility_visible":
+        salidaAbierta = null;
+        break;
+      case "fullscreen": {
+        if (typeof d.on !== "boolean") break;
+        if (d.on === false && ultimoFullscreen !== false) criticos.push({ evento, titulo: SALIO_DE_PANTALLA_COMPLETA });
+        ultimoFullscreen = d.on;
+        break;
+      }
+    }
+  }
+  return criticos;
+}

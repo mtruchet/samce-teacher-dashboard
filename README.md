@@ -93,8 +93,14 @@ análisis encontró, en tres capas:
 
 Los textos de las alertas y el motivo de una sesión que no se pudo analizar los
 escribe el motor de análisis para el docente, y el panel los muestra tal cual,
-sin traducirlos ni recortarlos. El apartado no muestra el índice de integridad,
-las métricas, el historial ni la cronología. Una
+sin traducirlos ni recortarlos. El apartado nunca muestra el índice de integridad.
+Debajo de las alertas, dice cómo cambió el riesgo de la sesión (los niveles que
+tomó, con la hora de cada análisis), el historial de las alertas (cada aparición
+o subida de nivel con su explicación) y, con la sesión finalizada, una métrica
+por dimensión con el valor del alumno, sin valores esperados ni comparaciones.
+Entre el apartado y el registro, «Momentos para revisar» lista los pegados de
+texto y las salidas de la ventana o de la pantalla completa, y cada uno lleva a
+su fila del registro. Una
 alerta señala algo para revisar y no una conclusión sobre el alumno. Se actualiza
 igual que el registro, mientras el alumno rinde y unos minutos después de la
 entrega, y un lector de pantalla anuncia la alerta que aparece o sube de nivel
