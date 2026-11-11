@@ -1,6 +1,7 @@
 import { act } from "@testing-library/react";
 import { vi } from "vitest";
-import type { Evento, SesionNumerada } from "../services/sesionesService";
+import * as sesionesService from "../services/sesionesService";
+import type { Evento, Sesion, SesionNumerada } from "../services/sesionesService";
 
 /**
  * Datos de prueba compartidos. Cada archivo pisa solo lo que su caso necesita,
@@ -39,3 +40,13 @@ export function evento(seq: number, type: string, data: Record<string, unknown> 
 
 /** Avanza los relojes falsos y deja que React termine de pintar. */
 export const esperar = (ms = 0) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+
+/** Una página de la lista como la devuelve `traerSesiones`, sin total ni resumen (un backend viejo). */
+export function pagina(sesiones: Sesion[], total: number | null = null): sesionesService.PaginaDeSesiones {
+  return { sesiones, total, resumen: null };
+}
+
+/** Simula `traerSesiones` con una lista fija. Devuelve el espía, para preguntarle con qué se llamó. */
+export function simularSesiones(sesiones: Sesion[]) {
+  return vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina(sesiones));
+}

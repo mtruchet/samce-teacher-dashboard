@@ -54,6 +54,9 @@ export interface Sesion {
   alert_origins?: Array<"model" | "event">;
   /** El estado del último análisis, el mismo de `EstadoDelAnalisis`. */
   analysis_state?: EstadoDelAnalisis;
+  /** «Intento N de M» del alumno, contado por el backend sobre toda la evaluación antes de filtrar. */
+  attempt_number?: number;
+  attempts_total?: number;
 }
 
 /**
@@ -140,6 +143,11 @@ export class SesionVencida extends Error {
 }
 
 async function pedir<T>(ruta: string): Promise<T> {
+  return (await (await pedirRespuesta(ruta)).json()) as T;
+}
+
+/** El pedido con el token, el plazo y el manejo del token vencido; devuelve la respuesta entera. */
+async function pedirRespuesta(ruta: string): Promise<Response> {
   const sesion = getStoredSession();
   if (!sesion) {
     throw new SesionVencida();
@@ -158,7 +166,7 @@ async function pedir<T>(ruta: string): Promise<T> {
     throw new Error(`${ruta} respondió ${respuesta.status}`);
   }
 
-  return (await respuesta.json()) as T;
+  return respuesta;
 }
 
 /**
@@ -207,13 +215,65 @@ export const SESIONES_TOPE = 1000;
  * primera; el panel lo sube de a 50 con «Ver más» y sigue refrescando todo lo
  * que ya mostró.
  */
-export function traerSesiones(examenId: number, limite = SESIONES_POR_PAGINA): Promise<Sesion[]> {
+export async function traerSesiones(
+  examenId: number,
+  limite = SESIONES_POR_PAGINA,
+  filtros: FiltrosSesiones = {}
+): Promise<PaginaDeSesiones> {
   // Nunca por encima del tope del backend: pedir de más no trae de más, y lo
   // único que consigue es que la cuenta del panel no cierre.
-  const pedido = Math.min(limite, SESIONES_TOPE);
-  return pedir<Sesion[]>(
-    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?limit=${pedido}`
-  );
+  const consulta = new URLSearchParams({ limit: String(Math.min(limite, SESIONES_TOPE)), include: "summary" });
+  if (filtros.nivel) consulta.set("risk_level", filtros.nivel);
+  if (filtros.estado) consulta.set("status", filtros.estado);
+  if (filtros.analisis) consulta.set("analysis", filtros.analisis);
+  if (filtros.q) consulta.set("q", filtros.q);
+  if (filtros.orden && filtros.orden !== "started_at") consulta.set("sort", filtros.orden);
+
+  const respuesta = await pedirRespuesta(`${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?${consulta}`);
+  const cuerpo = (await respuesta.json()) as Sesion[] | { sessions: Sesion[]; summary: ResumenDeEvaluacion };
+  const total = respuesta.headers.get("X-Total-Count");
+  // Lectura tolerante: un backend sin el resumen devuelve el arreglo de siempre.
+  return Array.isArray(cuerpo)
+    ? { sesiones: cuerpo, total: total === null ? null : Number(total), resumen: null }
+    : { sesiones: cuerpo.sessions, total: total === null ? null : Number(total), resumen: cuerpo.summary };
+}
+
+/**
+ * Lo que el docente pidió sobre la lista de un examen (HU04). Vive en la dirección de la página, así
+ * sobrevive a la actualización automática, al botón Atrás y a la vuelta por las migas. Vacío es la
+ * lista de siempre. `analisis` solo lo escriben las tarjetas del resumen de la evaluación.
+ */
+export interface FiltrosSesiones {
+  nivel?: "high" | "medium" | "low";
+  estado?: "open" | "finished";
+  analisis?: "no_alerts" | "not_analyzed" | "insufficient_evidence" | "unavailable";
+  q?: string;
+  orden?: "started_at" | "risk_level";
+}
+
+/**
+ * El resumen de la evaluación (HU03): cuántas sesiones hay en cada nivel de riesgo y, las que no tienen
+ * alertas, en cada estado del análisis. Cuenta toda la evaluación (hasta 1000 sesiones), no la página
+ * ni el filtro. Son recuentos: sin nombres, sin índice, sin promedios.
+ */
+export interface ResumenDeEvaluacion {
+  total: number;
+  risk_high: number;
+  risk_medium: number;
+  risk_low: number;
+  no_alerts: number;
+  not_analyzed: number;
+  insufficient_evidence: number;
+  unavailable: number;
+}
+
+/** Una página de la lista de un examen, con lo que el backend dice de toda la evaluación. */
+export interface PaginaDeSesiones {
+  sesiones: Sesion[];
+  /** Cuántas cumplen el filtro en toda la evaluación (cabecera X-Total-Count); null con un backend viejo. */
+  total: number | null;
+  /** El resumen de la evaluación; null si el backend devuelve el arreglo de siempre. */
+  resumen: ResumenDeEvaluacion | null;
 }
 
 /**

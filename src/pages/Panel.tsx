@@ -10,6 +10,8 @@ import {
   traerExamenes,
   traerSesiones,
   type ExamenMonitoreado,
+  type FiltrosSesiones as FiltrosDeLista,
+  type ResumenDeEvaluacion,
   type SesionDeExamen,
   type SesionNumerada,
   nombreDeAlumno,
@@ -19,6 +21,7 @@ import { BarraPanel } from "../components/BarraPanel";
 import { DetalleSesion } from "../components/DetalleSesion";
 import { Fichas, type Ficha } from "../components/Fichas";
 import { AvisoAlertas } from "../components/AvisoAlertas";
+import { FiltrosSesiones } from "../components/FiltrosSesiones";
 import { ListaSesiones } from "../components/ListaSesiones";
 import { Migas, type Escalon } from "../components/Migas";
 import { PulsoEnlace, type EstadoEnlace } from "../components/PulsoEnlace";
@@ -47,6 +50,35 @@ import "./Panel.css";
  * de integridad. Una alerta nueva se anuncia a los lectores de pantalla con una
  * frase corta (`AvisoAlertas`), sin releer la lista.
  */
+
+/** Cómo se llama cada filtro de la lista en la dirección de la página. */
+const PARAMETRO_DE: Record<keyof FiltrosDeLista, string> = {
+  nivel: "nivel",
+  estado: "estado",
+  analisis: "analisis",
+  q: "q",
+  orden: "orden",
+};
+const PARAMETROS_DE_FILTRO = Object.values(PARAMETRO_DE);
+
+const NIVELES_VALIDOS = ["high", "medium", "low"] as const;
+const ESTADOS_VALIDOS = ["open", "finished"] as const;
+const ANALISIS_VALIDOS = ["no_alerts", "not_analyzed", "insufficient_evidence", "unavailable"] as const;
+
+function uno<T extends string>(valor: string | null, validos: readonly T[]): T | undefined {
+  return validos.find((v) => v === valor);
+}
+
+/** Los filtros que dice la dirección. Un valor que no se conoce (escrito a mano) se ignora. */
+function leerFiltros(parametros: URLSearchParams): FiltrosDeLista {
+  return {
+    nivel: uno(parametros.get("nivel"), NIVELES_VALIDOS),
+    estado: uno(parametros.get("estado"), ESTADOS_VALIDOS),
+    analisis: uno(parametros.get("analisis"), ANALISIS_VALIDOS),
+    q: parametros.get("q")?.trim().slice(0, 100) || undefined,
+    orden: parametros.get("orden") === "risk_level" ? "risk_level" : undefined,
+  };
+}
 
 /**
  * Numera los intentos de cada alumno dentro de un examen, por orden de
@@ -105,21 +137,35 @@ export function Panel() {
   const examenElegido = parametros.get("examen");
   const sesionElegida = parametros.get("sesion");
 
+  // Los filtros de la lista (HU04) también viven en la dirección: sobreviven a la actualización
+  // automática, al botón Atrás y a la vuelta por las migas, y un enlace copiado abre la misma vista.
+  const filtros: FiltrosDeLista = useMemo(() => leerFiltros(parametros), [parametros]);
+  const claveFiltros = PARAMETROS_DE_FILTRO.map((p) => parametros.get(p) ?? "").join("|");
+  const hayFiltro = Boolean(filtros.nivel || filtros.estado || filtros.analisis || filtros.q);
+
   const [examenes, setExamenes] = useState<ExamenMonitoreado[]>([]);
   // Solo las sesiones del examen que se está mirando, con el examen del que
   // son: las de los demás no se piden.
-  const [cargadas, setCargadas] = useState<{ examenId: number; lista: SesionDeExamen[] } | null>(null);
+  const [cargadas, setCargadas] = useState<{
+    examenId: number;
+    lista: SesionDeExamen[];
+    /** Cuántas cumplen el filtro en toda la evaluación (X-Total-Count); null con un backend viejo. */
+    total: number | null;
+    resumen: ResumenDeEvaluacion | null;
+  } | null>(null);
   // Cuántas «páginas» de 50 sesiones se pidieron, y de qué examen. Al cambiar
   // de examen (o volver a entrar a uno) vuelve a 1 en el mismo render, con el
   // ajuste de estado durante el render que React admite para esto: hacerlo
   // con un efecto largaba primero una consulta con el número viejo, que se
   // descartaba y se rehacía enseguida.
-  const [paginasDe, setPaginasDe] = useState({ examen: examenElegido, n: 1 });
-  if (paginasDe.examen !== examenElegido) setPaginasDe({ examen: examenElegido, n: 1 });
-  const paginas = paginasDe.examen === examenElegido ? paginasDe.n : 1;
+  // Un cambio de filtro también vuelve a la primera página.
+  const vistaDeLista = `${examenElegido}|${claveFiltros}`;
+  const [paginasDe, setPaginasDe] = useState({ examen: vistaDeLista, n: 1 });
+  if (paginasDe.examen !== vistaDeLista) setPaginasDe({ examen: vistaDeLista, n: 1 });
+  const paginas = paginasDe.examen === vistaDeLista ? paginasDe.n : 1;
   const pedirOtraPagina = useCallback(
-    () => setPaginasDe({ examen: examenElegido, n: paginas + 1 }),
-    [examenElegido, paginas]
+    () => setPaginasDe({ examen: vistaDeLista, n: paginas + 1 }),
+    [vistaDeLista, paginas]
   );
   const [enlace, setEnlace] = useState<EstadoEnlace>("vivo");
   // Cómo está el registro que se está mirando: si se sigue pidiendo y si la
@@ -169,18 +215,22 @@ export function Panel() {
       // solo si es de uno de los cursos del docente (la lista ya viene filtrada
       // por el backend según su token).
       const elegido = examenElegido ? lista.find((e) => String(e.id) === examenElegido) : undefined;
-      const delElegido = elegido
-        ? (await traerSesiones(elegido.id, paginas * SESIONES_POR_PAGINA)).map((s) => ({
-            ...s,
-            examenId: elegido.id,
-          }))
-        : [];
+      // Con una sesión abierta en el detalle se pide sin filtrar: si la sesión dejara de cumplir el
+      // filtro (el alumno entrega con «En curso»), saldría de la respuesta y el detalle se quedaría
+      // con una copia vieja. Los filtros siguen en la dirección y vuelven al volver a la lista.
+      const delPedido: FiltrosDeLista = sesionElegida ? { orden: filtros.orden } : filtros;
+      const respuesta = elegido ? await traerSesiones(elegido.id, paginas * SESIONES_POR_PAGINA, delPedido) : null;
+      const delElegido = respuesta && elegido ? respuesta.sesiones.map((s) => ({ ...s, examenId: elegido.id })) : [];
 
       if (mio !== pedido.current) return;
 
       setExamenes(lista);
       setRecibido(true);
-      setCargadas(elegido ? { examenId: elegido.id, lista: delElegido } : null);
+      setCargadas(
+        elegido && respuesta
+          ? { examenId: elegido.id, lista: delElegido, total: respuesta.total, resumen: respuesta.resumen }
+          : null
+      );
       setEnlace("vivo");
       setMarca((m) => m + 1);
     } catch (error) {
@@ -200,7 +250,7 @@ export function Panel() {
       // el estado del canal lo dice.
       setEnlace("sin-conexion");
     }
-  }, [examenElegido, paginas, vencer]);
+  }, [examenElegido, sesionElegida, filtros, paginas, vencer]);
 
   useEffect(() => {
     if (vencida) return;
@@ -233,9 +283,42 @@ export function Panel() {
       if (destino.curso) siguiente.set("curso", destino.curso);
       if (destino.examen) siguiente.set("examen", destino.examen);
       if (destino.sesion) siguiente.set("sesion", destino.sesion);
+      // Los filtros se conservan mientras no cambie el examen (la miga del examen, la vuelta del
+      // detalle, la corrección de la dirección). Otra evaluación abre sin filtros y con el orden
+      // predeterminado: la elección no se guarda como preferencia.
+      if (destino.examen && destino.examen === examenElegido) {
+        for (const p of PARAMETROS_DE_FILTRO) {
+          const valor = parametros.get(p);
+          if (valor) siguiente.set(p, valor);
+        }
+      }
       setParametros(siguiente, { replace: reemplazar });
     },
-    [setParametros]
+    [setParametros, parametros, examenElegido]
+  );
+
+  /**
+   * Escribe en la dirección lo que cambió de los filtros, con la misma función para la barra y para
+   * las tarjetas del resumen. Lo predeterminado no se escribe. Queda en el historial, así «Atrás»
+   * vuelve a la vista anterior.
+   */
+  const aplicarFiltros = useCallback(
+    (parciales: Partial<FiltrosDeLista>) => {
+      const siguiente = new URLSearchParams(parametros);
+      siguiente.delete("sesion");
+      const nuevos: FiltrosDeLista = { ...filtros, ...parciales };
+      for (const [clave, valor] of Object.entries(PARAMETRO_DE)) {
+        const v = nuevos[clave as keyof FiltrosDeLista];
+        if (v && !(clave === "orden" && v === "started_at")) siguiente.set(valor, v);
+        else siguiente.delete(valor);
+      }
+      setParametros(siguiente);
+    },
+    [parametros, filtros, setParametros]
+  );
+  const quitarFiltros = useCallback(
+    () => aplicarFiltros({ nivel: undefined, estado: undefined, analisis: undefined, q: undefined }),
+    [aplicarFiltros]
   );
 
   function salir() {
@@ -314,10 +397,16 @@ export function Panel() {
   // muestra cuando están todas. Con la lista cortada, el intento anterior de un
   // alumno puede estar en la página que no se pidió y el número saldría mal.
   const delEsteExamen = sesionesAjenas || !cargadas ? [] : cargadas.lista;
-  const delExamen: SesionNumerada[] =
-    delEsteExamen.length >= totalDelExamen
+  // Si el backend ya numeró los intentos (HU04), se usa eso: los cuenta sobre toda la evaluación,
+  // antes de filtrar, así una búsqueda que deja el segundo intento lo sigue llamando «2 de 3».
+  const delExamen: SesionNumerada[] = delEsteExamen.every((s) => s.attempt_number && s.attempts_total)
+    ? delEsteExamen.map((s) => ({ ...s, intento: s.attempt_number!, intentos: s.attempts_total! }))
+    : delEsteExamen.length >= totalDelExamen
       ? numerarIntentos(delEsteExamen)
       : delEsteExamen.map((s) => ({ ...s, intento: 1, intentos: 1 }));
+  // Con un filtro, el total que vale es el que dice el backend para el filtro, no el del examen.
+  const conFiltro = hayFiltro && !sesionElegida;
+  const totalDeLaVista = conFiltro && cargadas?.total != null ? cargadas.total : totalDelExamen;
 
   // La sesión se busca entre las del examen, que son las que el backend
   // devolvió para este docente. Una dirección con una sesión que no está ahí
@@ -357,7 +446,7 @@ export function Panel() {
   const cuantasCargadas = delEsteExamen.length;
   useEffect(() => {
     if (!buscandoSesion) return;
-    const quedanMas = cuantasCargadas < totalDelExamen && paginas * SESIONES_POR_PAGINA < SESIONES_TOPE;
+    const quedanMas = cuantasCargadas < totalDeLaVista && paginas * SESIONES_POR_PAGINA < SESIONES_TOPE;
     // La página pedida ya llegó entera: hay que pedir la siguiente.
     const paginaLlegada = cuantasCargadas >= paginas * SESIONES_POR_PAGINA;
     if (quedanMas && paginaLlegada) {
@@ -365,7 +454,7 @@ export function Panel() {
     } else if (!quedanMas && (!recordada || paginas * SESIONES_POR_PAGINA >= SESIONES_TOPE)) {
       irA({ curso: cursoElegido, examen: examenElegido }, true);
     }
-  }, [buscandoSesion, cuantasCargadas, totalDelExamen, paginas, recordada, pedirOtraPagina, irA, cursoElegido, examenElegido]);
+  }, [buscandoSesion, cuantasCargadas, totalDeLaVista, paginas, recordada, pedirOtraPagina, irA, cursoElegido, examenElegido]);
 
   // Qué pantalla toca. El escalón de cursos sólo existe en el panel general: si
   // se entró desde un curso, el propio enlace ya lo eligió.
@@ -543,32 +632,67 @@ export function Panel() {
                 {/* El recuento de cada grupo es el del examen, no el de las filas
                     cargadas: con la lista paginada, contar filas daba un número
                     distinto del de la ficha del examen. */}
-                <AvisoAlertas sesiones={delExamen} clave={examenElegido ?? ""} />
-                <ListaSesiones
-                  titulo="En curso"
-                  sesiones={enCurso}
-                  total={recuento.enCurso}
-                  vacio={<p className="panel__vacio">No hay sesiones de examen vigentes.</p>}
-                  onVerEventos={verEventos}
-                />
+                {/* La memoria del anuncio se vacía con el examen y con los filtros: una
+                    sesión que entra a la lista por un filtro no es una alerta nueva. */}
+                <AvisoAlertas sesiones={delExamen} clave={vistaDeLista} />
+                <FiltrosSesiones filtros={filtros} onCambio={aplicarFiltros} />
+                {/* Con un filtro, «N de M sesiones» en una región que solo contiene la frase. */}
+                <p className="filtros-resultado" role="status" aria-atomic="true">
+                  {conFiltro && cargadas?.total != null ? `${cargadas.total} de ${totalDelExamen} sesiones` : ""}
+                </p>
+                {conFiltro && cargadas?.total === 0 ? (
+                  <div className="panel__vacio">
+                    <p>Ninguna sesión coincide con el filtro.</p>
+                    <button type="button" className="panel__ver-mas" onClick={quitarFiltros}>
+                      Quitar filtros
+                    </button>
+                  </div>
+                ) : conFiltro ? (
+                  <>
+                    {/* Con un filtro, cada grupo cuenta sus filas cargadas y un grupo vacío no
+                        se dibuja: el recuento del examen dejaría de coincidir con las filas. */}
+                    {enCurso.length > 0 ? (
+                      <ListaSesiones titulo="En curso" sesiones={enCurso} total={enCurso.length} onVerEventos={verEventos} />
+                    ) : null}
+                    {finalizadas.length > 0 ? (
+                      <ListaSesiones
+                        titulo="Finalizadas"
+                        sesiones={finalizadas}
+                        total={finalizadas.length}
+                        cerradas
+                        onVerEventos={verEventos}
+                      />
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <ListaSesiones
+                      titulo="En curso"
+                      sesiones={enCurso}
+                      total={recuento.enCurso}
+                      vacio={<p className="panel__vacio">No hay sesiones de examen vigentes.</p>}
+                      onVerEventos={verEventos}
+                    />
 
-                {finalizadas.length > 0 || totalFinalizadas > 0 ? (
-                  <ListaSesiones
-                    titulo="Finalizadas"
-                    sesiones={finalizadas}
-                    total={totalFinalizadas}
-                    cerradas
-                    vacio={<p className="panel__vacio">Se ven con «Ver más sesiones».</p>}
-                    onVerEventos={verEventos}
-                  />
-                ) : null}
+                    {finalizadas.length > 0 || totalFinalizadas > 0 ? (
+                      <ListaSesiones
+                        titulo="Finalizadas"
+                        sesiones={finalizadas}
+                        total={totalFinalizadas}
+                        cerradas
+                        vacio={<p className="panel__vacio">Se ven con «Ver más sesiones».</p>}
+                        onVerEventos={verEventos}
+                      />
+                    ) : null}
+                  </>
+                )}
 
                 {/* «Ver más» solo si el examen tiene más sesiones de las que se ven, y
                     mientras el backend pueda devolver más (tope por pedido). El total sale
                     de los recuentos del examen, no de si la última página vino llena: eso
                     era una suposición, y con el tope exacto de 1000 dejaba el botón sin
                     traer nada, o lo escondía aunque quedaran sesiones por ver. */}
-                {delExamen.length < totalDelExamen && paginas * SESIONES_POR_PAGINA < SESIONES_TOPE ? (
+                {delExamen.length < totalDeLaVista && paginas * SESIONES_POR_PAGINA < SESIONES_TOPE ? (
                   <button
                     type="button"
                     className="panel__ver-mas"

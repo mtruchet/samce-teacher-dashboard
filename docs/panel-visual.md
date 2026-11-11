@@ -86,6 +86,19 @@ cada grupo de la más reciente a la más antigua. Dice qué mirar primero, no qu
 está peor. El docente puede pedir que se agrupe por nivel; a igual nivel decide la
 hora de inicio.
 
+## Los filtros de la lista
+
+Arriba de la lista, una barra con cuatro controles: nivel de riesgo, estado (en
+curso o finalizadas), búsqueda por nombre o apellido y orden (hora de inicio, el
+predeterminado, o nivel de riesgo). Todo se resuelve en el backend sobre toda la
+evaluación, y el panel guarda la elección en la dirección de la página: sobrevive
+a la actualización automática, al botón Atrás y a la vuelta por las migas. Otra
+evaluación abre sin filtros. Con un filtro se lee «N de M sesiones», cada grupo
+cuenta sus filas y un grupo vacío no se dibuja; si nada coincide, «Ninguna sesión
+coincide con el filtro.» con «Quitar filtros». La búsqueda espera a que el
+docente deje de escribir. Con una sesión abierta en el detalle, la lista se pide
+sin filtrar, para que el detalle no se quede con una copia vieja.
+
 ## El alumno se ve por su nombre
 
 Desde el Sprint 2 el panel muestra el nombre del alumno, que es lo que el docente
