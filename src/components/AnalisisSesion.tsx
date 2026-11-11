@@ -12,8 +12,12 @@ import {
   type Analisis,
   type SesionNumerada,
 } from "../services/sesionesService";
+import { EvolucionRiesgo } from "./EvolucionRiesgo";
+import { HistorialAlertas } from "./HistorialAlertas";
 import { MedidorNivel } from "./MedidorNivel";
+import { MetricasSesion } from "./MetricasSesion";
 import "./AnalisisSesion.css";
+import "./DetalleAnalisis.css";
 
 /**
  * El apartado «Análisis de la sesión» (SAMCE-36, TT_S4_02): las alertas vigentes y cómo está el
@@ -188,8 +192,31 @@ function Veredicto({ analisis, alertas, abierta }: { analisis: Analisis; alertas
   );
 }
 
+const PALABRA_DEL_NIVEL: Record<AlertaDeSesion["level"], string> = { low: "bajo", medium: "medio", high: "alto" };
+const PESO_DEL_NIVEL: Record<AlertaDeSesion["level"], number> = { low: 1, medium: 2, high: 3 };
+
+/**
+ * Lo nuevo de una consulta, para el lector de pantalla: la alerta que apareció o subió de nivel. Solo eso, y
+ * no todo el apartado: la región viva contiene solo esta frase.
+ */
+function novedades(antes: AlertaDeSesion[], ahora: AlertaDeSesion[]): string {
+  const frases: string[] = [];
+  for (const a of ahora) {
+    const previa = antes.find((b) => b.origin === a.origin);
+    const donde = ORIGENES[a.origin].toLowerCase();
+    if (!previa) frases.push(`Apareció una alerta ${donde}: riesgo ${PALABRA_DEL_NIVEL[a.level]}.`);
+    else if (PESO_DEL_NIVEL[a.level] > PESO_DEL_NIVEL[previa.level]) {
+      frases.push(`La alerta ${donde} subió a riesgo ${PALABRA_DEL_NIVEL[a.level]}.`);
+    }
+  }
+  return frases.join(" ");
+}
+
 export function AnalisisSesion({ sesion, onVencida }: Props) {
   const [analisis, setAnalisis] = useState<Analisis | null>(null);
+  // La frase del anuncio y las alertas de la consulta anterior, para saber qué cambió.
+  const [anuncio, setAnuncio] = useState("");
+  const anteriores = useRef<AlertaDeSesion[] | null>(null);
   const [sinConexion, setSinConexion] = useState(false);
   // El aviso de vencida va en una referencia: el panel se redibuja con cada respuesta de su
   // propia consulta y le pasa una función nueva cada vez, y si el efecto dependiera de ella
@@ -235,6 +262,16 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
 
   const alertas = analisis ? ordenarAlertas(analisis.alerts) : [];
 
+  useEffect(() => {
+    if (!analisis) return;
+    // La primera respuesta solo se memoriza: lo que ya estaba al abrir no es nuevo.
+    if (anteriores.current !== null) {
+      const frase = novedades(anteriores.current, analisis.alerts);
+      if (frase) setAnuncio(frase);
+    }
+    anteriores.current = analisis.alerts;
+  }, [analisis]);
+
   return (
     <section className="analisis" aria-labelledby="analisis-titulo">
       <header className="analisis__encabezado">
@@ -262,18 +299,36 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
       {analisis === null ? (
         sinConexion ? null : <p className="analisis__estado" role="status">Cargando el análisis…</p>
       ) : (
-        // Región viva: un lector de pantalla anuncia la alerta que aparece o sube de nivel mientras se mira. Lleva
-        // nombre porque el componente ya tiene otros dos `role="status"` (el aviso sin conexión y «Cargando»). El
-        // veredicto va primero, así es lo primero que se anuncia.
-        <div className="analisis__region" role="status" aria-live="polite" aria-label="Alertas de la sesión">
+        <div className="analisis__region">
           <Veredicto analisis={analisis} alertas={alertas} abierta={abierta} />
           {alertas.length > 0 ? (
             <ul className="analisis__alertas">
               {alertas.map((alerta) => <Alerta key={alerta.origin} alerta={alerta} />)}
             </ul>
           ) : null}
+
+          {/* HU05: cómo cambió el riesgo, el historial de las alertas y las métricas del cierre. Con un
+              backend sin el historial, no se dibujan la evolución ni el historial. */}
+          {analisis.alert_history ? (
+            <>
+              <EvolucionRiesgo historial={analisis.alert_history} alertas={alertas} estado={analisis.state} />
+              {analisis.alert_history.length > 0 ? (
+                <HistorialAlertas historial={analisis.alert_history} alertas={alertas} />
+              ) : null}
+            </>
+          ) : null}
+          {"metrics" in analisis ? (
+            <MetricasSesion metricas={analisis.metrics} estado={analisis.state} abierta={abierta} />
+          ) : null}
         </div>
       )}
+
+      {/* Región viva aparte, con solo la frase de lo nuevo: «role=status» lleva aria-atomic verdadero de forma
+          implícita, y envolviendo todo el apartado hacía releerlo entero ante cualquier cambio. Lleva nombre
+          porque el componente tiene otros dos «role=status» (el aviso sin conexión y «Cargando»). */}
+      <p className="solo-lectores" role="status" aria-live="polite" aria-atomic="false" aria-label="Alertas de la sesión">
+        {anuncio}
+      </p>
     </section>
   );
 }

@@ -233,3 +233,15 @@ th.eventos__que {
     overflow-wrap: break-word;
   }
 }
+
+/* La fila a la que se llegó desde «Momentos para revisar», resaltada un momento. */
+.eventos tbody tr.eventos__fila--destacada {
+  background: var(--sup-2);
+  box-shadow: inset 3px 0 0 var(--tinta-media);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .eventos tbody tr {
+    transition: background-color 0.4s ease;
+  }
+}

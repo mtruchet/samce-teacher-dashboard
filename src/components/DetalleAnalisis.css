@@ -1,0 +1,145 @@
+/* Las partes nuevas del detalle (HU05): cómo cambió el riesgo, el historial de alertas, las métricas y los
+   momentos para revisar. Texto y el medidor del nivel; sin barras, sin comparaciones y sin porcentajes. */
+.detalle-analisis__parte {
+  display: grid;
+  gap: var(--e2);
+  margin-top: var(--e5);
+}
+
+.detalle-analisis--cronologia {
+  display: grid;
+  gap: var(--e3);
+  padding: var(--e5) var(--e6);
+  border-radius: var(--radio-panel);
+  background: var(--sup-1);
+  box-shadow: var(--anillo), var(--elev-2);
+}
+
+.detalle-analisis__titulo {
+  font-size: var(--panel-pieza);
+  font-weight: 600;
+  line-height: 25px;
+  color: var(--tinta);
+}
+
+.detalle-analisis__subtitulo {
+  font-size: var(--panel-fila);
+  font-weight: 600;
+  letter-spacing: var(--track-rotulo);
+  text-transform: uppercase;
+  color: var(--tinta-media);
+}
+
+.detalle-analisis__lista {
+  display: grid;
+  gap: var(--e2);
+  padding: 0;
+  list-style: none;
+  font-size: var(--panel-fila);
+  color: var(--tinta);
+}
+
+.detalle-analisis__tramo,
+.detalle-analisis__entrada {
+  padding-left: var(--e3);
+  border-left: 3px solid var(--tono, var(--guia));
+}
+
+.detalle-analisis__tramo--low,
+.detalle-analisis__entrada--low {
+  --tono: var(--alerta-tono-low);
+}
+
+.detalle-analisis__tramo--medium,
+.detalle-analisis__entrada--medium {
+  --tono: var(--alerta-tono-medium);
+}
+
+.detalle-analisis__tramo--high,
+.detalle-analisis__entrada--high {
+  --tono: var(--alerta-tono-high);
+}
+
+.detalle-analisis__cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e1) var(--e2);
+}
+
+.detalle-analisis__hora,
+.detalle-analisis__origen,
+.detalle-analisis__nota,
+.detalle-analisis__dimension {
+  color: var(--tinta-media);
+}
+
+.detalle-analisis__nivel {
+  font-weight: 600;
+}
+
+.detalle-analisis__explicacion {
+  display: grid;
+  gap: var(--e1);
+  margin-top: var(--e1);
+}
+
+.detalle-analisis__explicacion ul {
+  margin: 0;
+  padding-left: var(--e5);
+}
+
+.detalle-analisis__nota {
+  font-size: var(--panel-nota);
+}
+
+.detalle-analisis__metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--e3);
+}
+
+.detalle-analisis__metrica {
+  display: grid;
+  gap: var(--e1);
+  padding: var(--e3);
+  border-radius: var(--radio-ficha);
+  background: var(--sup-2);
+  box-shadow: var(--anillo);
+}
+
+.detalle-analisis__metrica dt {
+  display: grid;
+  gap: 2px;
+  font-size: var(--panel-fila);
+}
+
+.detalle-analisis__dimension {
+  font-size: var(--panel-rotulo);
+  letter-spacing: var(--track-rotulo);
+  text-transform: uppercase;
+}
+
+.detalle-analisis__metrica dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+.detalle-analisis__momento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e2) var(--e4);
+}
+
+.detalle-analisis__ir {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+  text-decoration: underline;
+  cursor: pointer;
+}

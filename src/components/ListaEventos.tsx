@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import type { Evento } from "../services/sesionesService";
 import { cortesDeConexion, describirEvento, horaCorta, horaExacta } from "../eventos";
 import { conHuecos } from "../huecos";
@@ -68,8 +68,9 @@ function Hora({ evento }: { evento: Evento }) {
  */
 const Fila = memo(function Fila({ evento, cortadaMs }: { evento: Evento; cortadaMs?: number }) {
   const { titulo, detalle, icono: Icono } = describirEvento(evento, { cortadaMs });
+  // El `id` y el foco programático son el destino del salto desde «Momentos para revisar».
   return (
-    <tr>
+    <tr id={`evento-${evento.id}`} tabIndex={-1}>
       <td className="eventos__hora"><Hora evento={evento} /></td>
       <td className="eventos__que">
         <span className="eventos__tipo">
@@ -85,15 +86,38 @@ const Fila = memo(function Fila({ evento, cortadaMs }: { evento: Evento; cortada
 interface Props {
   eventos: Evento[];
   vacio?: React.ReactNode;
+  /**
+   * La fila a la que hay que llevar al docente (desde «Momentos para revisar»). `vez` cambia en cada pedido,
+   * así elegir dos veces el mismo evento vuelve a llevarlo.
+   */
+  destacado?: { id: number; vez: number } | null;
 }
 
-export function ListaEventos({ eventos, vacio }: Props) {
+export function ListaEventos({ eventos, vacio, destacado }: Props) {
   // Se recorre en el orden en que llegó, que es como está pensada la búsqueda
   // de huecos, y recién después se da vuelta para mostrarlo.
   const entradas = useMemo(() => conHuecos(eventos).reverse(), [eventos]);
   // Cuánto duró cada corte de la conexión, para que la fila de la vuelta lo diga (ver `cortesDeConexion`).
   const cortes = useMemo(() => cortesDeConexion(eventos), [eventos]);
   const [visibles, setVisibles] = useState(TANDA);
+
+  // Si la fila pedida no está entre las que se ven, se muestran filas hasta incluirla; después se la lleva a
+  // la vista, recibe el foco y queda resaltada un momento.
+  const indiceDestacado = destacado
+    ? entradas.findIndex((e) => e.clase !== "hueco" && e.evento.id === destacado.id)
+    : -1;
+  if (indiceDestacado >= visibles) setVisibles(indiceDestacado + 1);
+  useEffect(() => {
+    if (!destacado) return;
+    const fila = document.getElementById(`evento-${destacado.id}`);
+    if (!fila) return;
+    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    fila.scrollIntoView?.({ block: "center", behavior: reducido ? "auto" : "smooth" });
+    fila.focus({ preventScroll: true });
+    fila.classList.add("eventos__fila--destacada");
+    const quitar = window.setTimeout(() => fila.classList.remove("eventos__fila--destacada"), 2000);
+    return () => window.clearTimeout(quitar);
+  }, [destacado, visibles]);
 
   if (eventos.length === 0) return <>{vacio}</>;
 

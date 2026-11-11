@@ -479,7 +479,7 @@ describe("AnalisisSesion", () => {
     expect(r457.container.textContent).not.toMatch(/eventos de actividad|se necesitan/);
   });
 
-  it("no muestra el índice de integridad ni las métricas, aunque el servidor los mandara", async () => {
+  it("no muestra el índice de integridad, aunque el servidor lo mandara, ni otras variables que las métricas del cierre", async () => {
     const conDeMas = {
       ...analisis({ alerts: [alerta({ explanation: "Su índice es 38,5 de 100: menos del 1 % de las sesiones esperadas se comporta así." })] }),
       index: 38.5, integrity_index: 38.5, variables: { largest_paste_chars: 1240 }, dimensions: [{ name: "clipboard" }],
@@ -488,7 +488,6 @@ describe("AnalisisSesion", () => {
 
     expect(screen.queryByText(/38[,.]5/)).not.toBeInTheDocument();
     expect(screen.queryByText(/largest_paste_chars|clipboard/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/historial|cronolog/i)).not.toBeInTheDocument();
   });
 
   it("no muestra la severidad de la alerta ni sus variables, aunque el servidor las mandara", async () => {
@@ -524,10 +523,12 @@ describe("AnalisisSesion", () => {
     await esperar(sesionesService.CADENCIA_MS);
     expect(screen.getByText("Riesgo alto")).toBeInTheDocument();
     expect(screen.queryByText("Riesgo bajo")).not.toBeInTheDocument();
-    // La alerta nueva queda dentro de la región viva con nombre, para que un lector de pantalla la anuncie.
+    // La región viva dice solo lo nuevo, en una frase, y no relee todo el apartado.
     const region = screen.getByRole("status", { name: "Alertas de la sesión" });
     expect(region).toHaveAttribute("aria-live", "polite");
-    expect(within(region).getByText("Riesgo alto")).toBeInTheDocument();
+    expect(region).toHaveAttribute("aria-atomic", "false");
+    expect(region).toHaveTextContent("La alerta en toda la sesión subió a riesgo alto.");
+    expect(within(region).queryByText("Riesgo alto")).not.toBeInTheDocument();
   });
 
   it("una sesión entregada hace mucho no sigue preguntando", async () => {

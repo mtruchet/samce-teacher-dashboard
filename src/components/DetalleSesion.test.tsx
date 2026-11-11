@@ -225,7 +225,7 @@ describe("DetalleSesion", () => {
     expect(onConsulta).toHaveBeenLastCalledWith(true, true);
     // Lo que ya había llegado sigue a la vista, con el aviso.
     expect(screen.getByText(/No se pudo actualizar el registro/)).toBeInTheDocument();
-    expect(screen.getByText("Pasó a otra ventana")).toBeInTheDocument();
+    expect(within(screen.getByRole("group", { name: "Registro de eventos" })).getByText("Pasó a otra ventana")).toBeInTheDocument();
 
     await esperar(5000);
     expect(onConsulta).toHaveBeenLastCalledWith(true, false);
@@ -469,12 +469,12 @@ describe("DetalleSesion", () => {
 
     const { rerender } = render(<DetalleSesion sesion={SESION} onVencida={() => undefined} />);
     await esperar();
-    expect(screen.getByText("Pasó a otra ventana")).toBeInTheDocument();
+    expect(within(screen.getByRole("group", { name: "Registro de eventos" })).getByText("Pasó a otra ventana")).toBeInTheDocument();
 
     for (let segundo = 0; segundo < 3; segundo++) {
       rerender(<DetalleSesion sesion={{ ...SESION }} onVencida={() => undefined} />);
       await esperar(1000);
-      expect(screen.getByText("Pasó a otra ventana")).toBeInTheDocument();
+      expect(within(screen.getByRole("group", { name: "Registro de eventos" })).getByText("Pasó a otra ventana")).toBeInTheDocument();
       expect(screen.queryByText(/Cargando los eventos/)).not.toBeInTheDocument();
     }
 

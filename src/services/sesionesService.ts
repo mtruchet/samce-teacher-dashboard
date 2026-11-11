@@ -320,11 +320,28 @@ export interface AlertaDeSesion {
   updated_at: string;
 }
 
+/** Una aparición o subida de nivel de una alerta, en el historial de la sesión (HU05). */
+export interface EntradaDelHistorial {
+  origin: "model" | "event";
+  level: "low" | "medium" | "high";
+  explanation: string;
+  /** Hora del análisis que la registró, no la del hecho. */
+  recorded_at: string;
+  /** Copiada de la alerta vigente al empezar a guardar el historial: lo anterior no quedó registrado. */
+  carried_over: boolean;
+}
+
+/** El valor del propio alumno en cada métrica del cierre. Sin lo esperado. Nulo si no hubo dato. */
+export type Metricas = Record<
+  | "outside_time_ratio" | "outside_longest_s" | "typing_rate_median_per_s"
+  | "largest_paste_chars" | "pasted_chars_ratio" | "mouse_idle_longest_s"
+  | "question_time_median_s" | "silence_longest_s",
+  number | null
+>;
+
 /**
- * El análisis de una sesión: su estado, la hora del último cálculo y sus alertas.
- *
- * Es la versión mínima: el backend no manda el índice de integridad, las métricas, el
- * historial ni la cronología, y el panel no los muestra.
+ * El análisis de una sesión: su estado, la hora del último cálculo, sus alertas vigentes, el historial
+ * de esas alertas y las métricas del cierre (HU05). Nunca el índice de integridad.
  */
 export interface Analisis {
   state: EstadoDelAnalisis;
@@ -333,6 +350,10 @@ export interface Analisis {
   /** Hora del último cálculo. Nulo si todavía no se analizó. */
   calculated_at: string | null;
   alerts: AlertaDeSesion[];
+  /** Cada aparición o subida de nivel, en orden. Sin el campo (un backend viejo), no se muestra. */
+  alert_history?: EntradaDelHistorial[];
+  /** Las métricas del cierre. Nulas mientras la sesión sigue abierta o si no se pudo analizar. */
+  metrics?: Metricas | null;
 }
 
 /** El análisis de una sesión: su estado, el último cálculo y las alertas vigentes. */
