@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import App from "./App";
 import * as authService from "./services/authService";
 import * as sesionesService from "./services/sesionesService";
+import { pagina, simularSesiones } from "./test/fabricas";
 
 const SESION = {
   token: "session-jwt",
@@ -27,7 +28,7 @@ describe("Enrutado y acceso", () => {
     // prueba pasa o falla según si el backend está levantado en la máquina de
     // quien la corre. Cada prueba que necesite otra respuesta la pisa.
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([]);
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([]);
+    simularSesiones([]);
     vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
     // El apartado «Análisis de la sesión» hace su propia consulta: sin esta simulación sale a buscar al backend de verdad.
     vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue({
@@ -300,7 +301,7 @@ describe("Enrutado y acceso", () => {
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 1, closed_sessions: 0, abandoned_sessions: 0 },
       { id: 2, moodle_course_id: 3, moodle_quiz_id: 9, name: "Final", created_at: "2026-08-26T14:00:00Z", open_sessions: 1, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
-    vi.spyOn(sesionesService, "traerSesiones").mockImplementation(async (examenId: number) => [
+    vi.spyOn(sesionesService, "traerSesiones").mockImplementation(async (examenId: number) => pagina([
       {
         id: examenId,
         moodle_attempt_id: 7000 + examenId,
@@ -309,7 +310,7 @@ describe("Enrutado y acceso", () => {
         status: "open" as const,
         started_at: "2026-08-26T14:02:00Z",
       },
-    ]);
+    ]));
     window.history.pushState({}, "", "/panel");
 
     render(<App />);
@@ -348,7 +349,7 @@ describe("Enrutado y acceso", () => {
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 1, abandoned_sessions: 1 },
     ]);
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+    simularSesiones([
       { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "closed", started_at: "2026-08-26T14:02:00Z", closed_at: "2026-08-26T15:00:00Z" },
       { id: 2, moodle_attempt_id: 7002, moodle_user_id: 42, student_name: "Bruno Pérez", status: "abandoned", started_at: "2026-08-26T14:03:00Z", closed_at: "2026-08-26T15:10:00Z" },
     ]);
@@ -372,7 +373,7 @@ describe("Enrutado y acceso", () => {
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 1, closed_sessions: 0, abandoned_sessions: 0 },
       { id: 2, moodle_course_id: 2, moodle_quiz_id: 2, name: "Segundo Parcial", created_at: "2026-08-27T14:00:00Z", open_sessions: 0, closed_sessions: 3, abandoned_sessions: 1 },
     ]);
-    const traer = vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+    const traer = simularSesiones([
       { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
     ]);
     window.history.pushState({}, "", "/panel");
@@ -394,7 +395,7 @@ describe("Enrutado y acceso", () => {
     // Al entrar a uno se piden las de ese, y solo esas.
     fireEvent.click(await screen.findByRole("button", { name: /Primer Parcial/i }));
     expect(await screen.findByText("Ana Gómez")).toBeInTheDocument();
-    expect(traer).toHaveBeenCalledWith(1, 50);
+    expect(traer).toHaveBeenCalledWith(1, 50, expect.anything());
     expect(traer.mock.calls.every(([examen]) => examen === 1)).toBe(true);
   });
 
@@ -407,16 +408,16 @@ describe("Enrutado y acceso", () => {
       id: i + 1, moodle_attempt_id: 7000 + i, moodle_user_id: 100 + i, student_name: `Alumno ${i + 1}`,
       status: "closed" as const, started_at: "2026-08-26T14:02:00Z", closed_at: "2026-08-26T14:40:00Z",
     }));
-    const traer = vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(cincuenta);
+    const traer = simularSesiones(cincuenta);
     window.history.pushState({}, "", "/panel?examen=1");
 
     render(<App />);
 
     const verMas = await screen.findByRole("button", { name: /Ver más sesiones/i });
-    expect(traer).toHaveBeenCalledWith(1, 50);
+    expect(traer).toHaveBeenCalledWith(1, 50, expect.anything());
 
     fireEvent.click(verMas);
-    await waitFor(() => expect(traer).toHaveBeenCalledWith(1, 100));
+    await waitFor(() => expect(traer).toHaveBeenCalledWith(1, 100, expect.anything()));
   });
 
   it("aclara cuando el examen tiene más sesiones de las que el backend devuelve por pedido", async () => {
@@ -428,7 +429,7 @@ describe("Enrutado y acceso", () => {
       id: i + 1, moodle_attempt_id: 7000 + i, moodle_user_id: 100 + i, student_name: `Alumno ${i + 1}`,
       status: "closed" as const, started_at: "2026-08-26T14:02:00Z", closed_at: "2026-08-26T14:40:00Z",
     }));
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(mil);
+    simularSesiones(mil);
     window.history.pushState({}, "", "/panel?examen=1");
 
     render(<App />);
@@ -441,7 +442,7 @@ describe("Enrutado y acceso", () => {
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 2, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+    simularSesiones([
       { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z", capture: { state: "ok" } },
       { id: 2, moodle_attempt_id: 7002, moodle_user_id: 42, student_name: "Bruno Pérez", status: "open", started_at: "2026-08-26T14:01:00Z", capture: { state: "none" } },
     ]);
@@ -462,7 +463,7 @@ describe("Enrutado y acceso", () => {
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 1, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+    simularSesiones([
       { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
     ]);
     window.history.pushState({}, "", "/panel?examen=1");
@@ -478,7 +479,7 @@ describe("Enrutado y acceso", () => {
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+    simularSesiones([
       { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
     ]);
     window.history.pushState({}, "", "/panel");
@@ -505,7 +506,7 @@ describe("Enrutado y acceso", () => {
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 1, closed_sessions: 1, abandoned_sessions: 0 },
     ]);
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+    simularSesiones([
       { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
       { id: 2, moodle_attempt_id: 7002, moodle_user_id: 42, student_name: "Bruno Pérez", status: "closed", started_at: "2026-08-26T14:01:00Z", closed_at: "2026-08-26T14:40:00Z" },
     ]);
@@ -537,7 +538,7 @@ describe("Enrutado y acceso", () => {
     ]);
     // El 41 rindió dos veces. Los identificadores de Moodle vienen desordenados
     // y salteados a propósito: el número que se muestra no sale de ahí.
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+    simularSesiones([
       { id: 1, moodle_attempt_id: 90004, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T15:00:00Z" },
       { id: 2, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "closed", started_at: "2026-08-26T14:00:00Z", closed_at: "2026-08-26T14:30:00Z" },
       { id: 3, moodle_attempt_id: 8002, moodle_user_id: 42, student_name: "Bruno Pérez", status: "open", started_at: "2026-08-26T14:10:00Z" },
@@ -563,7 +564,7 @@ describe("Enrutado y acceso", () => {
     // Una sesión registrada antes de que el aula virtual empezara a mandar el
     // nombre. La fila tiene que seguir sirviendo: sin identificar al alumno no
     // hay nada que supervisar.
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+    simularSesiones([
       { id: 1, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "", status: "open", started_at: "2026-08-26T14:02:00Z" },
       { id: 2, moodle_attempt_id: 7002, moodle_user_id: 42, student_name: "Bruno Pérez", status: "open", started_at: "2026-08-26T14:03:00Z" },
     ]);
@@ -584,7 +585,7 @@ describe("Enrutado y acceso", () => {
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+    simularSesiones([
       { id: 5, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
     ]);
     const traerEventos = vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
@@ -612,7 +613,7 @@ describe("Enrutado y acceso", () => {
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([
       { id: 1, moodle_course_id: 2, moodle_quiz_id: 1, name: "Primer Parcial", created_at: "2026-08-26T14:00:00Z", open_sessions: 0, closed_sessions: 0, abandoned_sessions: 0 },
     ]);
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([
+    simularSesiones([
       { id: 5, moodle_attempt_id: 7001, moodle_user_id: 41, student_name: "Ana Gómez", status: "open", started_at: "2026-08-26T14:02:00Z" },
     ]);
     const traerEventos = vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);

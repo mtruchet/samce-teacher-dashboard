@@ -100,15 +100,45 @@ describe("traerSesiones", () => {
     guardarSesion();
   });
 
+  const respuesta = (cuerpo: unknown, total: string | null = null) => ({
+    ok: true, status: 200, json: async () => cuerpo, headers: new Headers(total === null ? {} : { "X-Total-Count": total }),
+  });
+
   it("pide las del examen con el límite en la dirección, sin pasar el tope del backend", async () => {
-    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] });
+    const fetch = vi.fn().mockResolvedValue(respuesta([]));
     vi.stubGlobal("fetch", fetch);
 
     await traerSesiones(3, 100);
     await traerSesiones(3, SESIONES_TOPE + 50);
 
-    expect(fetch.mock.calls[0][0]).toBe("http://localhost:8080/monitored-quizzes/3/sessions?limit=100");
+    expect(fetch.mock.calls[0][0]).toBe("http://localhost:8080/monitored-quizzes/3/sessions?limit=100&include=summary");
     expect(fetch.mock.calls[1][0]).toContain(`limit=${SESIONES_TOPE}`);
+  });
+
+  it("manda los filtros que tienen valor, con los nombres de la API", async () => {
+    const fetch = vi.fn().mockResolvedValue(respuesta([]));
+    vi.stubGlobal("fetch", fetch);
+
+    await traerSesiones(3, 50, { nivel: "high", estado: "finished", analisis: "not_analyzed", q: "Núñez", orden: "risk_level" });
+    await traerSesiones(3, 50, { orden: "started_at", q: "" });
+
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.searchParams.get("risk_level")).toBe("high");
+    expect(url.searchParams.get("status")).toBe("finished");
+    expect(url.searchParams.get("analysis")).toBe("not_analyzed");
+    expect(url.searchParams.get("q")).toBe("Núñez");
+    expect(url.searchParams.get("sort")).toBe("risk_level");
+    const predeterminada = new URL(fetch.mock.calls[1][0]);
+    expect([...predeterminada.searchParams.keys()].sort()).toEqual(["include", "limit"]);
+  });
+
+  it("lee el total de la cabecera y el resumen, y tolera el arreglo de un backend viejo", async () => {
+    const resumen = { total: 2, risk_high: 1, risk_medium: 0, risk_low: 0, no_alerts: 1, not_analyzed: 0, insufficient_evidence: 0, unavailable: 0 };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta({ sessions: [], summary: resumen }, "7")));
+    expect(await traerSesiones(3)).toEqual({ sesiones: [], total: 7, resumen });
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta([])));
+    expect(await traerSesiones(3)).toEqual({ sesiones: [], total: null, resumen: null });
   });
 });
 

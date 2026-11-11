@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as sesionesService from "../services/sesionesService";
-import { esperar, evento } from "../test/fabricas";
+import { esperar, evento, pagina, simularSesiones } from "../test/fabricas";
 import { Panel } from "./Panel";
 
 /**
@@ -83,7 +83,7 @@ describe("El pulso del panel en el registro de un intento", () => {
     sessionStorage.clear();
     sessionStorage.setItem("samce_session", JSON.stringify(SESION));
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([EXAMEN]);
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([entregadaHaceRato(), rindiendo]);
+    simularSesiones([entregadaHaceRato(), rindiendo]);
     vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
     // El apartado «Análisis de la sesión» hace su propia consulta: sin esta simulación sale a buscar al backend de verdad.
     vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue({
@@ -136,13 +136,13 @@ describe("El pulso del panel en el registro de un intento", () => {
     // Carla recién aparece cuando se pide más de una página.
     vi.mocked(sesionesService.traerSesiones).mockImplementation(
       async (_id: number, limite = sesionesService.SESIONES_POR_PAGINA) =>
-        limite > sesionesService.SESIONES_POR_PAGINA ? [...primeraPagina, vieja] : primeraPagina
+        pagina(limite > sesionesService.SESIONES_POR_PAGINA ? [...primeraPagina, vieja] : primeraPagina)
     );
 
     montar("/panel?examen=1&sesion=55");
     await esperar();
 
-    expect(sesionesService.traerSesiones).toHaveBeenLastCalledWith(1, 2 * sesionesService.SESIONES_POR_PAGINA);
+    expect(sesionesService.traerSesiones).toHaveBeenLastCalledWith(1, 2 * sesionesService.SESIONES_POR_PAGINA, expect.anything());
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Carla Ruiz");
   });
 
@@ -224,7 +224,7 @@ describe("Las páginas de sesiones de un examen", () => {
     sessionStorage.clear();
     sessionStorage.setItem("samce_session", JSON.stringify(SESION));
     vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([{ ...EXAMEN, closed_sessions: 120 }]);
-    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue([]);
+    simularSesiones([]);
   });
 
   afterEach(() => {
@@ -238,14 +238,14 @@ describe("Las páginas de sesiones de un examen", () => {
     await esperar();
     fireEvent.click(screen.getByRole("button", { name: "Ver más sesiones" }));
     await esperar();
-    expect(traer).toHaveBeenLastCalledWith(1, 100);
+    expect(traer).toHaveBeenLastCalledWith(1, 100, expect.anything());
 
     fireEvent.click(screen.getByRole("button", { name: "Sistemas de Información II" }));
     await esperar();
     fireEvent.click(screen.getByRole("button", { name: /Primer Parcial/ }));
     await esperar();
 
-    expect(traer).toHaveBeenLastCalledWith(1, 50);
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.anything());
   });
 
   // Con el número de páginas reiniciado por un efecto, el cambio de examen
@@ -261,14 +261,89 @@ describe("Las páginas de sesiones de un examen", () => {
     await esperar();
     fireEvent.click(screen.getByRole("button", { name: "Ver más sesiones" }));
     await esperar();
-    expect(traer).toHaveBeenLastCalledWith(1, 100);
+    expect(traer).toHaveBeenLastCalledWith(1, 100, expect.anything());
 
     const examenesAntes = vi.mocked(sesionesService.traerExamenes).mock.calls.length;
     fireEvent.click(screen.getByRole("button", { name: "Atrás del navegador" }));
     await esperar();
 
     expect(vi.mocked(sesionesService.traerExamenes).mock.calls.length).toBe(examenesAntes + 1);
-    expect(traer).not.toHaveBeenCalledWith(2, 100);
-    expect(traer).toHaveBeenLastCalledWith(2, 50);
+    expect(traer).not.toHaveBeenCalledWith(2, 100, expect.anything());
+    expect(traer).toHaveBeenLastCalledWith(2, 50, expect.anything());
+  });
+});
+
+describe("Los filtros de la lista de sesiones", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    sessionStorage.clear();
+    sessionStorage.setItem("samce_session", JSON.stringify(SESION));
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([EXAMEN, { ...EXAMEN, id: 2, name: "Segundo Parcial" }]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("pide la lista con los filtros de la dirección en cada vuelta", async () => {
+    const traer = simularSesiones([rindiendo]);
+    montar("/panel?examen=1&nivel=high&estado=open&q=bru&orden=risk_level");
+    await esperar();
+    expect(traer).toHaveBeenLastCalledWith(1, 50, { nivel: "high", estado: "open", analisis: undefined, q: "bru", orden: "risk_level" });
+    await esperar(sesionesService.CADENCIA_MS);
+    expect(traer.mock.calls.length).toBeGreaterThan(1);
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "high", q: "bru" }));
+  });
+
+  it("con un filtro dice «N de M sesiones» y no dibuja el grupo vacío", async () => {
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1));
+    montar("/panel?examen=1&nivel=high");
+    await esperar();
+    expect(screen.getByText("1 de 2 sesiones")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "En curso" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Finalizadas" })).toBeNull();
+  });
+
+  it("si ninguna coincide lo dice, y «Quitar filtros» vuelve a la lista completa", async () => {
+    const traer = vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([], 0));
+    montar("/panel?examen=1&nivel=high&q=nadie&orden=risk_level");
+    await esperar();
+    expect(screen.getByText("Ninguna sesión coincide con el filtro.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Quitar filtros" }));
+    await esperar();
+    // Quita los filtros y conserva el orden elegido.
+    expect(traer).toHaveBeenLastCalledWith(1, 50, { nivel: undefined, estado: undefined, analisis: undefined, q: undefined, orden: "risk_level" });
+  });
+
+  it("elegir un nivel en la barra lo pide, y la búsqueda espera a que se deje de escribir", async () => {
+    const traer = simularSesiones([rindiendo]);
+    montar("/panel?examen=1");
+    await esperar();
+
+    fireEvent.change(screen.getByLabelText("Nivel de riesgo"), { target: { value: "medium" } });
+    await esperar();
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "medium" }));
+
+    fireEvent.change(screen.getByLabelText("Buscar alumno"), { target: { value: "Ana" } });
+    await esperar(100);
+    expect(traer).not.toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ q: "Ana" }));
+    await esperar(300);
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "medium", q: "Ana" }));
+  });
+
+  it("con una sesión abierta en el detalle, la lista se pide sin filtrar", async () => {
+    const traer = simularSesiones([rindiendo]);
+    montar("/panel?examen=1&sesion=6&nivel=high&estado=finished");
+    await esperar();
+    expect(traer).toHaveBeenLastCalledWith(1, 50, { orden: undefined });
+  });
+
+  it("el intento sale del backend cuando lo manda", async () => {
+    simularSesiones([{ ...rindiendo, attempt_number: 2, attempts_total: 3 }]);
+    montar("/panel?examen=1");
+    await esperar();
+    expect(screen.getByText("intento 2 de 3")).toBeInTheDocument();
   });
 });
