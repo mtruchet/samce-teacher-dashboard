@@ -59,6 +59,9 @@ describe("contraste del texto atenuado y de los trazos del análisis", () => {
     ["--tinta-media", "--sup-2"],
     ["--tinta-media", "--sup-3"],
     ["--celeste-hondo", "--sup-1"],
+    // El rótulo del nivel y los renglones de la columna «Análisis» de la lista, sobre su fondo.
+    ["--tinta", "--sup-1"],
+    ["--tinta-media", "--sup-1"],
     // El tilde del veredicto sin alertas sobre su cuadro verde suave (ronda 3).
     ["--veredicto-bien-tinta", "--veredicto-bien-fondo"],
   ];
@@ -73,6 +76,10 @@ describe("contraste del texto atenuado y de los trazos del análisis", () => {
     ["--alerta-tono-low", "--sup-2"],
     ["--alerta-tono-medium", "--sup-2"],
     ["--alerta-tono-high", "--sup-2"],
+    // La marca de la columna «Análisis» de la lista: el borde y el medidor sobre el fondo de la lista (--sup-1).
+    ["--alerta-tono-low", "--sup-1"],
+    ["--alerta-tono-medium", "--sup-1"],
+    ["--alerta-tono-high", "--sup-1"],
   ];
 
   it.each(graficos)("el trazo %s sobre %s tiene al menos 3:1", (trazo, fondo) => {

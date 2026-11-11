@@ -44,6 +44,12 @@ anterior a que el aula virtual empezara a mandarlo, la fila cae en el número, q
 alcanza para identificar a quien está rindiendo. Y si rindió más de una vez el
 mismo examen, aclara en cuál va, por orden de comienzo.
 
+Cada sesión dice también lo que se ve de su análisis, en la columna «Análisis»: su
+nivel de riesgo, que es el más alto entre los de sus alertas, con su marca y con
+cuántas alertas tiene; o, si no tiene alertas, el estado de su análisis («Sin
+alertas», «Sin analizar», «No se pudo analizar» o «Análisis no disponible»). Nunca
+el índice de integridad.
+
 Desde cada sesión se abre su detalle. Arriba va una ficha de una sola línea con
 lo que la lista no alcanza a decir: si entregó, qué intento es, qué día y a qué
 hora empezó y cuánto duró. Debajo están el análisis y el registro.
@@ -83,7 +89,7 @@ análisis encontró, en tres capas:
 Los textos de las alertas y el motivo de una sesión que no se pudo analizar los
 escribe el motor de análisis para el docente, y el panel los muestra tal cual,
 sin traducirlos ni recortarlos. El apartado no muestra el índice de integridad,
-las métricas, el historial ni la cronología, y no cambia la lista de sesiones. Una
+las métricas, el historial ni la cronología. Una
 alerta señala algo para revisar y no una conclusión sobre el alumno. Se actualiza
 igual que el registro, mientras el alumno rinde y unos minutos después de la
 entrega, y un lector de pantalla anuncia la alerta que aparece o sube de nivel

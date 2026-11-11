@@ -1,0 +1,63 @@
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import type { Sesion } from "../services/sesionesService";
+import { sesionNumerada } from "../test/fabricas";
+import { AvisoAlertas } from "./AvisoAlertas";
+
+const sesion = (id: number, risk_level: Sesion["risk_level"], student_name = `Alumno ${id}`) =>
+  sesionNumerada({ id, student_name, risk_level, analysis_state: "analyzed" });
+
+const region = () => screen.getByRole("status");
+
+describe("AvisoAlertas", () => {
+  it("es una región viva que solo contiene la frase y no relee la lista", () => {
+    render(<AvisoAlertas sesiones={[sesion(1, null)]} clave="3" />);
+    expect(region()).toHaveAttribute("aria-atomic", "false");
+    expect(region()).toHaveAttribute("aria-live", "polite");
+    expect(region()).toHaveTextContent("");
+  });
+
+  it("no anuncia en la primera carga", () => {
+    render(<AvisoAlertas sesiones={[sesion(1, "high")]} clave="3" />);
+    expect(region()).toHaveTextContent("");
+  });
+
+  it("anuncia la alerta nueva de una sesión que ya estaba, una sola vez", () => {
+    const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, null, "Ana Gómez")]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "medium", "Ana Gómez")]} clave="3" />);
+    expect(region()).toHaveTextContent("Nueva alerta en la sesión de Ana Gómez: riesgo medio.");
+    rerender(<AvisoAlertas sesiones={[sesion(1, "medium", "Ana Gómez")]} clave="3" />);
+    expect(region()).toHaveTextContent("Nueva alerta en la sesión de Ana Gómez: riesgo medio.");
+  });
+
+  it("anuncia la subida de nivel", () => {
+    const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, "low", "Ana Gómez")]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "high", "Ana Gómez")]} clave="3" />);
+    expect(region()).toHaveTextContent("Nueva alerta en la sesión de Ana Gómez: riesgo alto.");
+  });
+
+  it("con varias en la misma vuelta dice cuántas", () => {
+    const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, null), sesion(2, null)]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "low"), sesion(2, "high")]} clave="3" />);
+    expect(region()).toHaveTextContent("Nuevas alertas en 2 sesiones.");
+  });
+
+  it("una sesión que entra por pedir otra página solo se memoriza", () => {
+    const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, null)]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, null), sesion(2, "high")]} clave="3" />);
+    expect(region()).toHaveTextContent("");
+  });
+
+  it("al cambiar de examen no anuncia nada", () => {
+    const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, null)]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "high")]} clave="4" />);
+    expect(region()).toHaveTextContent("");
+  });
+
+  it("con un backend que no manda los campos no anuncia nada ni falla", () => {
+    const viejas = [sesionNumerada({ id: 1 }), sesionNumerada({ id: 2 })];
+    const { rerender } = render(<AvisoAlertas sesiones={viejas} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[...viejas]} clave="3" />);
+    expect(region()).toHaveTextContent("");
+  });
+});

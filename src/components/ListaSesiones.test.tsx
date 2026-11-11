@@ -46,4 +46,21 @@ describe("ListaSesiones", () => {
     const fecha = ayer.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
     expect(screen.getByText((texto) => texto.startsWith(`${fecha} `))).toBeInTheDocument();
   });
+
+  it("la columna «Análisis» dice el nivel en el árbol de accesibilidad, con el medidor oculto", () => {
+    const conAlerta = sesionNumerada({
+      id: 1, student_name: "Ana", risk_level: "high", alerts_count: 1, alert_origins: ["event"], analysis_state: "analyzed",
+    });
+    const sinAlerta = sesionNumerada({
+      id: 2, student_name: "Bruno", risk_level: null, alerts_count: 0, alert_origins: [], analysis_state: "analyzed",
+    });
+    const { container } = render(<ListaSesiones titulo="En curso" sesiones={[conAlerta, sinAlerta]} onVerEventos={verEventos} />);
+
+    expect(screen.getByRole("columnheader", { name: "Análisis" })).toBeInTheDocument();
+    const [, filaAna, filaBruno] = screen.getAllByRole("row");
+    expect(within(filaAna).getByRole("cell", { name: /Riesgo alto/ })).toBeInTheDocument();
+    expect(container.querySelector(".medidor")).toHaveAttribute("aria-hidden", "true");
+    expect(filaBruno.querySelector(".indicador--low, .indicador--medium, .indicador--high")).toBeNull();
+    expect(within(filaBruno).getByText("Sin alertas")).toBeInTheDocument();
+  });
 });

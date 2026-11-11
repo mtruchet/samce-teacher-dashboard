@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { horaCorta } from "../eventos";
 import { ordenarExplicacion } from "../explicacion";
 import { Check, Info, Ojo, Reloj, type Icon } from "../iconos";
-import { ordenarAlertas } from "../lenguajeAlerta";
+import { NIVELES, ORIGENES, ordenarAlertas } from "../lenguajeAlerta";
 import { recienCerrada } from "../seguimiento";
 import {
   CADENCIA_MS,
@@ -38,25 +38,6 @@ import "./AnalisisSesion.css";
  * cada pocos segundos: el análisis se recalcula con cada tanda de eventos, y una alerta puede
  * aparecer o subir de nivel mientras el docente mira.
  */
-
-/**
- * El nivel de cada alerta, con los nombres del criterio de HU06 (riesgo bajo, medio o alto). «Riesgo» y no
- * «Nivel»: «Nivel bajo» solo se leía como el nivel del alumno. El medidor de al lado dice lo mismo en dibujo.
- */
-const NIVELES: Record<AlertaDeSesion["level"], string> = {
-  low: "Riesgo bajo",
-  medium: "Riesgo medio",
-  high: "Riesgo alto",
-};
-
-/**
- * De dónde sale la alerta, escrito. Se elige por `origin`, nunca por el texto. Sin ícono: el de capas
- * y el de ubicación no se entendían sin una leyenda, y el texto ya alcanza.
- */
-const ORIGENES: Record<AlertaDeSesion["origin"], string> = {
-  model: "En toda la sesión",
-  event: "En un momento de la sesión",
-};
 
 interface Props {
   sesion: SesionNumerada;

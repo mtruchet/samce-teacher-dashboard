@@ -1,4 +1,5 @@
 import type { AlertaDeSesion } from "../services/sesionesService";
+import "./MedidorNivel.css";
 
 /**
  * El nivel de una alerta dibujado: tres segmentos, uno, dos o tres llenos.

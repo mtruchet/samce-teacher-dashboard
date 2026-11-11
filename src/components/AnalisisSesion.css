@@ -194,28 +194,6 @@
   opacity: 0.5;
 }
 
-/* El medidor: tres segmentos, llenos según el nivel, en el tono de la tarjeta. */
-.medidor {
-  display: inline-flex;
-  gap: 3px;
-  margin-right: var(--e1);
-}
-
-/* El segmento vacío lleva el contorno y un relleno suave del tono de la tarjeta: con el contorno gris de
-   1 px, el nivel bajo parecía un control desactivado (ronda 2). */
-.medidor__segmento {
-  width: 16px;
-  height: 10px;
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--tono) 14%, transparent);
-  box-shadow: inset 0 0 0 1.5px var(--tono);
-}
-
-.medidor__segmento--lleno {
-  background: var(--tono);
-  box-shadow: inset 0 0 0 1px var(--tono);
-}
-
 /* El hecho es lo primero que se lee de la tarjeta: pesa más que todo lo demás. */
 .analisis__hecho {
   max-width: var(--medida);

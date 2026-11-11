@@ -43,6 +43,17 @@ export interface Sesion {
   closed_at?: string;
   /** Si la captura de eventos estuvo funcionando. Sin el campo (un backend viejo) no se marca nada. */
   capture?: Captura;
+  /**
+   * El nivel de riesgo de la sesión: el más alto entre los de sus alertas. Nulo si no tiene
+   * alertas, que no es lo mismo que riesgo bajo. Sin el campo (un backend viejo) no se marca nada.
+   */
+  risk_level?: "low" | "medium" | "high" | null;
+  /** Cuántas alertas tiene: a lo sumo una por origen. */
+  alerts_count?: number;
+  /** De dónde salió cada alerta, la de toda la sesión primero. */
+  alert_origins?: Array<"model" | "event">;
+  /** El estado del último análisis, el mismo de `EstadoDelAnalisis`. */
+  analysis_state?: EstadoDelAnalisis;
 }
 
 /**

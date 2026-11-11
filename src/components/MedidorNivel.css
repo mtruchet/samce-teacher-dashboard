@@ -1,0 +1,22 @@
+/* El medidor: tres segmentos, llenos según el nivel. Pinta con `--tono`, que define quien lo
+   monta: la tarjeta de la alerta en el detalle y la celda «Análisis» de la lista. */
+.medidor {
+  display: inline-flex;
+  gap: 3px;
+  margin-right: var(--e1);
+}
+
+/* El segmento vacío lleva el contorno y un relleno suave del tono: con el contorno gris de
+   1 px, el nivel bajo parecía un control desactivado (ronda 2). */
+.medidor__segmento {
+  width: 16px;
+  height: 10px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--tono) 14%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--tono);
+}
+
+.medidor__segmento--lleno {
+  background: var(--tono);
+  box-shadow: inset 0 0 0 1px var(--tono);
+}
