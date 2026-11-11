@@ -80,6 +80,10 @@ describe("contraste del texto atenuado y de los trazos del análisis", () => {
     ["--alerta-tono-low", "--sup-1"],
     ["--alerta-tono-medium", "--sup-1"],
     ["--alerta-tono-high", "--sup-1"],
+    // El semáforo de las tarjetas del resumen de la evaluación, sobre su fondo.
+    ["--semaforo-rojo", "--sup-1"],
+    ["--semaforo-amarillo", "--sup-1"],
+    ["--semaforo-verde", "--sup-1"],
   ];
 
   it.each(graficos)("el trazo %s sobre %s tiene al menos 3:1", (trazo, fondo) => {

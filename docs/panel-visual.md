@@ -86,6 +86,28 @@ cada grupo de la más reciente a la más antigua. Dice qué mirar primero, no qu
 está peor. El docente puede pedir que se agrupe por nivel; a igual nivel decide la
 hora de inicio.
 
+## El resumen de la evaluación
+
+Arriba de la lista de sesiones de un examen, siete tarjetas con recuentos sobre
+**toda** la evaluación (hasta 1000 sesiones), no sobre la página ni el filtro:
+riesgo alto, medio y bajo, y, de las sesiones sin alertas, sin alertas, sin
+analizar, no se pudo analizar y análisis no disponible. Suman el total.
+
+- **Son recuentos:** sin nombres, sin índice y sin promedios, en un orden fijo que
+  no depende de los números. Contar y agrupar sí, elegir y comparar no.
+- **Cada tarjeta es un filtro:** al tocarla, la lista queda con las sesiones que
+  cuenta (deja solo su filtro y conserva el orden elegido); al tocarla de nuevo,
+  vuelve a la evaluación completa. La elegida lleva `aria-pressed` y un anillo.
+- **Semáforo:** los tres niveles van en rojo, amarillo y verde
+  (`--semaforo-*`), con el número, el rótulo y el medidor al lado, para que no
+  dependan solo del color. Es la única excepción a «la ausencia de semáforo»,
+  pedida por el equipo para ver de un vistazo cómo está el examen, y queda a
+  confirmar. La lista y el detalle siguen con los tonos de intensidad.
+- **No es una región viva:** los números cambian en silencio en cada
+  actualización. Lo que se anuncia al elegir una tarjeta es «N de M sesiones».
+- No hay tarjetas de en curso ni de finalizadas: ya están en la cabecera de cada
+  grupo.
+
 ## Los filtros de la lista
 
 Arriba de la lista, una barra con cuatro controles: nivel de riesgo, estado (en

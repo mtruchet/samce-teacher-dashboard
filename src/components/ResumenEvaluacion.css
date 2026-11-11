@@ -1,0 +1,88 @@
+/* El resumen de la evaluación (HU03). Siete tarjetas en dos renglones de sentido: los tres niveles de
+   riesgo, en colores de semáforo, y los cuatro estados del análisis de las sesiones sin alertas, en
+   tinta neutra. El número y el rótulo van siempre en --tinta: el color está en el borde, el medidor y
+   un fondo suave, nunca en el texto. */
+.resumen {
+  display: grid;
+  gap: var(--e3);
+  padding: var(--e4) var(--e5);
+  border-radius: var(--radio-panel);
+  background: var(--sup-1);
+  box-shadow: var(--anillo), var(--elev-2);
+}
+
+.resumen__titulo {
+  font-size: var(--panel-pieza);
+  font-weight: 600;
+  line-height: 25px;
+  letter-spacing: var(--track-titulo);
+  color: var(--tinta);
+}
+
+.resumen__tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--e3);
+}
+
+.resumen__tarjeta {
+  display: grid;
+  gap: var(--e1);
+  justify-items: start;
+  padding: var(--e3) var(--e4);
+  border: 0;
+  border-left: 4px solid var(--tono, var(--tinta-suave));
+  border-radius: var(--radio-ficha);
+  background: color-mix(in srgb, var(--tono, var(--tinta-suave)) 8%, var(--sup-1));
+  box-shadow: var(--anillo);
+  font: inherit;
+  text-align: left;
+  color: var(--tinta);
+  cursor: pointer;
+}
+
+.resumen__tarjeta--high {
+  --tono: var(--semaforo-rojo);
+}
+
+.resumen__tarjeta--medium {
+  --tono: var(--semaforo-amarillo);
+}
+
+.resumen__tarjeta--low {
+  --tono: var(--semaforo-verde);
+}
+
+/* La tarjeta del filtro vigente: un anillo del mismo tono, además de aria-pressed. */
+.resumen__tarjeta[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--tono, var(--tinta-media));
+}
+
+.resumen__numero {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.resumen__rotulo {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--panel-fila);
+  font-weight: 600;
+}
+
+.resumen__tarjeta--estado .resumen__rotulo {
+  font-weight: 400;
+  color: var(--tinta-media);
+}
+
+/* A 390 px, dos columnas, sin desplazar la página de costado. */
+@media (max-width: 760px) {
+  .resumen {
+    padding-inline: var(--e4);
+  }
+
+  .resumen__tarjetas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

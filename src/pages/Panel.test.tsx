@@ -347,3 +347,36 @@ describe("Los filtros de la lista de sesiones", () => {
     expect(screen.getByText("intento 2 de 3")).toBeInTheDocument();
   });
 });
+
+describe("El resumen de la evaluación en el panel", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    sessionStorage.clear();
+    sessionStorage.setItem("samce_session", JSON.stringify(SESION));
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([EXAMEN]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  const RESUMEN = { total: 2, risk_high: 1, risk_medium: 0, risk_low: 0, no_alerts: 1, not_analyzed: 0, insufficient_evidence: 0, unavailable: 0 };
+
+  it("se dibuja arriba de la lista y una tarjeta filtra la lista", async () => {
+    const traer = vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue({ sesiones: [rindiendo], total: 2, resumen: RESUMEN });
+    montar("/panel?examen=1");
+    await esperar();
+    fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" }));
+    await esperar();
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "high" }));
+    expect(screen.getByLabelText("Nivel de riesgo")).toHaveValue("high");
+  });
+
+  it("con un backend sin el resumen no se dibuja", async () => {
+    simularSesiones([rindiendo]);
+    montar("/panel?examen=1");
+    await esperar();
+    expect(screen.queryByRole("heading", { name: "Resumen de la evaluación" })).toBeNull();
+  });
+});

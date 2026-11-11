@@ -78,6 +78,16 @@
   --alerta-tono-medium: #987016; /* 4,32:1 */
   --alerta-tono-high: #ad5a0f; /* 4,75:1 */
 
+  /* ---- El semáforo del resumen de la evaluación (Sprint 4) ---------------- */
+  /* Solo en las tarjetas del resumen, arriba de la lista: rojo para riesgo alto, amarillo para medio y verde
+     para bajo, para ver de un vistazo cómo está el examen. Es una excepción a «la ausencia de semáforo» que
+     pidió el equipo (a confirmar). Como los --alerta-tono-*, son trazos y rellenos, nunca texto: el número y
+     el rótulo van en --tinta, con el medidor al lado. Piden 3:1 sobre --sup-1; se comprueba en
+     AnalisisSesion.contraste.test.ts. */
+  --semaforo-rojo: #c62828; /* 5,62:1 sobre --sup-1 */
+  --semaforo-amarillo: #c27c0e; /* 3,40:1 */
+  --semaforo-verde: #2e7d32; /* 5,13:1 */
+
   /* ---- El veredicto sin alertas ------------------------------------------ */
   /* Un verde suave solo en el cuadro del ícono de «No hay alertas para revisar» (ronda 3), para que se distinga de
      «no se pudo analizar» sin depender del texto. No es el color de ningún nivel. */
