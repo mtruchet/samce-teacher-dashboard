@@ -50,6 +50,11 @@ cuántas alertas tiene; o, si no tiene alertas, el estado de su análisis («Sin
 alertas», «Sin analizar», «No se pudo analizar» o «Análisis no disponible»). Nunca
 el índice de integridad.
 
+Arriba de la lista, el resumen de la evaluación cuenta cuántas sesiones hay en cada
+nivel de riesgo y en cada estado del análisis, y cada tarjeta filtra la lista. Una
+barra permite filtrar por nivel y por estado, buscar al alumno por su nombre y
+ordenar por nivel de riesgo; el orden predeterminado es por hora de inicio.
+
 Desde cada sesión se abre su detalle. Arriba va una ficha de una sola línea con
 lo que la lista no alcanza a decir: si entregó, qué intento es, qué día y a qué
 hora empezó y cuánto duró. Debajo están el análisis y el registro.

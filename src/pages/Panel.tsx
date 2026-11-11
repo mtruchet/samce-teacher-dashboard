@@ -22,6 +22,7 @@ import { DetalleSesion } from "../components/DetalleSesion";
 import { Fichas, type Ficha } from "../components/Fichas";
 import { AvisoAlertas } from "../components/AvisoAlertas";
 import { FiltrosSesiones } from "../components/FiltrosSesiones";
+import { ResumenEvaluacion } from "../components/ResumenEvaluacion";
 import { ListaSesiones } from "../components/ListaSesiones";
 import { Migas, type Escalon } from "../components/Migas";
 import { PulsoEnlace, type EstadoEnlace } from "../components/PulsoEnlace";
@@ -635,6 +636,11 @@ export function Panel() {
                 {/* La memoria del anuncio se vacía con el examen y con los filtros: una
                     sesión que entra a la lista por un filtro no es una alerta nueva. */}
                 <AvisoAlertas sesiones={delExamen} clave={vistaDeLista} />
+                {/* El resumen de la evaluación cuenta todas sus sesiones, y cada tarjeta filtra la
+                    lista con la misma función que la barra. Con un backend sin el resumen no se dibuja. */}
+                {cargadas?.resumen ? (
+                  <ResumenEvaluacion resumen={cargadas.resumen} filtros={filtros} onFiltrar={aplicarFiltros} />
+                ) : null}
                 <FiltrosSesiones filtros={filtros} onCambio={aplicarFiltros} />
                 {/* Con un filtro, «N de M sesiones» en una región que solo contiene la frase. */}
                 <p className="filtros-resultado" role="status" aria-atomic="true">
