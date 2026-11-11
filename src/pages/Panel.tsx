@@ -18,6 +18,7 @@ import { Arranque } from "../components/Arranque";
 import { BarraPanel } from "../components/BarraPanel";
 import { DetalleSesion } from "../components/DetalleSesion";
 import { Fichas, type Ficha } from "../components/Fichas";
+import { AvisoAlertas } from "../components/AvisoAlertas";
 import { ListaSesiones } from "../components/ListaSesiones";
 import { Migas, type Escalon } from "../components/Migas";
 import { PulsoEnlace, type EstadoEnlace } from "../components/PulsoEnlace";
@@ -40,11 +41,11 @@ import "./Panel.css";
  * entrar. Cuando se entra desde un curso puntual ese escalón ya está resuelto
  * por el propio enlace, y el recorrido arranca en los exámenes.
  *
- * Falta una columna a propósito. El índice de integridad y el nivel de riesgo
- * viven en tablas que todavía no existen, y escribir «sin dato» tantas veces
- * como sesiones haya sería peor que no tener la columna: convierte el vacío en
- * ruido y enseña a ignorar justo la región donde después va a estar lo
- * importante.
+ * La columna «Análisis» de la lista dice el nivel de riesgo de cada sesión, con
+ * su marca, o el estado de su análisis si no tiene alertas («Sin alertas», «Sin
+ * analizar», «No se pudo analizar» o «Análisis no disponible»). Nunca el índice
+ * de integridad. Una alerta nueva se anuncia a los lectores de pantalla con una
+ * frase corta (`AvisoAlertas`), sin releer la lista.
  */
 
 /**
@@ -542,6 +543,7 @@ export function Panel() {
                 {/* El recuento de cada grupo es el del examen, no el de las filas
                     cargadas: con la lista paginada, contar filas daba un número
                     distinto del de la ficha del examen. */}
+                <AvisoAlertas sesiones={delExamen} clave={examenElegido ?? ""} />
                 <ListaSesiones
                   titulo="En curso"
                   sesiones={enCurso}

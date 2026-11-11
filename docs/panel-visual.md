@@ -45,39 +45,55 @@ Ese mismo pedido es la prueba de vida del canal. Si el backend deja de
 responder, el estado lo dice en lugar de seguir mostrando datos viejos como si
 fueran de ahora.
 
-## Las columnas que faltan
+## La columna «Análisis»
 
-Dos, y faltan a propósito.
+Desde el Sprint 4 la lista tiene una columna «Análisis», después del alumno. Dice
+lo que el docente ve del análisis de cada sesión, y nunca el índice de
+integridad, ni en el texto, ni en un `title`, ni en un atributo.
 
-El **índice de integridad** no tiene definida su escala, su fórmula ni sus
-umbrales en ningún documento del proyecto; los cortes están diferidos a la
-calibración del Sprint 4.
+- **Con alertas:** el nivel de riesgo de la sesión, que es el más alto entre los
+  de sus alertas («Riesgo alto», «Riesgo medio» o «Riesgo bajo»), con el medidor
+  de tres segmentos del detalle, y debajo cuántas alertas tiene y de dónde
+  salieron («2 alertas: en toda la sesión y en un momento de la sesión»). Si el
+  último cálculo no se pudo hacer, un renglón aparte lo dice, sin ocultar el
+  nivel.
+- **Sin alertas:** el estado del último análisis, en tinta media y sin medidor:
+  «Sin alertas», «Sin analizar», «No se pudo analizar» o «Análisis no
+  disponible». Una sesión sin alertas no tiene nivel y nunca se muestra como
+  «Riesgo bajo». Toda sesión recién abierta pasa unos dos minutos por «No se pudo
+  analizar», hasta su segundo análisis.
 
-El **nivel de atención** vive en la tabla de alertas, que todavía no existe.
+La marca no depende solo del color: el rótulo escrito, el medidor con segmentos
+llenos (forma, no tono) y un borde a la izquierda de la celda. En escala de
+grises se distingue igual. El medidor es decorativo y va oculto para los
+lectores de pantalla, porque el rótulo ya lo dice. Pinta con los tonos de las
+alertas del detalle (`--alerta-tono-*`), nunca con los `--nivel-*`.
 
-Escribir «sin dato» tantas veces como sesiones haya sería peor que no tener la
-columna: convierte el vacío en ruido y enseña a ignorar justo la región donde
-después va a estar lo importante. El chip de los tres niveles ya está escrito y
-guardado, con su glifo ordinal y el orden transmitido por cuatro canales que no
-son el color. Vuelve cuando exista el dato.
+Una alerta nueva se anuncia a los lectores de pantalla con una frase corta («Nueva
+alerta en la sesión de Ana Gómez: riesgo medio.»), en una región que solo
+contiene esa frase, así no se relee la lista. Una sesión que entra a la lista por
+«Ver más sesiones» no se anuncia.
+
+Arriba de la lista va el resumen de la evaluación (HU03_T03), con su propia
+sección.
 
 ## El orden de la lista
 
-**Nunca por ningún indicador de riesgo.** Una lista ordenada por índice es un
-ranking, y el primer puesto de ese ranking es una acusación, con los colores que
-sea. El orden lo decide el backend: abiertas primero, y dentro de cada grupo las
-que arrancaron hace más tiempo. Dice qué mirar primero, no quién está peor.
+**El orden predeterminado nunca es por riesgo ni por índice.** Una lista ordenada
+por índice es un ranking, y el primer puesto de ese ranking es una acusación, con
+los colores que sea. El orden lo decide el backend: en curso primero, y dentro de
+cada grupo de la más reciente a la más antigua. Dice qué mirar primero, no quién
+está peor. El docente puede pedir que se agrupe por nivel; a igual nivel decide la
+hora de inicio.
 
-## El alumno es un hash
+## El alumno se ve por su nombre
 
-En la base solo hay un `student_hash`. El panel muestra los seis primeros
-caracteres en mayúsculas, con cifras tabulares, y debajo el número de
-intento de Moodle.
-
-El seudónimo sirve para hablar de la sesión sin nombrar a nadie. El número de
-intento es el puente legítimo hacia Moodle cuando hay motivo para saber quién
-es. El panel no revela identidades; el docente ya tiene esa potestad en su
-propio campus.
+Desde el Sprint 2 el panel muestra el nombre del alumno, que es lo que el docente
+reconoce (`nombreDeAlumno`). En la base no hay un hash: el id de Moodle y el
+nombre se guardan cifrados, y el backend los descifra para el docente autorizado.
+Si no hay nombre, la fila muestra el número del aula virtual; si no se pudo
+descifrar ninguno de los dos, dice «Alumno sin identificar» y la fila aparece
+igual, para que el docente sepa que le falta alguien.
 
 ## Accesibilidad, con números
 

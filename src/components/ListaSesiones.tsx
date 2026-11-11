@@ -2,6 +2,7 @@ import { nombreDeAlumno, type SesionNumerada } from "../services/sesionesService
 import { Usuario } from "../iconos";
 import { avisoDeCaptura } from "../captura";
 import { horaCorta } from "../eventos";
+import { IndicadorSesion } from "./IndicadorSesion";
 import { Transcurrido } from "./Transcurrido";
 import "./ListaSesiones.css";
 
@@ -15,8 +16,13 @@ import "./ListaSesiones.css";
  * Sin cebra y sin líneas divisorias: separan la alineación de las columnas, el
  * aire dentro de la fila y el realce al pasar por encima.
  *
- * El orden lo decide el backend, y nunca es por ningún indicador de riesgo: una
- * lista ordenada por índice es un ranking, y su primer puesto es una acusación.
+ * El orden predeterminado lo decide el backend y nunca es por riesgo ni por
+ * índice: una lista ordenada por índice es un ranking, y su primer puesto es una
+ * acusación. El docente puede pedir que se agrupe por nivel; a igual nivel decide
+ * la hora de inicio.
+ *
+ * La columna «Análisis» dice el nivel de riesgo de la sesión, con su marca, o el
+ * estado de su análisis si no tiene alertas (`IndicadorSesion`). Nunca el índice.
  */
 
 /**
@@ -74,12 +80,14 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
         <div className="lista__marco">
           <table className="tabla">
             <caption className="solo-lectores">
-              {titulo}. Cada fila es la sesión de un alumno: cuándo empezó, cuánto lleva o
-              cuánto duró, y el acceso a sus eventos.
+              {titulo}. Cada fila es la sesión de un alumno: el estado de su análisis y, si
+              tiene alertas, su nivel de riesgo; cuándo empezó, cuánto lleva o cuánto duró, y
+              el acceso a sus eventos.
             </caption>
             <thead>
               <tr>
                 <th scope="col">Alumno</th>
+                <th scope="col" className="tabla__analisis">Análisis</th>
                 <th scope="col" className="tabla__der tabla__hora">Comenzó</th>
                 <th scope="col" className="tabla__der">
                   {cerradas ? "Duración" : "Transcurrido"}
@@ -119,6 +127,9 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
                           ) : null}
                         </span>
                       </span>
+                    </td>
+                    <td className="tabla__analisis">
+                      <IndicadorSesion sesion={s} />
                     </td>
                     <td className="tabla__der tabla__hora">
                       <span className="cifra">{comienzo(s.started_at)}</span>
