@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as sesionesService from "../services/sesionesService";
 import type { AlertaDeSesion, Analisis } from "../services/sesionesService";
-import { CALCULO, alerta, analisis, esperar, sesionNumerada } from "../test/fabricas";
+import { CALCULO, alerta, analisis, entradaDelHistorial, esperar, metricasDelCierre, sesionNumerada } from "../test/fabricas";
 import { EVENTO_453, MODELO_453, MODELO_454, NO_DISPONIBLE, SIN_EVIDENCIA_457 } from "../test/explicaciones";
 import {
   MARCADOS_EN_LA_RONDA_1,
@@ -472,6 +472,69 @@ describe("AnalisisSesion", () => {
     expect(container.querySelector("[class*='comparacion'], [class*='barra'], [class*='pista']")).toBeNull();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     for (const medidor of container.querySelectorAll(".medidor")) expect(medidor).toHaveAttribute("aria-hidden", "true");
+  });
+
+  // ---- HU05 dentro del apartado real ------------------------------------------------------------
+
+  it("cerrada, con historial y métricas: evolución, historial y seis métricas, sin el índice ni lo esperado", async () => {
+    const conDeMas = {
+      ...analisis({
+        alerts: [alerta()],
+        alert_history: [
+          entradaDelHistorial({ level: "low", explanation: "Hubo algo poco común.", recorded_at: "2026-10-23T14:05:00.000Z" }),
+          entradaDelHistorial(),
+        ],
+        metrics: metricasDelCierre(),
+      }),
+      index: 38.5, integrity_index: 38.5,
+    };
+    const { container } = await mostrar(conDeMas as Analisis, CERRADA);
+
+    expect(screen.getByRole("heading", { level: 3, name: "Cómo cambió el riesgo" })).toBeInTheDocument();
+    expect(container.querySelectorAll(".pasos .paso")).toHaveLength(3);
+    expect(screen.getByRole("heading", { level: 3, name: "Historial de alertas" })).toBeInTheDocument();
+    expect(container.querySelectorAll(".historial__entrada")).toHaveLength(2);
+    expect(screen.getByRole("heading", { level: 3, name: "Métricas de la sesión" })).toBeInTheDocument();
+    expect(container.querySelectorAll(".metricas__metrica")).toHaveLength(6);
+    expect(container.textContent).not.toMatch(/38[,.]5|índice|esperad/i);
+    // La explicación vigente se lee completa una sola vez a la vista: en el historial va plegada.
+    const hecho = MODELO_453.split("\n")[0];
+    const aLaVista = [...container.querySelectorAll(".analisis__hecho")].filter(
+      (h) => h.textContent === hecho && !h.closest("details:not([open])")
+    );
+    expect(aLaVista).toHaveLength(1);
+    // Un h1 fuera, un h2 para el apartado y h3 para lo de adentro: ningún salto.
+    const niveles = [...container.querySelectorAll("h2, h3, h4, h5, h6")].map((h) => h.tagName);
+    expect(niveles[0]).toBe("H2");
+    expect(niveles.slice(1).every((n) => n === "H3")).toBe(true);
+    expectLenguajeLlano(container, { excluir: ".explicacion" });
+  });
+
+  it("abierta: vuelve a preguntar y las métricas dicen que se muestran al terminar", async () => {
+    const traer = vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis({ metrics: null }));
+    render(<AnalisisSesion sesion={sesionNumerada({ status: "open" })} onVencida={nada} />);
+    await esperar();
+    for (let vuelta = 0; vuelta < 3; vuelta++) await esperar(sesionesService.CADENCIA_MS);
+
+    expect(traer).toHaveBeenCalledTimes(4);
+    expect(screen.getByText("Las métricas se muestran cuando la sesión termina.")).toBeInTheDocument();
+    expect(document.querySelector(".metricas")).toBeNull();
+  });
+
+  it("sin evidencia suficiente no hay apartado de métricas: el veredicto ya lo dice", async () => {
+    await mostrar(analisis({ state: "insufficient_evidence", reason: SIN_EVIDENCIA_457, metrics: metricasDelCierre() }), CERRADA);
+
+    expect(screen.queryByRole("heading", { name: "Métricas de la sesión" })).not.toBeInTheDocument();
+    expect(screen.getAllByText("Esta sesión no se pudo analizar.")).toHaveLength(1);
+    expect(document.querySelector(".metricas")).toBeNull();
+  });
+
+  it("no disponible, aunque lleguen métricas: no se dibujan ni se repite que no está disponible", async () => {
+    await mostrar(analisis({ state: "unavailable", reason: NO_DISPONIBLE, metrics: metricasDelCierre() }), CERRADA);
+
+    expect(screen.queryByRole("heading", { name: "Métricas de la sesión" })).not.toBeInTheDocument();
+    expect(document.querySelector(".metricas")).toBeNull();
+    expect(screen.getAllByText(/no está disponible|no están disponibles/)).toHaveLength(1);
   });
 
   it("con la sesión abierta vuelve a preguntar y una alerta aparece o sube de nivel mientras se mira", async () => {

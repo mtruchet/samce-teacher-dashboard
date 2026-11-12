@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as sesionesService from "../services/sesionesService";
 import { alerta, analisis, esperar, evento, sesionNumerada } from "../test/fabricas";
@@ -383,7 +383,7 @@ describe("DetalleSesion", () => {
     );
     expect(filas[2]).toHaveTextContent("Pasó a otra ventana");
     // Y el silencio no se cuenta como un evento más.
-    expect(screen.getByText("2 eventos", { selector: ".lista__cuenta" })).toBeInTheDocument();
+    expect(screen.getByText("2 eventos", { selector: ".lamina__cuenta" })).toBeInTheDocument();
   });
 
   it("la ficha dice si entregó, qué intento es, cuándo empezó y cuánto duró, en una sola fila", async () => {
@@ -542,5 +542,74 @@ describe("DetalleSesion", () => {
 
     // Tres consultas, los mismos dos eventos: se deduplica por `id`, dos filas.
     expect(screen.getAllByRole("row").slice(1)).toHaveLength(2);
+  });
+
+  // ---- Momentos para revisar, dentro del registro ----------------------------------------------
+
+  it("los momentos para revisar van adentro de la lámina del registro, entre el encabezado y la tabla", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "clipboard", { action: "paste" })]);
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    const registro = screen.getByRole("heading", { level: 2, name: "Registro de eventos" }).closest("section") as HTMLElement;
+    expect(registro).toHaveClass("lamina", "lamina--apoyo");
+    const momentos = within(registro).getByRole("heading", { level: 3, name: "Momentos para revisar" });
+    expect(momentos.closest(".lamina")).toBe(registro);
+    // Antes de la tabla: es su índice.
+    const tabla = within(registro).getByRole("table");
+    expect(momentos.compareDocumentPosition(tabla) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Sin lámina propia.
+    expect(document.querySelectorAll(".lamina")).toHaveLength(2);
+  });
+
+  it("«Ver en el registro» lleva el foco a la fila, aunque sea la más vieja de 120", async () => {
+    const eventos = [
+      evento(1, "clipboard", { action: "paste" }),
+      ...Array.from({ length: 119 }, (_, i) => evento(i + 2, "keystroke", { count: 1 })),
+    ];
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValueOnce(eventos).mockResolvedValue([]);
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+    expect(document.getElementById("evento-1")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Ver en el registro: Pegó un texto, a las \d{2}:\d{2}$/ }));
+    await esperar();
+    expect(document.getElementById("evento-1")).toHaveFocus();
+  });
+
+  it("después de ir a un momento, «Mostrar N más» no le roba el foco al botón", async () => {
+    const eventos = Array.from({ length: 200 }, (_, i) =>
+      i + 1 === 120 ? evento(120, "clipboard", { action: "paste" }) : evento(i + 1, "keystroke", { count: 1 })
+    );
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValueOnce(eventos).mockResolvedValue([]);
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Ver en el registro: Pegó un texto/ }));
+    await esperar();
+    expect(document.getElementById("evento-120")).toHaveFocus();
+
+    const mas = screen.getByRole("button", { name: /^Mostrar \d+ más$/ });
+    mas.focus();
+    fireEvent.click(mas);
+    await esperar();
+    expect(document.getElementById("evento-120")).not.toHaveFocus();
+    expect(mas).toHaveFocus();
+  });
+
+  it("con el seq desordenado, los momentos siguen el orden del registro: hora de llegada, seq e id", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
+      evento(5, "clipboard", { action: "paste" }, { id: 1, received_at: "2026-09-21T14:05:03.000Z" }),
+      evento(1, "focus_lost", {}, { id: 2, received_at: "2026-09-21T14:05:03.000Z" }),
+      evento(9, "fullscreen", { on: false }, { id: 3, received_at: "2026-09-21T14:04:00.000Z" }),
+    ]);
+    const { container } = render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    expect([...container.querySelectorAll(".momentos__titulo")].map((t) => t.textContent)).toEqual([
+      "Salió de pantalla completa",
+      "Pasó a otra ventana",
+      "Pegó un texto",
+    ]);
   });
 });

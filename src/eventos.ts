@@ -657,7 +657,6 @@ export interface EventoCritico {
   titulo: string;
 }
 
-const PEGO = "Pegó un texto";
 const OTRA_VENTANA = "Pasó a otra ventana";
 const DEJO_DE_VERSE = "El examen dejó de verse en pantalla";
 const SALIO_DE_PANTALLA_COMPLETA = "Salió de pantalla completa";
@@ -682,7 +681,8 @@ export function eventosCriticos(eventos: ReadonlyArray<Evento>): EventoCritico[]
     const d = (evento.data ?? {}) as Record<string, unknown>;
     switch (evento.type) {
       case "clipboard":
-        if (d.action === "paste") criticos.push({ evento, titulo: PEGO });
+        // El mismo título que la fila del registro: un pegado que no es texto dice «Pegó contenido que no es texto».
+        if (d.action === "paste") criticos.push({ evento, titulo: describirEvento(evento).titulo });
         break;
       case "focus_lost":
       case "visibility_hidden": {

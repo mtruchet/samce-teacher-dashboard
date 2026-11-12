@@ -85,9 +85,11 @@
   background: var(--sup-3);
 }
 
-.eventos__boton:focus-visible {
-  outline: 2px solid var(--pizarra);
-  outline-offset: 2px;
+/* Con colores forzados la sombra del borde desaparece: el botón lleva un borde del sistema. */
+@media (forced-colors: active) {
+  .eventos__boton {
+    border: 1px solid ButtonText;
+  }
 }
 
 .eventos td {
@@ -105,8 +107,9 @@
   vertical-align: middle;
 }
 
+/* Un solo movimiento para el fondo de la fila: el del hover y el de la fila a la que se saltó. */
 .eventos tbody tr {
-  transition: background var(--mov-estado) var(--curva);
+  transition: background-color var(--mov-entrada) var(--curva);
 }
 
 .eventos tbody tr:hover {
@@ -204,39 +207,68 @@ th.eventos__que {
     max-height: none;
   }
 
-  /* Sin ancho que repartir, la columna de lo que pasó se lleva lo que necesite
-     y el detalle envuelve debajo. */
-  .eventos__que {
-    width: 38%;
-    padding-right: var(--e4);
+  /* La fila se apila, como en la lista de sesiones: la hora y lo que pasó en un renglón, y el detalle debajo,
+     alineado con lo que pasó. Las celdas siguen siendo celdas de la tabla; los rótulos de columna quedan para
+     los lectores de pantalla. */
+  .eventos,
+  .eventos tbody {
+    display: block;
+  }
+
+  .eventos thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .eventos tbody tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "hora que"
+      ". detalle";
+    align-items: baseline;
+    column-gap: var(--e3);
+    padding-block: var(--e2);
+  }
+
+  .eventos tbody tr.eventos__hueco {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "hueco";
+  }
+
+  .eventos td,
+  .eventos td:first-child {
+    width: auto;
+    padding: 0 var(--e2);
+  }
+
+  .eventos td.eventos__hora {
+    grid-area: hora;
+  }
+
+  .eventos td.eventos__que {
+    grid-area: que;
     white-space: normal;
   }
-}
 
-/* En un teléfono la tabla no tiene de dónde sacar ancho: con los rellenos de
-   escritorio, «movimientos» no entraba en su columna y la fila quedaba cortada
-   en el borde de la lámina. Se achican los rellenos y la hora toma solo lo que
-   ocupa; si aun así una palabra no entra sola, se parte antes que cortarse. */
-@media (max-width: 640px) {
-  .eventos th,
-  .eventos td,
-  .eventos th:first-child,
-  .eventos td:first-child {
-    padding-inline: var(--e2);
-  }
-
-  .eventos__hora {
-    width: auto;
-  }
-
-  .eventos__detalle {
+  .eventos td.eventos__detalle {
+    grid-area: detalle;
     overflow-wrap: break-word;
   }
+
+  .eventos td.eventos__detalle:empty {
+    display: none;
+  }
 }
 
-/* La fila a la que se llegó desde «Momentos para revisar», resaltada un momento. */
+/* La fila a la que se llegó desde «Momentos para revisar», resaltada un momento: un escalón de superficie y la
+   marca de renglón (`--marca-renglon`), sin el tono de ningún nivel. */
 .eventos tbody tr.eventos__fila--destacada {
-  background: var(--sup-2);
+  background: var(--sup-3);
   box-shadow: inset var(--marca-renglon) 0 0 var(--tinta-media);
 }
 
@@ -249,10 +281,4 @@ th.eventos__que {
     inset var(--marca-renglon) 0 0 var(--tinta-media),
     0 0 0 2px var(--sup-1),
     0 0 0 4px var(--celeste);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .eventos tbody tr {
-    transition: background-color var(--mov-entrada) var(--curva);
-  }
 }

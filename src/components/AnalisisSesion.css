@@ -1,16 +1,12 @@
-/* El apartado «Análisis de la sesión»: la lámina principal del detalle, arriba del registro.
-   Pesa más que el registro (blanca y con sombra, sobre el fondo del panel) porque es lo primero
-   que el docente tiene que leer. Adentro, el veredicto arriba y una tarjeta por alerta.
+/* El apartado «Análisis de la sesión»: la lámina que manda en el detalle (`.lamina--lectura`, base.css), arriba
+   del registro. Pesa más que el registro porque es lo primero que el docente tiene que leer. Adentro, el
+   veredicto arriba, una tarjeta por alerta y los apartados de HU05 (DetalleAnalisis.css).
 
    Los textos de lectura van en los pasos del sitio y no en los del panel: son frases que el
    docente lee enteras, no datos de una tabla. */
 .analisis {
   display: grid;
   gap: var(--e5);
-  padding: var(--e5) var(--e6) var(--e6);
-  border-radius: var(--radio-lamina);
-  background: var(--sup-1);
-  box-shadow: var(--anillo), var(--elev-1);
 }
 
 .analisis__encabezado {
@@ -18,14 +14,6 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--e1) var(--e4);
-}
-
-.analisis__titulo {
-  margin: 0;
-  font-size: var(--panel-pieza);
-  font-weight: 600;
-  line-height: 1.25;
-  color: var(--tinta);
 }
 
 /* La hora del último análisis se va al final del encabezado: precisa lo que se está mirando, no
@@ -144,7 +132,8 @@
   color: var(--tinta);
 }
 
-.analisis__cuerpo {
+.analisis__cuerpo,
+.explicacion {
   display: grid;
   gap: var(--e3);
   min-width: 0;
@@ -234,10 +223,6 @@
 }
 
 @media (max-width: 760px) {
-  .analisis {
-    padding: var(--e4);
-  }
-
   .analisis__alerta {
     padding: var(--e4);
   }

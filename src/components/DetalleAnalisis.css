@@ -1,131 +1,213 @@
-/* Las partes nuevas del detalle (HU05): cómo cambió el riesgo, el historial de alertas, las métricas y los
-   momentos para revisar. Texto y el medidor del nivel; sin barras, sin comparaciones y sin porcentajes. */
-.detalle-analisis__parte {
-  display: grid;
-  gap: var(--e2);
-  margin-top: var(--e5);
-}
+/* Los apartados de HU05 en el detalle: cómo cambió el riesgo, el historial de alertas, las métricas y los
+   momentos para revisar. Texto, el rótulo del nivel y pocas formas: sin barras, sin comparaciones, sin
+   porcentajes y sin cajas dentro de la lámina. Los títulos son los de `.apartado__titulo` (base.css). */
 
-.detalle-analisis--cronologia {
-  display: grid;
-  gap: var(--e3);
-  padding: var(--e5) var(--e6);
-  border-radius: var(--radio-panel);
-  background: var(--sup-1);
-  box-shadow: var(--anillo), var(--elev-2);
-}
-
-.detalle-analisis__titulo {
-  font-size: var(--panel-pieza);
-  font-weight: 600;
-  line-height: 25px;
-  color: var(--tinta);
-}
-
-.detalle-analisis__subtitulo {
+/* Una línea suelta del apartado: que las métricas se muestran al terminar, que el recorrido anterior no quedó
+   registrado, un origen sin registro. Acompaña, no encabeza. */
+.apartado__nota {
+  max-width: var(--medida);
   font-size: var(--panel-fila);
-  font-weight: 600;
-  letter-spacing: var(--track-rotulo);
-  text-transform: uppercase;
+  line-height: 1.5;
   color: var(--tinta-media);
 }
 
-.detalle-analisis__lista {
+/* ==== Cómo cambió el riesgo: una escalera ============================== */
+
+/* Una pastilla por paso, unidas por una flecha chica: se lee de izquierda a derecha, como una frase, y no
+   compite con las tarjetas de arriba. */
+.pasos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e2) var(--e3);
+}
+
+.pasos__item {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+}
+
+.pasos__flecha {
+  flex: none;
+  color: var(--tinta-tenue);
+}
+
+.paso {
+  display: inline-grid;
+  gap: 2px;
+  padding: var(--e1) var(--e3);
+  border-radius: var(--radio-chip);
+  background: var(--sup-2);
+  box-shadow: inset 0 0 0 1px var(--sup-4);
+  font-size: var(--panel-fila);
+  line-height: 1.4;
+  color: var(--tinta);
+}
+
+/* La hora del análisis en su renglón, arriba del nivel: nunca pegada al medidor con dos puntos. */
+.paso__hora {
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+}
+
+@media (max-width: 480px) {
+  .pasos {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pasos__flecha {
+    transform: rotate(90deg);
+  }
+}
+
+/* ==== Historial de alertas ============================================= */
+
+.historial {
   display: grid;
+  gap: var(--e5);
+}
+
+/* La marca del nivel (`.marca-nivel`, 3 px) a la izquierda, la hora arriba, el rótulo y la explicación. */
+.historial__entrada {
+  display: grid;
+  justify-items: start;
   gap: var(--e2);
-  padding: 0;
-  list-style: none;
   font-size: var(--panel-fila);
   color: var(--tinta);
 }
 
-/* El tono lo pone `data-nivel` (styles/nivel.css); el tramo sin nivel queda con la guía. */
-.detalle-analisis__tramo,
-.detalle-analisis__entrada {
-  padding-left: var(--e3);
-  border-left: var(--marca-renglon) solid var(--tono, var(--guia));
+.historial__hora {
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
 }
 
-.detalle-analisis__cabeza {
+.historial__entrada > .explicacion,
+.historial__plegado {
+  justify-self: stretch;
+}
+
+/* La explicación que repite la vigente queda plegada: se abre si hace falta, sin leer dos veces lo mismo. */
+.historial__plegado > summary {
+  width: fit-content;
+  padding: 2px var(--e2);
+  margin-left: calc(-1 * var(--e2));
+  border-radius: var(--radio-chip);
+  font-size: var(--panel-fila);
+  font-weight: 600;
+  color: var(--tinta-media);
+  cursor: pointer;
+  transition: background-color var(--mov-estado) var(--curva);
+}
+
+.historial__plegado > summary:hover {
+  background: var(--sup-3);
+}
+
+.historial__plegado[open] > summary {
+  margin-bottom: var(--e2);
+}
+
+/* La misma explicación que la tarjeta, un paso de letra más chica: es lo que pasó, no lo que se mira ahora. */
+.explicacion--historial .analisis__hecho,
+.explicacion--historial .analisis__lista {
+  font-size: var(--panel-fila);
+}
+
+.explicacion--historial .analisis__nota {
+  font-size: var(--panel-nota);
+}
+
+/* ==== Métricas de la sesión ============================================ */
+
+/* Un rótulo y su valor, sin cajas: una guía fina a la izquierda separa cada una. */
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e4) var(--e6);
+}
+
+.metricas__metrica {
+  display: grid;
+  align-content: start;
+  gap: var(--e1);
+  padding-left: var(--e3);
+  box-shadow: inset 2px 0 0 var(--guia);
+}
+
+.metricas__rotulo {
+  font-size: var(--panel-fila);
+  line-height: 1.4;
+  color: var(--tinta);
+}
+
+.metricas__valor {
+  margin: 0;
+  font-size: var(--panel-cuerpo);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--tinta);
+}
+
+@media (max-width: 760px) {
+  .metricas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .metricas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Con colores forzados la guía (una sombra) desaparece: va un borde del color del texto. */
+@media (forced-colors: active) {
+  .metricas__metrica {
+    border-left: 1px solid CanvasText;
+  }
+}
+
+/* ==== Momentos para revisar ============================================ */
+
+/* El índice del registro, adentro de su lámina: la hora en su columna y, al lado, el mismo ícono y el mismo
+   nombre que la fila, con el botón para ir a ella. */
+.momentos {
+  margin: 0 0 var(--e6);
+}
+
+.momentos__lista {
+  display: grid;
+  gap: var(--e1);
+  max-width: var(--medida);
+}
+
+.momentos__momento {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e4);
+  font-size: var(--panel-fila);
+}
+
+.momentos__hora {
+  color: var(--tinta-media);
+}
+
+.momentos__que {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--e1) var(--e2);
 }
 
-.detalle-analisis__hora,
-.detalle-analisis__origen,
-.detalle-analisis__nota,
-.detalle-analisis__dimension {
+.momentos__que > svg {
+  flex: none;
   color: var(--tinta-media);
 }
 
-.detalle-analisis__nivel {
-  font-weight: 600;
-}
-
-.detalle-analisis__explicacion {
-  display: grid;
-  gap: var(--e1);
-  margin-top: var(--e1);
-}
-
-.detalle-analisis__explicacion ul {
-  margin: 0;
-  padding-left: var(--e5);
-}
-
-.detalle-analisis__nota {
-  font-size: var(--panel-nota);
-}
-
-.detalle-analisis__metricas {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: var(--e3);
-}
-
-.detalle-analisis__metrica {
-  display: grid;
-  gap: var(--e1);
-  padding: var(--e3);
-  border-radius: var(--radio-ficha);
-  background: var(--sup-2);
-  box-shadow: var(--anillo);
-}
-
-.detalle-analisis__metrica dt {
-  display: grid;
-  gap: 2px;
-  font-size: var(--panel-fila);
-}
-
-.detalle-analisis__dimension {
-  font-size: var(--panel-rotulo);
-  letter-spacing: var(--track-rotulo);
-  text-transform: uppercase;
-}
-
-.detalle-analisis__metrica dd {
-  margin: 0;
+.momentos__titulo {
   font-weight: 600;
   color: var(--tinta);
-}
-
-.detalle-analisis__momento {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--e2) var(--e4);
-}
-
-.detalle-analisis__ir {
-  border: 0;
-  background: none;
-  padding: 0;
-  font: inherit;
-  font-size: var(--panel-nota);
-  color: var(--tinta-media);
-  text-decoration: underline;
-  cursor: pointer;
 }

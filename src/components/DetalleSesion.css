@@ -67,24 +67,12 @@
   color: var(--celeste-hondo);
 }
 
-/* El registro, en segundo plano: un escalón más abajo que la lámina del
-   análisis, con el anillo para que no se pierda contra el fondo. El título
-   tiene el mismo tamaño que «Análisis de la sesión», porque las dos son
-   secciones del mismo nivel, y la cuenta se lee sin esfuerzo. */
-.lista.detalle__registro {
-  background: var(--sup-2);
-  box-shadow: var(--anillo);
-}
-
-.detalle__registro .lista__titulo {
-  margin: 0;
-  font-size: var(--panel-pieza);
-  line-height: 1.25;
-  letter-spacing: normal;
-}
-
-.detalle__registro .lista__cuenta {
-  font-size: var(--panel-nota);
+/* El registro, en segundo plano (`.lamina--apoyo`): un escalón más abajo que
+   la lámina del análisis, con el anillo para que no se pierda contra el
+   fondo. El título es el mismo `.lamina__titulo` de «Análisis de la sesión»,
+   porque las dos son secciones del mismo nivel. */
+.detalle__encabezado {
+  margin-bottom: var(--e4);
 }
 
 /* Los dos avisos de la vista de eventos. Comparten la forma del vacío del

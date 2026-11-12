@@ -1,4 +1,4 @@
-import { nivelMasAlto, subio } from "./lenguajeAlerta";
+import { PESO_DEL_NIVEL, nivelMasAlto } from "./lenguajeAlerta";
 import type { AlertaDeSesion, EntradaDelHistorial, EstadoDelAnalisis, NivelDeRiesgo } from "./services/sesionesService";
 
 /**
@@ -21,7 +21,10 @@ export type Tramo =
 
 export interface Evolucion {
   tramos: Tramo[];
-  /** Orígenes con alerta vigente y ninguna entrada en el historial: se dicen aparte, sin hora. */
+  /**
+   * Orígenes cuyo nivel vigente no tiene entrada en el historial: los que no tienen ninguna y los que están más
+   * arriba que la más alta registrada (si se perdió una entrada). Se dicen aparte, sin hora.
+   */
   sinRegistro: Array<{ origen: AlertaDeSesion["origin"]; nivel: Nivel }>;
 }
 
@@ -30,9 +33,13 @@ export function tramosDeRiesgo(
   alertas: AlertaDeSesion[],
   estado: EstadoDelAnalisis
 ): Evolucion {
-  const conEntradas = new Set(historial.map((e) => e.origin));
+  // Un origen va aparte si su nivel vigente no quedó registrado: sin entradas, o con todas por debajo. Así la
+  // evolución nunca termina en un nivel menor que el de la tarjeta sin decir por qué.
   const sinRegistro = alertas
-    .filter((a) => !conEntradas.has(a.origin))
+    .filter((a) => {
+      const registrado = nivelMasAlto(historial.filter((e) => e.origin === a.origin).map((e) => e.level));
+      return registrado === null || PESO_DEL_NIVEL[a.level] > PESO_DEL_NIVEL[registrado];
+    })
     .map((a) => ({ origen: a.origin, nivel: a.level }));
 
   if (historial.length === 0) {
@@ -42,21 +49,33 @@ export function tramosDeRiesgo(
   // Hasta la última entrada copiada no se sabe nada de antes: cada copia solo dice desde cuándo su
   // alerta está en el nivel actual, y el otro origen pudo estar en un nivel que no quedó registrado.
   const ultimaCopiada = historial.reduce((u, e, i) => (e.carried_over ? i : u), -1);
-  const tramos: Tramo[] = [ultimaCopiada >= 0 ? { tipo: "sin-registro" } : { tipo: "inicio", estado: "analyzed" }];
+  if (ultimaCopiada < 0) return { tramos: subidas(historial, [{ tipo: "inicio", estado: "analyzed" }], null), sinRegistro };
 
-  // El nivel de la sesión hasta la entrada que se está mirando: el más alto de los registrados.
-  let maximo: Nivel | null = null;
-  historial.forEach((entrada, i) => {
-    const antes = maximo;
-    maximo = nivelMasAlto([antes, entrada.level]);
-    if (i < ultimaCopiada) return;
-    if (i === ultimaCopiada) {
-      tramos.push({ tipo: "nivel", nivel: maximo ?? entrada.level, desde: entrada.recorded_at });
-      return;
-    }
-    if (antes === null || subio(antes, entrada.level)) {
+  // Una copiada que ya está en riesgo alto fija desde cuándo la sesión está en alto: no hay nivel más arriba
+  // que el otro origen pudiera haber tenido antes. Sin esto, la evolución decía «alto desde 07:37» (la última
+  // copiada) y el historial, «alto a las 07:29».
+  const altaCopiada = historial.findIndex((e, i) => i <= ultimaCopiada && e.carried_over && e.level === "high");
+  if (altaCopiada >= 0) {
+    return { tramos: [{ tipo: "sin-registro" }, { tipo: "nivel", nivel: "high", desde: historial[altaCopiada].recorded_at }], sinRegistro };
+  }
+
+  const hastaLaCopiada = historial.slice(0, ultimaCopiada + 1);
+  const maximo = nivelMasAlto(hastaLaCopiada.map((e) => e.level)) as Nivel;
+  const tramos: Tramo[] = [
+    { tipo: "sin-registro" },
+    { tipo: "nivel", nivel: maximo, desde: historial[ultimaCopiada].recorded_at },
+  ];
+  return { tramos: subidas(historial.slice(ultimaCopiada + 1), tramos, maximo), sinRegistro };
+}
+
+/** Agrega a `tramos` un tramo por cada entrada que sube el nivel de la sesión por encima de `desde`. */
+function subidas(entradas: EntradaDelHistorial[], tramos: Tramo[], desde: Nivel | null): Tramo[] {
+  let maximo = desde;
+  for (const entrada of entradas) {
+    if (maximo === null || PESO_DEL_NIVEL[entrada.level] > PESO_DEL_NIVEL[maximo]) {
       tramos.push({ tipo: "nivel", nivel: entrada.level, desde: entrada.recorded_at });
+      maximo = entrada.level;
     }
-  });
-  return { tramos, sinRegistro };
+  }
+  return tramos;
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { cortesDeConexion, describirEvento, duracion } from "./eventos";
+import { cortesDeConexion, describirEvento, duracion, eventosCriticos } from "./eventos";
+import { evento } from "./test/fabricas";
 
 const de = (type: string, data: Record<string, unknown> = {}) => describirEvento({ type, data });
 
@@ -470,5 +471,44 @@ describe("describirEvento", () => {
       const r = de("capture_status", { state });
       expect(`${r.titulo} ${r.detalle}`).not.toMatch(/captura|JavaScript|arrancó|Moodle/i);
     }
+  });
+});
+
+describe("eventosCriticos", () => {
+  const titulos = (eventos: ReturnType<typeof evento>[]) => eventosCriticos(eventos).map((c) => [c.evento.id, c.titulo]);
+
+  it("una salida a otra ventana con su vuelta y después una ocultación son dos momentos", () => {
+    expect(titulos([evento(1, "focus_lost"), evento(2, "focus_gained", { away_ms: 3000 }), evento(3, "visibility_hidden")])).toEqual([
+      [1, "Pasó a otra ventana"],
+      [3, "El examen dejó de verse en pantalla"],
+    ]);
+  });
+
+  it("una pérdida de foco seguida de una ocultación es una sola salida, con el salto a la primera", () => {
+    expect(titulos([evento(1, "focus_lost"), evento(2, "visibility_hidden")])).toEqual([[1, "El examen dejó de verse en pantalla"]]);
+  });
+
+  it("una ocultación sola es un momento", () => {
+    expect(titulos([evento(1, "visibility_hidden")])).toEqual([[1, "El examen dejó de verse en pantalla"]]);
+  });
+
+  it("una pantalla completa sin «on» booleano no es una salida", () => {
+    expect(titulos([evento(1, "fullscreen", {}), evento(2, "fullscreen", { on: "no" })])).toEqual([]);
+  });
+
+  it("una salida de pantalla completa con un cambio de tamaño y un tecleo en el medio cuenta una sola vez", () => {
+    const eventos = [
+      evento(1, "fullscreen", { on: false, source: "api" }),
+      evento(2, "resize"),
+      evento(3, "keystroke"),
+      evento(4, "fullscreen", { on: false, source: "size" }),
+    ];
+    expect(titulos(eventos)).toEqual([[1, "Salió de pantalla completa"]]);
+  });
+
+  it("un pegado que no es texto toma el título de su fila del registro", () => {
+    const pegado = evento(1, "clipboard", { action: "paste", non_text: true });
+    expect(titulos([pegado])).toEqual([[1, "Pegó contenido que no es texto"]]);
+    expect(eventosCriticos([pegado])[0].titulo).toBe(describirEvento(pegado).titulo);
   });
 });

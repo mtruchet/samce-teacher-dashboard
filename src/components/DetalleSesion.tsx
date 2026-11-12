@@ -16,7 +16,6 @@ import { AnalisisSesion } from "./AnalisisSesion";
 import { CronologiaSesion } from "./CronologiaSesion";
 import { ListaEventos } from "./ListaEventos";
 import { Transcurrido } from "./Transcurrido";
-import "./ListaSesiones.css";
 import "./DetalleSesion.css";
 
 /**
@@ -309,19 +308,13 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
 
       <AnalisisSesion sesion={sesion} onVencida={onVencida} />
 
-      {/* Los momentos para revisar se arman con los eventos que el detalle ya tiene, en el orden del registro,
-          y cada uno lleva a su fila. */}
-      {recibido ? (
-        <CronologiaSesion eventos={eventos} onIrAlEvento={(id) => setDestacado((d) => ({ id, vez: (d?.vez ?? 0) + 1 }))} />
-      ) : null}
-
       {/* El registro va en una lámina más liviana que la del análisis: el ojo
           tiene que caer primero en el análisis, y el registro queda para
           ubicar un momento. */}
-      <section className="lista detalle__registro" aria-labelledby="registro-de-eventos-titulo">
-        <header className="lista__encabezado">
-          <h2 className="lista__titulo" id="registro-de-eventos-titulo">Registro de eventos</h2>
-          {recibido ? <span className="lista__cuenta cifra">{cuentaDeEventos(eventos.length)}</span> : null}
+      <section className="lamina lamina--apoyo detalle__registro" aria-labelledby="registro-de-eventos-titulo">
+        <header className="lamina__encabezado detalle__encabezado">
+          <h2 className="lamina__titulo" id="registro-de-eventos-titulo">Registro de eventos</h2>
+          {recibido ? <span className="lamina__cuenta cifra">{cuentaDeEventos(eventos.length)}</span> : null}
           {/* Los dos extremos son las marcas temporales de las filas de las
               puntas, no una medida de la sesión: dicen hasta dónde llega el
               registro, que es lo que hace falta para saber si lo que se está
@@ -335,6 +328,13 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
             </span>
           ) : null}
         </header>
+
+        {/* Los momentos para revisar son el índice del registro: van adentro de su lámina, entre el encabezado y
+            la tabla, armados con los eventos que el detalle ya tiene, en el orden del registro (de lo más viejo a
+            lo más nuevo), y cada uno lleva a su fila. */}
+        {recibido ? (
+          <CronologiaSesion eventos={eventos} onIrAlEvento={(id) => setDestacado((d) => ({ id, vez: (d?.vez ?? 0) + 1 }))} />
+        ) : null}
 
         {cargando ? (
           <p className="detalle__cargando" role="status">Cargando los eventos…</p>

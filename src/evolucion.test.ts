@@ -31,13 +31,51 @@ describe("tramosDeRiesgo", () => {
 
   it("con entradas copiadas, sin registro hasta la última copiada y el máximo desde ahí", () => {
     const { tramos } = tramosDeRiesgo(
-      [entrada("event", "high", 3, true), entrada("model", "low", 7, true), entrada("model", "medium", 20)],
+      [entrada("event", "medium", 3, true), entrada("model", "low", 7, true), entrada("model", "high", 20)],
       [], "analyzed"
     );
     expect(tramos).toEqual([
       { tipo: "sin-registro" },
-      { tipo: "nivel", nivel: "high", desde: "2026-11-10T10:07:00Z" },
+      { tipo: "nivel", nivel: "medium", desde: "2026-11-10T10:07:00Z" },
+      { tipo: "nivel", nivel: "high", desde: "2026-11-10T10:20:00Z" },
     ]);
+  });
+
+  it("una copiada que ya está en alto fija desde cuándo: el tramo alto empieza en ella (sesión 527)", () => {
+    // El historial dice «alto a las 07:29»; antes, la evolución decía «alto desde las 07:37» (la última copiada).
+    const { tramos } = tramosDeRiesgo(
+      [entrada("event", "high", 29, true), entrada("model", "low", 37, true), entrada("model", "medium", 50)],
+      [], "analyzed"
+    );
+    expect(tramos).toEqual([
+      { tipo: "sin-registro" },
+      { tipo: "nivel", nivel: "high", desde: "2026-11-10T10:29:00Z" },
+    ]);
+  });
+
+  it("toda la sesión en alto y después un momento en alto: un solo tramo alto", () => {
+    const { tramos } = tramosDeRiesgo([entrada("model", "high", 5), entrada("event", "high", 9)], [], "analyzed");
+    expect(tramos).toEqual([
+      { tipo: "inicio", estado: "analyzed" },
+      { tipo: "nivel", nivel: "high", desde: "2026-11-10T10:05:00Z" },
+    ]);
+  });
+
+  it("sin copiadas, el primer tramo es «sin alertas» (analizada), aunque el último análisis no se haya podido hacer", () => {
+    const { tramos } = tramosDeRiesgo([entrada("model", "low", 5)], [], "insufficient_evidence");
+    expect(tramos[0]).toEqual({ tipo: "inicio", estado: "analyzed" });
+  });
+
+  it("una sola copiada en bajo da un tramo bajo desde ella", () => {
+    const { tramos } = tramosDeRiesgo([entrada("model", "low", 5, true)], [alerta("model", "low")], "analyzed");
+    expect(tramos).toEqual([{ tipo: "sin-registro" }, { tipo: "nivel", nivel: "low", desde: "2026-11-10T10:05:00Z" }]);
+  });
+
+  it("si el nivel vigente supera al más alto registrado de su origen, va aparte como sin registro", () => {
+    // Se perdió una entrada: la tarjeta dice «Riesgo medio» y el historial llega hasta bajo.
+    const { tramos, sinRegistro } = tramosDeRiesgo([entrada("model", "low", 5)], [alerta("model", "medium")], "analyzed");
+    expect(sinRegistro).toEqual([{ origen: "model", nivel: "medium" }]);
+    expect(tramos.map((t) => (t.tipo === "nivel" ? t.nivel : t.tipo))).toEqual(["inicio", "low"]);
   });
 
   it("un origen con alerta vigente y sin entradas va aparte, sin hora", () => {
