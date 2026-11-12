@@ -56,7 +56,7 @@ Para el texto grande de la página pública hay que **reducir el espaciado entre
 
 ## 3. Color
 
-### El problema del semáforo
+### Por qué no verde, amarillo y rojo
 
 El impulso natural para tres niveles de riesgo es verde, amarillo y rojo. Es una mala idea por dos razones independientes.
 
@@ -83,6 +83,8 @@ Una escala de un solo tono que se intensifica, en lugar de tres colores distinto
 | Alto | Fondo saturado, texto claro, borde marcado | Círculo con anillo | Baja |
 
 Esto se lee como una progresión de intensidad, que es exactamente lo que un índice de integridad es. Y evita el gesto de "esto está mal" que carga el rojo.
+
+**Cómo quedó en el panel.** Todo lo que dice un nivel usa los tonos de las alertas (`--alerta-tono-*`), de frío y suave a cálido e intenso, asignados en un solo lugar (`src/styles/nivel.css`). El tono acompaña: el nivel va siempre con su palabra («Riesgo alto») y con un medidor de tres segmentos que se llenan de a uno. La guía del panel (`docs/panel-visual.md`) describe las piezas.
 
 **Color de marca:** el celeste institucional del Campus Virtual, `#008cb2`. No es una elección arbitraria ni genérica: es el color real de la casa. Da coherencia con el entorno del que el docente viene, y ancla el panel en la institución en lugar de en cualquier plantilla.
 
@@ -142,11 +144,11 @@ Sobre el fondo: los degradados suaves y las formas geométricas grandes son el r
 |---|---|---|
 | Tipografía | IBM Plex Sans | Roboto y Open Sans, por coherencia con el campus |
 | Color de marca | Celeste institucional `#008cb2` | Una paleta propia del producto |
-| Niveles de riesgo | Escala de intensidad de un tono | Semáforo tradicional, con sus problemas |
+| Niveles de riesgo | Escala de intensidad: los tonos de las alertas, con palabra y medidor | Verde, amarillo y rojo, con sus problemas |
 | Iconos | Phosphor | Tabler, si se prefiere trazo más fino |
-| Componentes | A definir | Escribir los estilos a mano |
+| Componentes | Escritos a mano con piezas compartidas | Una librería de componentes |
 
-La última es la que más conviene resolver antes de escribir pantallas, porque condiciona todo lo que venga después.
+La última se resolvió escribiendo los componentes a mano, con un juego chico de piezas compartidas (láminas, marca de nivel, apartados, botón de texto) que describe `docs/panel-visual.md`.
 
 ---
 
@@ -206,3 +208,25 @@ argumento es el respeto, esto no es opcional.
 
 **Anillo de foco de dos capas**, con la capa interior del color de la superficie para que se
 recorte contra cualquier fondo, incluido el oscuro.
+
+---
+
+## Lista de control de accesibilidad
+
+Lo que el panel tiene que cumplir en cada pantalla. Si un cambio rompe alguna, se corrige antes de entrar.
+
+- **R1.** Anillo `:focus-visible` de dos capas, que ningún `box-shadow` pisa.
+- **R2.** `outline: 2px solid transparent`, nunca `none`.
+- **R3.** El orden de Tab sigue al de lectura, sin `tabindex` positivos.
+- **R4.** Nada enfocado queda debajo de la barra fija.
+- **R5.** Las regiones vivas hablan solo por una acción del docente o por una novedad real.
+- **R6.** Un anuncio repetido se relee, con `<span key>`.
+- **R7.** Cada `status` lleva solo su frase.
+- **R8.** Un h1, h2 por sección y h3 dentro, sin saltos.
+- **R9.** A 390 px no hay desplazamiento lateral, y los niveles van en un renglón.
+- **R10.** En colores forzados se ven el foco, el medidor, la tarjeta elegida y los bordes de los controles.
+- **R11.** El nivel nunca va solo por color: palabra, número y medidor.
+- **R12.** Contraste de 4,5:1 en la tinta y de 3:1 en los bordes y en el segmento lleno contra el vacío, sobre el fondo real.
+- **R13.** Objetivos de 24×24 como mínimo.
+- **R14.** `aria-pressed` en las tarjetas, y «Quitar filtros» visible con un filtro activo.
+- **R15.** `prefers-reduced-motion` sin transiciones.

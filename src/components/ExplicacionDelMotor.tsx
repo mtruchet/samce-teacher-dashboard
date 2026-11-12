@@ -22,7 +22,7 @@ interface Props {
 
 /**
  * La explicación que escribe el motor, ordenada por renglones y sin cambiarle una palabra (`explicacion.ts`): el
- * hecho en negrita, las notas con el ícono de información, el rótulo de la lista («Lo que más pesó») y las
+ * hecho en negrita, las notas con el ícono de información, el rótulo de la lista («Lo que más se notó») y las
  * viñetas con su punto. Es la única forma de mostrar una explicación del motor en el panel: la tarjeta y el
  * historial la comparten.
  *

@@ -23,7 +23,11 @@ interface Props {
  * ranking por índice.
  *
  * Los niveles se nombran como en las tarjetas del resumen y en la lista («Riesgo alto»): el selector y la
- * tarjeta son dos caminos al mismo filtro y se reflejan entre sí.
+ * tarjeta son dos caminos al mismo filtro y se reflejan entre sí. Nivel y estado del análisis se excluyen:
+ * elegir un nivel borra el filtro de análisis (lo resuelve `escribirFiltros`).
+ *
+ * Va dentro de la lámina de control, sin lámina propia. «N de M sesiones» y «Quitar filtros» no son de la
+ * barra: van en el renglón de resultado (`ResultadoDelFiltro`), debajo.
  */
 export function FiltrosSesiones({ filtros, onCambio }: Props) {
   const id = useId();

@@ -34,6 +34,10 @@ import "./DetalleSesion.css";
  * `AnalisisSesion`), arriba del registro y con su propia consulta: la de eventos
  * no trae alertas, y mezclarlas haría pasar un cálculo por un dato guardado.
  *
+ * Dentro de la lámina del registro, arriba de la tabla, van los momentos para
+ * revisar (`CronologiaSesion`): un índice de los pegados y las salidas de la
+ * ventana o de la pantalla completa, que lleva a cada fila.
+ *
  * Se monta una vez por sesión (el panel le pone `key` con el id de la sesión):
  * al pasar a otra sesión arranca de cero, sin arrastrar nada de la anterior.
  */

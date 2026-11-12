@@ -10,7 +10,14 @@ import type { Metricas } from "./services/sesionesService";
  * sin porcentaje, y pasarlas a minutos pediría la duración observada. Por eso quedan fuera del tipo.
  *
  * Los formatos son propios y no los del registro (`duracion()` de `eventos.ts`): acá el uno va en letras,
- * como lo escribe el motor («un minuto», «una hora»), porque la ronda 1 marcó «1 minuto» suelto.
+ * como lo escribe el motor («un minuto», «una hora»), porque la ronda 1 marcó «1 minuto» suelto (D5):
+ * - duraciones: «menos de un segundo», «45 segundos», «un minuto y 33 segundos», «2 horas y un minuto»;
+ * - tecleo, redondeado primero a un decimal: «una tecla por segundo», «2,5 teclas por segundo», «menos de 0,1
+ *   teclas por segundo»;
+ * - texto pegado: «una letra», «1.241 letras»;
+ * - el 0 tiene frase propia en tres métricas: «No estuvo en otra ventana ni en otra pestaña», «No pegó texto» y,
+ *   en el mouse, «menos de 15 segundos»;
+ * - sin valor (null, NaN o infinito): «Sin dato en esta sesión».
  */
 
 /** Las seis métricas que se muestran: todas menos las dos proporciones. */

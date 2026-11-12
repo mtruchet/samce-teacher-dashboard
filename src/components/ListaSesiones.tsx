@@ -68,10 +68,10 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
   const cuenta =
     total !== undefined && total > sesiones.length ? `${sesiones.length} de ${total}` : String(sesiones.length);
   return (
-    <section className="lista">
-      <header className="lista__encabezado">
-        <h2 className="lista__titulo">{titulo}</h2>
-        <span className="lista__cuenta cifra">{cuenta}</span>
+    <section className="lamina lista">
+      <header className="lamina__encabezado lista__encabezado">
+        <h2 className="lamina__titulo">{titulo}</h2>
+        <span className="lamina__cuenta cifra">{cuenta}</span>
       </header>
 
       {sesiones.length === 0 ? (

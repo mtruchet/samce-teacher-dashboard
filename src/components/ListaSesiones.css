@@ -1,28 +1,7 @@
-.lista {
-  padding: var(--e5) var(--e6);
-  border-radius: var(--radio-panel);
-  background: var(--sup-1);
-  box-shadow: var(--anillo), var(--elev-2);
-}
-
+/* Cada grupo de sesiones es una .lamina (base.css), con su título y su cuenta en .lamina__titulo y
+   .lamina__cuenta: acá solo queda el aire entre el encabezado y la tabla. */
 .lista__encabezado {
-  display: flex;
-  align-items: baseline;
-  gap: var(--e3);
   margin-bottom: var(--e4);
-}
-
-.lista__titulo {
-  font-size: var(--panel-pieza);
-  font-weight: 600;
-  line-height: 25px;
-  letter-spacing: var(--track-titulo);
-  color: var(--tinta);
-}
-
-.lista__cuenta {
-  font-size: var(--panel-nota);
-  color: var(--tinta-media);
 }
 
 /* La lista larga hace scroll adentro, así la barra nunca se va de pantalla: la
@@ -149,16 +128,6 @@
 }
 
 @media (max-width: 760px) {
-  .lista {
-    padding-inline: var(--e4);
-  }
-
-  /* Los extremos del registro bajan a su propio renglón en vez de apretar el
-     título contra la cuenta. */
-  .lista__encabezado {
-    flex-wrap: wrap;
-  }
-
   /* La hora de comienzo se va: el transcurrido dice lo mismo y ocupa menos.
      Va por su clase y no por su posición, porque el número de columna cambia
      en cuanto se agrega una y la regla termina escondiendo otra cosa. */
