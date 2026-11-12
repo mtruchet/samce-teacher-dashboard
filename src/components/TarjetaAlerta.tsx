@@ -14,7 +14,7 @@ import { RotuloNivel } from "./RotuloNivel";
 export function TarjetaAlerta({ alerta }: { alerta: AlertaDeSesion }) {
   return (
     <li
-      className={`analisis__alerta analisis__alerta--${alerta.level}`}
+      className="analisis__alerta"
       data-nivel={alerta.level}
       data-origen={alerta.origin}
     >

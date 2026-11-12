@@ -9,7 +9,8 @@ import "./RotuloNivel.css";
  * hace falta, un complemento separado por una línea vertical fina (en la tarjeta de la alerta, el origen).
  *
  * El nivel nunca depende solo del color: la palabra va siempre escrita y el medidor cuenta con segmentos. El
- * medidor y la línea van ocultos para los lectores de pantalla, porque la palabra ya lo dice. El tono lo da
+ * medidor va oculto para los lectores de pantalla, porque la palabra ya lo dice. La línea vertical la dibuja el
+ * complemento (ver RotuloNivel.css): si no entra en el renglón, baja con su línea y nunca la deja colgando. El tono lo da
  * `data-nivel` (ver `styles/nivel.css`), así el rótulo se pinta igual donde sea que se monte.
  */
 export function RotuloNivel({ nivel, complemento }: { nivel: NivelDeRiesgo; complemento?: ReactNode }) {
@@ -20,7 +21,6 @@ export function RotuloNivel({ nivel, complemento }: { nivel: NivelDeRiesgo; comp
       {complemento ? (
         <>
           {" "}
-          <span className="rotulo-nivel__separador" aria-hidden="true" />{" "}
           <span className="rotulo-nivel__complemento">{complemento}</span>
         </>
       ) : null}

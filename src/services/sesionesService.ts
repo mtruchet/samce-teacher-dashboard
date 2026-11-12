@@ -217,19 +217,19 @@ export const SESIONES_POR_PAGINA = 50;
  */
 export const SESIONES_TOPE = 1000;
 
+/** Un total que no es un número entero no negativo (cabecera ausente, vacía o rara) no se usa: así nunca se ve «NaN de 30». */
+function totalDeLaCabecera(valor: string | null): number | null {
+  if (valor === null || valor.trim() === "") return null;
+  const n = Number(valor);
+  return Number.isInteger(n) && n >= 0 ? n : null;
+}
+
 /**
  * Las sesiones de un examen: las en curso primero y después las finalizadas,
  * cada grupo con las más recientes arriba. `limite` es cuántas pedir desde la
  * primera; el panel lo sube de a 50 con «Ver más» y sigue refrescando todo lo
  * que ya mostró.
  */
-/** Un total que no es un número entero no negativo (cabecera ausente, vacía o rara) no se usa: así nunca se ve «NaN de 30». */
-function cifra(valor: string | null): number | null {
-  if (valor === null || valor.trim() === "") return null;
-  const n = Number(valor);
-  return Number.isInteger(n) && n >= 0 ? n : null;
-}
-
 export async function traerSesiones(
   examenId: number,
   limite = SESIONES_POR_PAGINA,
@@ -246,7 +246,7 @@ export async function traerSesiones(
 
   const respuesta = await pedirRespuesta(`${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?${consulta}`);
   const cuerpo = (await respuesta.json()) as Sesion[] | { sessions: Sesion[]; summary: ResumenDeEvaluacion };
-  const total = cifra(respuesta.headers.get("X-Total-Count"));
+  const total = totalDeLaCabecera(respuesta.headers.get("X-Total-Count"));
   // Lectura tolerante: un backend sin el resumen devuelve el arreglo de siempre.
   return Array.isArray(cuerpo)
     ? { sesiones: cuerpo, total, resumen: null }

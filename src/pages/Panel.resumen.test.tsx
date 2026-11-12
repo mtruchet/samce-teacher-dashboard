@@ -62,6 +62,16 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     expect(screen.getByLabelText("Nivel de riesgo")).toHaveValue("");
   });
 
+  it("M sale del resumen de la misma respuesta, no de los recuentos de la ficha del examen, y lleva el punto de los miles", async () => {
+    // La ficha del examen cuenta otra cosa (un pedido anterior): M tiene que coincidir con las tarjetas de arriba.
+    const grande = resumen({ total: 1245, risk_high: 1000, no_alerts: 245 });
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1000, grande));
+    montar("/panel?examen=1&nivel=high");
+    await esperar();
+    expect(resultado()).toHaveTextContent("1.000 de 1.245 sesiones");
+    expect(screen.getByRole("button", { name: "Riesgo alto: 1.000 sesiones" })).toBeInTheDocument();
+  });
+
   it("con «Sin alertas» elegido, elegir «Riesgo alto» en la barra pide solo el nivel", async () => {
     const traer = vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1, RESUMEN));
     montar("/panel?examen=1&analisis=no_alerts");

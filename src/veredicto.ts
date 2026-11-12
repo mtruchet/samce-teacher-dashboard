@@ -13,7 +13,7 @@ import type { AlertaDeSesion, Analisis } from "./services/sesionesService";
  * mismo que la frase.
  *
  * Es el único lugar del detalle que dice que la sesión no se pudo analizar o que el análisis no está disponible:
- * las métricas no lo repiten (`diceNoDisponible`).
+ * las métricas no lo repiten (ver MetricasSesion).
  */
 
 export interface Veredicto {
@@ -22,8 +22,6 @@ export interface Veredicto {
   bajadas: string[];
   /** «sin-alertas» le da al ícono un fondo verde suave: «todo bien» se distingue de «no se pudo analizar». */
   tono?: "sin-alertas";
-  /** Si el veredicto ya dice que el análisis no está disponible: las métricas no lo vuelven a decir. */
-  diceNoDisponible: boolean;
 }
 
 function cuantas(n: number): string {
@@ -44,8 +42,6 @@ const SIN_PROBLEMA = "Esto no indica ningún problema en el examen. Abajo está 
 
 export function veredictoDe(analisis: Analisis, alertas: AlertaDeSesion[], abierta: boolean): Veredicto {
   const motivo = analisis.reason?.trim() || null;
-  // Con alertas lo dice la bajada; sin alertas, la frase. En los dos casos, el veredicto ya lo dijo.
-  const diceNoDisponible = analisis.state === "unavailable";
   if (alertas.length > 0) {
     const origenes = new Set(alertas.map((a) => a.origin));
     const bajadas =
@@ -56,7 +52,7 @@ export function veredictoDe(analisis: Analisis, alertas: AlertaDeSesion[], abier
           : origenes.has("model") && origenes.has("event")
             ? [UNA_DE_CADA]
             : [];
-    return { icono: Ojo, frase: cuantas(alertas.length), bajadas, diceNoDisponible };
+    return { icono: Ojo, frase: cuantas(alertas.length), bajadas };
   }
   switch (analisis.state) {
     case "analyzed":
@@ -64,31 +60,28 @@ export function veredictoDe(analisis: Analisis, alertas: AlertaDeSesion[], abier
         ? {
             icono: Check, frase: "Por ahora no hay alertas para revisar.",
             bajadas: ["La sesión se sigue analizando mientras el alumno rinde."],
-            tono: "sin-alertas", diceNoDisponible,
+            tono: "sin-alertas",
           }
         : {
             icono: Check, frase: "No hay alertas para revisar.",
             // Sin repetir el título («no surgió ninguna alerta» decía lo mismo dos veces).
             bajadas: ["Se analizó todo el examen."],
-            tono: "sin-alertas", diceNoDisponible,
+            tono: "sin-alertas",
           };
     case "not_analyzed":
       return {
         icono: Reloj, frase: "Esta sesión todavía no se analizó.",
         bajadas: abierta ? ["Se va a analizar mientras el alumno rinde. No hace falta recargar la pantalla."] : [],
-        diceNoDisponible,
       };
     case "insufficient_evidence":
       return {
         icono: Info, frase: "Esta sesión no se pudo analizar.",
         bajadas: [...(motivo ? [motivo] : []), SIN_PROBLEMA],
-        diceNoDisponible,
       };
     default:
       return {
         icono: Info, frase: "El análisis no está disponible en este momento.",
         bajadas: ["Los eventos de la sesión se pueden ver igual, más abajo."],
-        diceNoDisponible,
       };
   }
 }

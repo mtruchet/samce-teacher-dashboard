@@ -15,26 +15,30 @@
 
 /* Una pastilla por paso, unidas por una flecha chica: se lee de izquierda a derecha, como una frase, y no
    compite con las tarjetas de arriba. */
+/* Las pastillas de un renglón miden todas lo mismo de alto: el primer paso, de un solo renglón, se centra en
+   la altura de los que llevan la hora arriba. */
 .pasos {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   gap: var(--e2) var(--e3);
 }
 
 .pasos__item {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: var(--e3);
 }
 
 .pasos__flecha {
   flex: none;
+  align-self: center;
   color: var(--tinta-tenue);
 }
 
 .paso {
   display: inline-grid;
+  align-content: center;
   gap: 2px;
   padding: var(--e1) var(--e3);
   border-radius: var(--radio-chip);
@@ -51,14 +55,24 @@
   color: var(--tinta-media);
 }
 
-@media (max-width: 480px) {
+/* A menos de 760 px, una columna: todas las pastillas del mismo ancho y la flecha centrada entre una y otra. */
+@media (max-width: 760px) {
   .pasos {
     flex-direction: column;
-    align-items: flex-start;
+    gap: var(--e1);
+  }
+
+  .pasos__item {
+    flex-direction: column;
+    gap: var(--e1);
   }
 
   .pasos__flecha {
     transform: rotate(90deg);
+  }
+
+  .paso {
+    display: grid;
   }
 }
 
@@ -86,6 +100,16 @@
 .historial__entrada > .explicacion,
 .historial__plegado {
   justify-self: stretch;
+}
+
+/* El aviso de D6 lo escribe el panel, no el motor: va con otra forma que las notas de la explicación (sin el
+   ícono de información, en cursiva y en --tinta-media) y separado de ella. */
+.historial__aviso {
+  max-width: var(--medida);
+  font-size: var(--panel-nota);
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--tinta-media);
 }
 
 /* La explicación que repite la vigente queda plegada: se abre si hace falta, sin leer dos veces lo mismo. */
@@ -177,18 +201,23 @@
   margin: 0 0 var(--e6);
 }
 
+/* Tres columnas compartidas por todos los momentos (subgrid): la hora, el ícono con el nombre y el botón. Así
+   los botones forman una columna y no siguen el largo de cada nombre. La hora va arriba, alineada con el
+   primer renglón del nombre. */
 .momentos__lista {
   display: grid;
-  gap: var(--e1);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--e1) var(--e4);
   max-width: var(--medida);
 }
 
 .momentos__momento {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: var(--e4);
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: start;
   font-size: var(--panel-fila);
+  line-height: 1.5;
 }
 
 .momentos__hora {
@@ -197,14 +226,35 @@
 
 .momentos__que {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--e1) var(--e2);
+  align-items: flex-start;
+  gap: var(--e2);
 }
 
+/* El ícono centrado en el primer renglón del nombre (16 px sobre un renglón de 1,5). */
 .momentos__que > svg {
   flex: none;
+  margin-top: calc((1.5em - 16px) / 2);
   color: var(--tinta-media);
+}
+
+.momentos__ir {
+  justify-self: start;
+}
+
+/* En un teléfono el botón va siempre en su propio renglón, debajo del nombre. */
+@media (max-width: 480px) {
+  .momentos__lista {
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: var(--e3);
+  }
+
+  .momentos__momento {
+    row-gap: 2px;
+  }
+
+  .momentos__ir {
+    grid-column: 2;
+  }
 }
 
 .momentos__titulo {

@@ -14,7 +14,7 @@ type Nivel = NivelDeRiesgo;
 export type Tramo =
   /** Desde el inicio, sin alertas todavía: el estado del análisis si nunca hubo alertas. */
   | { tipo: "inicio"; estado: EstadoDelAnalisis }
-  /** Desde el inicio hasta la última entrada copiada: lo anterior no quedó registrado. */
+  /** Desde el inicio hasta la última entrada copiada (o toda la sesión, si tiene alertas y ningún historial). */
   | { tipo: "sin-registro" }
   /** Desde la hora del análisis que registró el cambio. */
   | { tipo: "nivel"; nivel: Nivel; desde: string };
@@ -43,7 +43,10 @@ export function tramosDeRiesgo(
     .map((a) => ({ origen: a.origin, nivel: a.level }));
 
   if (historial.length === 0) {
-    return { tramos: [{ tipo: "inicio", estado }], sinRegistro };
+    // El tramo con el estado es solo para la sesión sin alertas. Con alertas y sin historial (una entrada que
+    // se perdió), decir «sin alertas» contradecía la tarjeta de arriba: no hay registro de cómo se llegó, y
+    // cada origen se dice aparte, en `sinRegistro`.
+    return { tramos: [alertas.length > 0 ? { tipo: "sin-registro" } : { tipo: "inicio", estado }], sinRegistro };
   }
 
   // Hasta la última entrada copiada no se sabe nada de antes: cada copia solo dice desde cuándo su

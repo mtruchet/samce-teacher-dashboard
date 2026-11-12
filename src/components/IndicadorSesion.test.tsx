@@ -19,7 +19,7 @@ describe("IndicadorSesion", () => {
     expect(screen.getByText(rotulo)).toBeInTheDocument();
     expect(container.querySelectorAll(".medidor__segmento--lleno")).toHaveLength(llenos);
     expect(container.querySelector(".medidor")).toHaveAttribute("aria-hidden", "true");
-    expect(container.querySelector(`.indicador--${nivel}`)).not.toBeNull();
+    expect(container.querySelector(`.indicador[data-nivel="${nivel}"]`)).not.toBeNull();
   });
 
   it("dice la cantidad y el origen de las alertas", () => {

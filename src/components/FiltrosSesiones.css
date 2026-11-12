@@ -41,7 +41,7 @@
    cambiarlo, para que el foco se vea. */
 .filtros__campo select:focus-visible,
 .filtros__campo input:focus-visible {
-  box-shadow: 0 0 0 2px var(--sup-1), 0 0 0 4px var(--celeste);
+  box-shadow: var(--anillo-foco);
 }
 
 .filtros__campo input::placeholder {

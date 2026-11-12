@@ -31,6 +31,14 @@ export interface FiltrosSesiones {
   orden?: "risk_level";
 }
 
+/** Lo que borra «Quitar filtros», y también una tarjeta del resumen antes de poner el suyo: todo menos el orden. */
+export const SIN_FILTROS: Readonly<Partial<FiltrosSesiones>> = {
+  nivel: undefined,
+  estado: undefined,
+  analisis: undefined,
+  q: undefined,
+};
+
 /** Los filtros leídos de la dirección: las cinco claves siempre presentes, sin valor si no hay filtro. */
 export type FiltrosLeidos = { [K in keyof Required<FiltrosSesiones>]: Required<FiltrosSesiones>[K] | undefined };
 
@@ -95,6 +103,25 @@ export function escribirFiltros(actuales: URLSearchParams, parciales: Partial<Fi
  */
 export function claveDeFiltros(parametros: URLSearchParams): string {
   return escribirFiltros(new URLSearchParams(), leerFiltros(parametros)).toString();
+}
+
+/**
+ * Lo que se le pide al backend, como texto. Con una sesión abierta en el detalle se pide sin filtrar (solo
+ * con el orden): si la sesión dejara de cumplir el filtro, saldría de la respuesta y el detalle se quedaría
+ * con una copia vieja. Sin sesión abierta es la misma clave que `claveDeFiltros`.
+ */
+export function claveDelPedido(filtros: FiltrosSesiones, conSesionAbierta: boolean): string {
+  return escribirFiltros(new URLSearchParams(), conSesionAbierta ? { orden: filtros.orden } : filtros).toString();
+}
+
+/** Un número como se escribe en el panel, con el punto de los miles: «1.245». */
+export function enCifras(n: number): string {
+  return n.toLocaleString("es-AR");
+}
+
+/** El resultado de un filtro (D3): «16 de 245 sesiones», con N las que cumplen el filtro y M el total. */
+export function textoDelResultado(cuantas: number, deCuantas: number): string {
+  return `${enCifras(cuantas)} de ${enCifras(deCuantas)} sesiones`;
 }
 
 /** Si hay algún filtro que recorta la lista. El orden no cuenta: ordenar no deja afuera a nadie. */

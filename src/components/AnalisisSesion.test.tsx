@@ -260,7 +260,9 @@ describe("AnalisisSesion", () => {
     expect(evento.querySelector(".rotulo-nivel")).toHaveTextContent("Riesgo bajo En un momento de la sesión");
 
     expect(modelo.querySelector(".analisis__hecho")).toHaveTextContent(MODELO_453.split("\n")[0]);
-    expect(within(modelo).getByRole("heading", { name: "Lo que más se notó" })).toBeInTheDocument();
+    // Es un subtítulo interno de la tarjeta, no un apartado: texto y no título (los apartados son los h3).
+    expect(modelo.querySelector(".analisis__subtitulo")).toHaveTextContent("Lo que más se notó");
+    expect(within(modelo).queryByRole("heading", { name: "Lo que más se notó" })).not.toBeInTheDocument();
     const viñetas = Array.from(modelo.querySelectorAll(".analisis__lista li")).map((li) => li.textContent);
     expect(viñetas).toEqual(MODELO_453.split("\n").filter((r) => r.startsWith("• ")).map((r) => r.slice(2)));
 
@@ -288,7 +290,8 @@ describe("AnalisisSesion", () => {
     await mostrar(analisis({ alerts: [alerta({ level: "high", explanation: MODELO_454 })] }));
 
     const [tarjeta] = tarjetasDeAlerta();
-    expect(tarjeta).toHaveClass("analisis__alerta--high");
+    // El nivel se marca solo con data-nivel, la única fuente del tono (styles/nivel.css).
+    expect(tarjeta).toHaveAttribute("data-nivel", "high");
     expect(tarjeta.querySelector(".analisis__hecho")).toHaveTextContent(
       "Este examen se desarrolló de una forma muy distinta a lo que suele verse en una evaluación."
     );

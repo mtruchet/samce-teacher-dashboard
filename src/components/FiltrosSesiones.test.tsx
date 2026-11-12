@@ -99,4 +99,20 @@ describe("FiltrosSesiones", () => {
     expect(onCambio).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Buscar alumno")).toHaveValue("");
   });
+
+  it("lo tecleado mientras llega la búsqueda que mandó el propio campo no se pierde", () => {
+    // react-router confirma la navegación en una transición: la dirección con «Ana» llega después de que el
+    // docente siguió escribiendo. Acá el padre tarda en pasarle la búsqueda nueva, igual que en el navegador.
+    const onCambio = vi.fn();
+    const { rerender } = render(<FiltrosSesiones filtros={{}} onCambio={onCambio} />);
+    const campo = screen.getByLabelText("Buscar alumno");
+    fireEvent.change(campo, { target: { value: "Ana" } });
+    act(() => vi.advanceTimersByTime(ESPERA_BUSQUEDA_MS));
+    expect(onCambio).toHaveBeenLastCalledWith({ q: "Ana" });
+    fireEvent.change(campo, { target: { value: "Anax" } });
+    rerender(<FiltrosSesiones filtros={{ q: "Ana" }} onCambio={onCambio} />);
+    expect(campo).toHaveValue("Anax");
+    act(() => vi.advanceTimersByTime(ESPERA_BUSQUEDA_MS));
+    expect(onCambio).toHaveBeenLastCalledWith({ q: "Anax" });
+  });
 });

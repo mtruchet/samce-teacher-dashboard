@@ -91,8 +91,7 @@
 .eventos__boton:focus-visible {
   box-shadow:
     inset 0 0 0 1px var(--sup-4),
-    0 0 0 2px var(--sup-1),
-    0 0 0 4px var(--celeste);
+    var(--anillo-foco);
 }
 
 /* Con colores forzados la sombra del borde desaparece: el botón lleva un borde del sistema. */
@@ -282,13 +281,18 @@ th.eventos__que {
   box-shadow: inset var(--marca-renglon) 0 0 var(--tinta-media);
 }
 
-/* La fila destacada recibe el foco, y su sombra pisaba la del anillo de base.css: acá van las dos juntas,
-   la marca adentro y el anillo afuera. */
+/* Una fila recibe el foco al llegar desde «Momentos para revisar» o al mostrar todas. Un anillo de sombra
+   afuera de una fila de tabla no se ve entero: las celdas de la fila de abajo tapan el borde inferior y el
+   marco recorta los costados (en Chromium quedaba solo el de arriba). Por eso en las filas el anillo es un
+   contorno hacia adentro, del celeste del foco, que se pinta encima de todo y en los cuatro lados. Con colores
+   forzados el contorno toma el color del sistema. */
+.eventos tbody tr:focus-visible {
+  outline: 3px solid var(--celeste);
+  outline-offset: -3px;
+  box-shadow: none;
+}
+
+/* La destacada conserva su marca de renglón debajo del contorno. */
 .eventos tbody tr.eventos__fila--destacada:focus-visible {
-  outline: 2px solid transparent;
-  outline-offset: 2px;
-  box-shadow:
-    inset var(--marca-renglon) 0 0 var(--tinta-media),
-    0 0 0 2px var(--sup-1),
-    0 0 0 4px var(--celeste);
+  box-shadow: inset var(--marca-renglon) 0 0 var(--tinta-media);
 }

@@ -11,7 +11,6 @@ describe("veredictoDe", () => {
       icono: Ojo,
       frase: "Hay 2 alertas para revisar.",
       bajadas: ["Una es sobre toda la sesión y la otra, sobre un momento puntual."],
-      diceNoDisponible: false,
     });
     const una = [alerta()];
     expect(veredictoDe(analisis({ alerts: una }), una, false).frase).toBe("Hay 1 alerta para revisar.");
@@ -28,13 +27,12 @@ describe("veredictoDe", () => {
     });
   });
 
-  it("dice que el análisis no está disponible, con alertas o sin ellas, y lo marca para que las métricas no lo repitan", () => {
+  it("dice que el análisis no está disponible, con alertas o sin ellas (por eso las métricas no lo repiten)", () => {
     const sin = veredictoDe(analisis({ state: "unavailable" }), [], false);
-    expect(sin).toMatchObject({ frase: "El análisis no está disponible en este momento.", diceNoDisponible: true });
+    expect(sin).toMatchObject({ frase: "El análisis no está disponible en este momento." });
     const con = [alerta({ origin: "event" })];
     const conAlerta = veredictoDe(analisis({ state: "unavailable", alerts: con }), con, false);
     expect(conAlerta.bajadas).toEqual(["El análisis de la sesión completa no está disponible en este momento."]);
-    expect(conAlerta.diceNoDisponible).toBe(true);
   });
 
   it("nunca dice un nivel, y sus textos pasan las listas de las rondas", () => {

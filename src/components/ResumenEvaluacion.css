@@ -5,7 +5,8 @@
    - Los cuatro estados del análisis van en un renglón más liviano: sin marca ni tono, en la superficie de
      segundo plano.
    El número y la palabra van siempre en --tinta: el color está en el borde, el medidor y el fondo, nunca en
-   el texto. Las dos filas usan la misma grilla de cuatro columnas, así todas las tarjetas miden lo mismo. */
+   el texto. Los dos renglones llegan al borde: tres tarjetas de nivel arriba (4 de 12 columnas cada una) y
+   cuatro de estado abajo (3 de 12), sin ningún lugar vacío que parezca una tarjeta que falta. */
 .resumen {
   display: grid;
   gap: var(--e3);
@@ -13,8 +14,15 @@
 
 .resumen__tarjetas {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--e3);
+}
+
+.resumen__tarjetas--niveles {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.resumen__tarjetas--estados {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .resumen__tarjeta {
@@ -53,17 +61,18 @@
   box-shadow: inset 0 0 0 2px var(--tono, var(--tinta-media));
 }
 
-/* El anillo de foco de base.css, que las reglas de arriba pisan por especificidad: se repite igual, y la
-   elegida suma su anillo interior. */
+/* El anillo de foco de base.css, que las reglas de arriba pisan por especificidad: se repite con el mismo
+   token, y la elegida suma su anillo interior. Sin transición: el foco aparece de una vez, como en el resto
+   del panel (la transición de la sombra es solo para el paso del mouse). */
 .resumen__tarjeta:focus-visible {
-  box-shadow: 0 0 0 2px var(--sup-1), 0 0 0 4px var(--celeste);
+  box-shadow: var(--anillo-foco);
+  transition: none;
 }
 
 .resumen__tarjeta[aria-pressed="true"]:focus-visible {
   box-shadow:
     inset 0 0 0 2px var(--tono, var(--tinta-media)),
-    0 0 0 2px var(--sup-1),
-    0 0 0 4px var(--celeste);
+    var(--anillo-foco);
 }
 
 .resumen__numero {
@@ -106,10 +115,30 @@
   }
 }
 
-/* Con colores forzados el anillo de la elegida desaparece: se marca con el contorno del sistema. */
+/* Con colores forzados las sombras desaparecen:
+   - todas las tarjetas llevan un borde del sistema, para que se sigan viendo como botones, y las de nivel
+     conservan su borde de 4 px a la izquierda;
+   - la elegida se marca con un borde más grueso del color de selección, adentro;
+   - el foco es el contorno de base.css, afuera, así la elegida con foco se distingue de la elegida sin él. */
 @media (forced-colors: active) {
+  .resumen__tarjeta {
+    border: 1px solid ButtonText;
+  }
+
+  .resumen__tarjeta[data-nivel] {
+    border-left: var(--marca-tarjeta) solid ButtonText;
+  }
+
   .resumen__tarjeta[aria-pressed="true"] {
-    outline: 3px solid Highlight;
-    outline-offset: -3px;
+    border: 3px solid Highlight;
+  }
+
+  .resumen__tarjeta[data-nivel][aria-pressed="true"] {
+    border-left-width: var(--marca-tarjeta);
+  }
+
+  .resumen__tarjeta:focus-visible {
+    outline: 3px solid CanvasText;
+    outline-offset: 2px;
   }
 }

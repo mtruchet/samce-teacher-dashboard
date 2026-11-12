@@ -1,7 +1,7 @@
 import { horaCorta } from "../eventos";
 import { ORIGENES } from "../lenguajeAlerta";
 import type { AlertaDeSesion, EntradaDelHistorial } from "../services/sesionesService";
-import { ExplicacionDelMotor, Nota } from "./ExplicacionDelMotor";
+import { ExplicacionDelMotor } from "./ExplicacionDelMotor";
 import { RotuloNivel } from "./RotuloNivel";
 
 interface Props {
@@ -58,7 +58,7 @@ export function HistorialAlertas({ historial, alertas }: Props) {
                 Análisis de las <time className="cifra" dateTime={entrada.recorded_at}>{horaCorta(entrada.recorded_at)}</time>
               </p>
               <RotuloNivel nivel={entrada.level} complemento={ORIGENES[entrada.origin]} />
-              {actualizada ? <Nota texto={EXPLICACION_REEMPLAZADA} /> : null}
+              {actualizada ? <p className="historial__aviso">{EXPLICACION_REEMPLAZADA}</p> : null}
               {repetida ? (
                 <details className="historial__plegado">
                   <summary>Ver la explicación</summary>

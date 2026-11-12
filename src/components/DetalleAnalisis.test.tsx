@@ -25,7 +25,7 @@ const alerta = (cambios: Partial<AlertaDeSesion> = {}) =>
 describe("HU05_T02 (pendiente 10): Métricas de la sesión", () => {
   const metricas = (props: Partial<Parameters<typeof MetricasSesion>[0]> = {}) =>
     render(
-      <MetricasSesion metricas={METRICAS_CIERRE} estado="analyzed" abierta={false} veredictoDiceNoDisponible={false} {...props} />
+      <MetricasSesion metricas={METRICAS_CIERRE} estado="analyzed" abierta={false} {...props} />
     );
 
   it("con la sesión finalizada y analizada: seis, con su rótulo y su valor, sin cajas, sin la dimensión y sin las proporciones", () => {
@@ -52,13 +52,16 @@ describe("HU05_T02 (pendiente 10): Métricas de la sesión", () => {
     expect(screen.getByText("un minuto")).toBeInTheDocument();
   });
 
-  it("con la sesión abierta dice que se muestran al terminar", () => {
-    metricas({ metricas: null, abierta: true });
-    expect(screen.getByText("Las métricas se muestran cuando la sesión termina.")).toBeInTheDocument();
-    expect(document.querySelector(".metricas")).toBeNull();
+  it("con la sesión abierta dice que se muestran al terminar, también si todavía no se pudo analizar (CP34)", () => {
+    for (const estado of ["analyzed", "insufficient_evidence", "not_analyzed"] as const) {
+      const { unmount } = metricas({ metricas: null, abierta: true, estado });
+      expect(screen.getByText("Las métricas se muestran cuando la sesión termina.")).toBeInTheDocument();
+      expect(document.querySelector(".metricas")).toBeNull();
+      unmount();
+    }
   });
 
-  it("si la sesión no se pudo analizar o todavía no se analizó no se dibuja: el veredicto ya lo dice", () => {
+  it("terminada, si no se pudo analizar o todavía no se analizó no se dibuja: el veredicto ya lo dice", () => {
     for (const estado of ["insufficient_evidence", "not_analyzed"] as const) {
       const { container, unmount } = metricas({ estado });
       expect(container).toBeEmptyDOMElement();
@@ -66,14 +69,12 @@ describe("HU05_T02 (pendiente 10): Métricas de la sesión", () => {
     }
   });
 
-  it("no disponible: no se dibuja si el veredicto ya lo dijo, y si no, lo dice una vez", () => {
-    const { container, unmount } = metricas({ estado: "unavailable", veredictoDiceNoDisponible: true });
-    expect(container).toBeEmptyDOMElement();
-    unmount();
-
-    metricas({ estado: "unavailable" });
-    expect(screen.getByText("Las métricas no están disponibles para esta sesión.")).toBeInTheDocument();
-    expect(document.querySelector(".metricas")).toBeNull();
+  it("con el análisis no disponible no se dibuja, abierta o terminada: el veredicto siempre lo dice", () => {
+    for (const abierta of [false, true]) {
+      const { container, unmount } = metricas({ estado: "unavailable", abierta });
+      expect(container).toBeEmptyDOMElement();
+      unmount();
+    }
   });
 
   it("finalizada y analizada sin métricas del cierre: dice que no están disponibles", () => {
@@ -113,7 +114,11 @@ describe("HU05_T02 (pendiente 10): Historial de alertas", () => {
     );
     expect(screen.getAllByText(/el recorrido anterior de cada alerta no quedó registrado/)).toHaveLength(1);
     expect(screen.getByText(/reemplazó esta explicación/)).toBeInTheDocument();
-    expect(screen.getByText(D6)).toBeInTheDocument();
+    // Lo escribe el panel: no tiene la forma de las notas del motor (sin el ícono de información).
+    const aviso = screen.getByText(D6);
+    expect(aviso).toHaveClass("historial__aviso");
+    expect(aviso.closest(".analisis__nota")).toBeNull();
+    expect(aviso.querySelector("svg")).toBeNull();
     // La entrada reemplazada va abierta: es la única forma de leer el texto viejo.
     const [reemplazada] = container.querySelectorAll(".historial__entrada");
     expect(reemplazada.querySelector("details")).toBeNull();

@@ -108,7 +108,7 @@ describe("El pulso del panel en el registro de un intento", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Primer Parcial" }));
     await esperar();
-    fireEvent.click(screen.getByRole("button", { name: /Ver los eventos de Bruno Pérez/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Ver la sesión de Bruno Pérez/i }));
     await esperar();
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Bruno Pérez");

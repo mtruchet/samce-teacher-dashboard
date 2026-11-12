@@ -84,6 +84,12 @@
   --marca-tarjeta: 4px;
   --marca-renglon: 3px;
 
+  /* ---- El anillo de foco -------------------------------------------------- */
+  /* Uno solo en todo el panel, de dos capas: la interior separa del fondo y la exterior es el celeste de la
+     acción. Lo usa :focus-visible en base.css, y cada regla de componente que necesita sumarle su propia
+     sombra lo repite con este token, nunca con los valores escritos a mano. */
+  --anillo-foco: 0 0 0 2px var(--sup-1), 0 0 0 4px var(--celeste);
+
   /* ---- El veredicto sin alertas ------------------------------------------ */
   /* Un verde suave solo en el cuadro del ícono de «No hay alertas para revisar» (ronda 3), para que se distinga de
      «no se pudo analizar» sin depender del texto. No es el color de ningún nivel. */

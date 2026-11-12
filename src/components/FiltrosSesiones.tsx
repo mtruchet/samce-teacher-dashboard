@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { NIVELES_FILTRO, type FiltrosSesiones as Filtros } from "../filtrosDeLaDireccion";
+import { LARGO_MAXIMO_BUSQUEDA, NIVELES_FILTRO, type FiltrosSesiones as Filtros } from "../filtrosDeLaDireccion";
 import { NIVELES } from "../lenguajeAlerta";
 import "./FiltrosSesiones.css";
 
@@ -40,21 +40,31 @@ export function FiltrosSesiones({ filtros, onCambio }: Props) {
     alCambiar.current = onCambio;
   }, [onCambio]);
 
-  // Si la búsqueda cambia desde afuera (Atrás, «Quitar filtros», una tarjeta), el campo la sigue. Solo se
-  // pisa si dice otra cosa: la dirección guarda la búsqueda sin espacios en los bordes, y pisar «Juan » con
-  // «Juan» le borraba al docente el espacio que acababa de escribir.
+  // Si la búsqueda cambia desde afuera (Atrás, «Quitar filtros», una tarjeta), el campo la sigue y lo que se
+  // estaba esperando escribir ya no vale. Pero no todo cambio de `q` viene de afuera: react-router confirma
+  // la navegación en una transición, así que la búsqueda que mandó el propio campo llega un rato después, y
+  // el docente pudo seguir tecleando en el medio. Por eso se recuerda lo último que mandó el campo
+  // (`enviada`): si `q` llega con eso, es la vuelta de lo propio y no se toca ni el texto ni la espera.
+  // Con un cambio de afuera, el texto se pisa solo si dice otra cosa: la dirección guarda la búsqueda sin
+  // espacios en los bordes, y pisar «Juan » con «Juan» le borraba al docente el espacio que acababa de escribir.
   const q = filtros.q ?? "";
+  const enviada = useRef(q);
   const [ultimaQ, setUltimaQ] = useState(q);
+  const [cambiosDeAfuera, setCambiosDeAfuera] = useState(0);
   if (q !== ultimaQ) {
     setUltimaQ(q);
-    if (texto.trim() !== q) setTexto(q);
+    if (q !== enviada.current) {
+      enviada.current = q;
+      if (texto.trim() !== q) setTexto(q);
+      setCambiosDeAfuera((n) => n + 1);
+    }
   }
 
-  // Lo que se estaba esperando escribir ya no vale cuando la búsqueda cambió desde afuera.
   useEffect(() => {
+    if (cambiosDeAfuera === 0) return;
     if (espera.current) clearTimeout(espera.current);
     espera.current = null;
-  }, [q]);
+  }, [cambiosDeAfuera]);
 
   useEffect(() => () => {
     if (espera.current) clearTimeout(espera.current);
@@ -65,6 +75,7 @@ export function FiltrosSesiones({ filtros, onCambio }: Props) {
     if (espera.current) clearTimeout(espera.current);
     espera.current = setTimeout(() => {
       espera.current = null;
+      enviada.current = valor.trim();
       alCambiar.current({ q: valor.trim() || undefined });
     }, ESPERA_BUSQUEDA_MS);
   }
@@ -104,7 +115,7 @@ export function FiltrosSesiones({ filtros, onCambio }: Props) {
           id={`${id}-q`}
           type="search"
           placeholder="Nombre o apellido"
-          maxLength={100}
+          maxLength={LARGO_MAXIMO_BUSQUEDA}
           value={texto}
           onChange={(e) => escribir(e.target.value)}
         />

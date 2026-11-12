@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { leerFiltros } from "../filtrosDeLaDireccion";
+import { claveDelPedido, enCifras, leerFiltros, textoDelResultado } from "../filtrosDeLaDireccion";
 import { Broadcast, Examen, Materia } from "../iconos";
 import { clearSession, esPanelGeneral, getStoredSession } from "../services/authService";
 import {
@@ -119,12 +119,10 @@ export function Panel() {
   // automática, al botón Atrás y a la vuelta por las migas, y un enlace copiado abre la misma vista.
   const { filtros, claveFiltros, hayFiltro, aplicarFiltros, quitarFiltros, conservarFiltros } =
     useFiltrosDeLaDireccion();
-  // Lo que de verdad se le pide al backend, como texto. Con una sesión abierta en el detalle se pide sin
-  // filtrar: si la sesión dejara de cumplir el filtro (el alumno entrega con «En curso»), saldría de la
-  // respuesta y el detalle se quedaría con una copia vieja. Los filtros siguen en la dirección y vuelven al
-  // volver a la lista. Como es texto, abrir o cerrar una sesión sin filtros no cambia la consulta y no
-  // vuelve a pedir la lista.
-  const clavePedido = sesionElegida ? (filtros.orden ? "orden=risk_level" : "") : claveFiltros;
+  // Lo que de verdad se le pide al backend, como texto (ver `claveDelPedido`). Los filtros siguen en la
+  // dirección y vuelven al volver a la lista. Como es texto, abrir o cerrar una sesión sin filtros no cambia
+  // la consulta y no vuelve a pedir la lista.
+  const clavePedido = claveDelPedido(filtros, Boolean(sesionElegida));
 
   const [examenes, setExamenes] = useState<ExamenMonitoreado[]>([]);
   // Solo las sesiones del examen que se está mirando, con el examen del que
@@ -366,9 +364,11 @@ export function Panel() {
   const conFiltro = hayFiltro && !sesionElegida;
   // «N de M» vale solo si la respuesta es del pedido de esta vista. Al volver del detalle (que pide sin
   // filtrar) la última respuesta es de todo el examen, y mostrar su total daba «M de M» hasta la siguiente.
-  const pedidoDeLaVista = `${examenElegido}|${claveFiltros}`;
-  const respuestaDelFiltro = conFiltro && cargadas?.vista === pedidoDeLaVista && cargadas.total != null;
+  const respuestaDelFiltro = conFiltro && cargadas?.vista === vistaDeLista && cargadas.total != null;
   const totalDeLaVista = respuestaDelFiltro ? cargadas.total! : totalDelExamen;
+  // M de «N de M sesiones» (D3) sale del resumen de la misma respuesta que N y las siete tarjetas, así los
+  // tres números son del mismo momento. Los recuentos de la ficha del examen quedan para un backend sin resumen.
+  const totalDeLaEvaluacion = cargadas?.resumen?.total ?? totalDelExamen;
   // «N de M sesiones» se ve siempre al día, pero se anuncia una sola vez por vista: con la primera respuesta
   // de ese filtro. Las vueltas del refresco cambian el número en silencio. Cada anuncio va en un nodo nuevo,
   // así volver a un filtro con la misma cifra también se lee.
@@ -376,7 +376,7 @@ export function Panel() {
   const [vistaAnunciada, setVistaAnunciada] = useState("");
   if (respuestaDelFiltro && vistaAnunciada !== vistaDeLista) {
     setVistaAnunciada(vistaDeLista);
-    anunciarFiltro(`${cargadas.total} de ${totalDelExamen} sesiones`);
+    anunciarFiltro(textoDelResultado(cargadas.total!, totalDeLaEvaluacion));
   } else if (!hayFiltro && vistaAnunciada !== "") {
     setVistaAnunciada("");
   }
@@ -620,7 +620,7 @@ export function Panel() {
                   {conFiltro ? (
                     <ResultadoDelFiltro
                       cuantas={respuestaDelFiltro ? cargadas.total : null}
-                      deCuantas={totalDelExamen}
+                      deCuantas={totalDeLaEvaluacion}
                       onQuitar={quitarFiltros}
                     />
                   ) : null}
@@ -657,8 +657,8 @@ export function Panel() {
                     pantalla, y ofrecer un botón que no trae nada es peor que decirlo. */}
                 {totalDelExamen > SESIONES_TOPE && delExamen.length >= SESIONES_TOPE ? (
                   <p className="panel__tope" role="status">
-                    Se muestran las {SESIONES_TOPE.toLocaleString("es-AR")} sesiones más recientes
-                    de {totalDelExamen.toLocaleString("es-AR")}.
+                    Se muestran las {enCifras(SESIONES_TOPE)} sesiones más recientes
+                    de {enCifras(totalDelExamen)}.
                   </p>
                 ) : null}
               </>

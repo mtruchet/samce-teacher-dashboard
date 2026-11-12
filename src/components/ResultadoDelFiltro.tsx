@@ -1,9 +1,10 @@
+import { textoDelResultado } from "../filtrosDeLaDireccion";
 import "./ResultadoDelFiltro.css";
 
 interface Props {
   /** Cuántas sesiones cumplen el filtro en toda la evaluación (X-Total-Count). Null mientras no se sabe. */
   cuantas: number | null;
-  /** Cuántas sesiones tiene la evaluación, sin filtro. */
+  /** Cuántas sesiones tiene la evaluación, sin filtro: el total del resumen de la misma respuesta. */
   deCuantas: number;
   /** Borra los filtros y conserva el orden. */
   onQuitar: () => void;
@@ -23,7 +24,7 @@ export function ResultadoDelFiltro({ cuantas, deCuantas, onQuitar }: Props) {
     <div className="control__resultado">
       {cuantas !== null ? (
         <p className="control__cifra cifra">
-          {`${cuantas} de ${deCuantas} sesiones`}
+          {textoDelResultado(cuantas, deCuantas)}
         </p>
       ) : null}
       <button type="button" className="boton-texto" onClick={onQuitar}>

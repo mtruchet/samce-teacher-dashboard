@@ -20,7 +20,7 @@ export function IndicadorSesion({ sesion }: { sesion: Sesion }) {
   if (sesion.risk_level) {
     const alertas = cantidadYOrigen(sesion);
     return (
-      <span className={`indicador indicador--${sesion.risk_level} marca-nivel`} data-nivel={sesion.risk_level}>
+      <span className="indicador marca-nivel" data-nivel={sesion.risk_level}>
         <RotuloNivel nivel={sesion.risk_level} />
         {alertas ? <span className="indicador__alertas">{alertas}</span> : null}
         {sesion.analysis_state !== "analyzed" ? (

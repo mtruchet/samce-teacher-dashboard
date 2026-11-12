@@ -657,9 +657,10 @@ export interface EventoCritico {
   titulo: string;
 }
 
-const OTRA_VENTANA = "Pasó a otra ventana";
-const DEJO_DE_VERSE = "El examen dejó de verse en pantalla";
-const SALIO_DE_PANTALLA_COMPLETA = "Salió de pantalla completa";
+/** Un momento lleva el título de su fila: el mismo hecho se nombra igual en los dos lugares. */
+function momento(evento: Evento): EventoCritico {
+  return { evento, titulo: describirEvento(evento).titulo };
+}
 
 /**
  * Los eventos críticos de una sesión, en el orden del registro, que es el que reciben. Tres tipos fijos
@@ -667,9 +668,14 @@ const SALIO_DE_PANTALLA_COMPLETA = "Salió de pantalla completa";
  * de la pantalla completa. Quedan afuera los cortes de conexión, el tecleo, el mouse y los cambios de tamaño.
  *
  * Todo se une por posición en el orden del registro, nunca restando horas: al pasar a otra pestaña el
- * complemento emite una ocultación y una pérdida de foco sin una vuelta entre ellas, y son una sola salida
- * («El examen dejó de verse en pantalla», con el salto a la primera de las dos). Una salida de pantalla
- * completa es un `fullscreen` con `on: false` cuyo `fullscreen` anterior no fue también `on: false`.
+ * complemento emite una ocultación y una pérdida de foco sin una vuelta entre ellas, y son una sola salida.
+ * Esa salida se nombra «El examen dejó de verse en pantalla» y lleva a la fila de la ocultación, llegue
+ * primero o segunda: así el momento y su fila dicen lo mismo y llevan el mismo ícono. (La especificación de
+ * HU05_T02 hablaba de saltar a la primera de las dos filas; se prefirió que el nombre coincida con la fila.)
+ * Una salida de pantalla completa es un `fullscreen` con `on: false` cuyo `fullscreen` anterior no fue
+ * también `on: false`.
+ *
+ * El título de cada momento es siempre el de `describirEvento` del evento que guarda.
  */
 export function eventosCriticos(eventos: ReadonlyArray<Evento>): EventoCritico[] {
   const criticos: EventoCritico[] = [];
@@ -682,17 +688,17 @@ export function eventosCriticos(eventos: ReadonlyArray<Evento>): EventoCritico[]
     switch (evento.type) {
       case "clipboard":
         // El mismo título que la fila del registro: un pegado que no es texto dice «Pegó contenido que no es texto».
-        if (d.action === "paste") criticos.push({ evento, titulo: describirEvento(evento).titulo });
+        if (d.action === "paste") criticos.push(momento(evento));
         break;
       case "focus_lost":
       case "visibility_hidden": {
         if (salidaAbierta && salidaAbierta.tipo !== evento.type) {
-          // La otra mitad de la misma salida: una sola fila, la de la primera, con el nombre de la ocultación.
-          criticos[salidaAbierta.indice] = { evento: criticos[salidaAbierta.indice].evento, titulo: DEJO_DE_VERSE };
+          // La otra mitad de la misma salida: un solo momento, el de la ocultación, que es el que la nombra.
+          if (evento.type === "visibility_hidden") criticos[salidaAbierta.indice] = momento(evento);
           salidaAbierta = null;
           break;
         }
-        criticos.push({ evento, titulo: evento.type === "focus_lost" ? OTRA_VENTANA : DEJO_DE_VERSE });
+        criticos.push(momento(evento));
         salidaAbierta = { indice: criticos.length - 1, tipo: evento.type };
         break;
       }
@@ -702,7 +708,7 @@ export function eventosCriticos(eventos: ReadonlyArray<Evento>): EventoCritico[]
         break;
       case "fullscreen": {
         if (typeof d.on !== "boolean") break;
-        if (d.on === false && ultimoFullscreen !== false) criticos.push({ evento, titulo: SALIO_DE_PANTALLA_COMPLETA });
+        if (d.on === false && ultimoFullscreen !== false) criticos.push(momento(evento));
         ultimoFullscreen = d.on;
         break;
       }

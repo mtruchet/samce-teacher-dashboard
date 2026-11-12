@@ -80,9 +80,9 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
         <div className="lista__marco">
           <table className="tabla">
             <caption className="solo-lectores">
-              {titulo}. Cada fila es la sesión de un alumno: el estado de su análisis y, si
-              tiene alertas, su nivel de riesgo; cuándo empezó, cuánto lleva o cuánto duró, y
-              el acceso a sus eventos.
+              {/* Corto a propósito: el lector de pantalla lo lee entero cada vez que entra a la tabla. */}
+              {titulo}: una fila por alumno, con su análisis, la hora de inicio, la duración y el acceso al
+              detalle.
             </caption>
             <thead>
               <tr>
@@ -153,7 +153,7 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
                         className="boton-texto"
                         type="button"
                         onClick={() => onVerEventos(s)}
-                        aria-label={`Ver los eventos de ${nombreDeAlumno(s)}${
+                        aria-label={`Ver la sesión de ${nombreDeAlumno(s)}${
                           s.intentos > 1 ? `, intento ${s.intento} de ${s.intentos}` : ""
                         }`}
                       >

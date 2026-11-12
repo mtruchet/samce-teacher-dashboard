@@ -14,13 +14,14 @@ describe("RotuloNivel", () => {
       expect(rotulo.querySelector(".rotulo-nivel__nivel")?.textContent).toMatch(/^Riesgo (bajo|medio|alto)$/);
       expect(rotulo.querySelector(".medidor")).toHaveAttribute("aria-hidden", "true");
       expect(rotulo.querySelectorAll(".medidor__segmento--lleno")).toHaveLength(llenos);
-      expect(rotulo.querySelector(".rotulo-nivel__separador")).toBeNull();
+      expect(rotulo.querySelector(".rotulo-nivel__complemento")).toBeNull();
     }
   );
 
-  it("con complemento, una línea vertical oculta y el complemento aparte", () => {
+  it("con complemento, el complemento aparte y sin ningún carácter de separación en el texto", () => {
     const { container } = render(<RotuloNivel nivel="high" complemento="En toda la sesión" />);
-    expect(container.querySelector(".rotulo-nivel__separador")).toHaveAttribute("aria-hidden", "true");
+    expect(container.querySelector(".rotulo-nivel__separador")).toBeNull();
+    expect(container.textContent).not.toMatch(/[|·•—]/);
     expect(container.querySelector(".rotulo-nivel__complemento")).toHaveTextContent("En toda la sesión");
     expect(container.querySelector(".rotulo-nivel")).toHaveTextContent("Riesgo alto En toda la sesión");
     expectLenguajeLlano(container);

@@ -47,10 +47,15 @@ describe("las hojas de estilo", () => {
     }
   });
 
-  it("no queda ningún rastro del semáforo, ni en los comentarios", () => {
-    // Sin tilde: así se escribían los tokens (--sem…foro-rojo); «semáforo», con tilde, es la palabra de los
+  it("ningún token ni regla del semáforo", () => {
+    // Sin tilde: así se escribían los tokens (--semaforo-rojo). «Semáforo», con tilde, puede quedar en los
     // comentarios que explican que no hay.
-    expect(buscar(/sem[a]foro/i, { comentarios: true })).toEqual([]);
+    expect(buscar(/semaforo/i, { comentarios: true })).toEqual([]);
+  });
+
+  it("el anillo de foco se escribe una sola vez, en tokens.css (--anillo-foco)", () => {
+    expect(buscar(/0 0 0 2px var\(--sup-1\)/, { salvo: "./styles/tokens.css" })).toEqual([]);
+    expect(HOJAS["./styles/tokens.css"]).toMatch(/--anillo-foco:/);
   });
 
   it("nadie apaga el contorno del foco", () => {

@@ -241,7 +241,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     montar("/panel?examen=1");
     await esperar();
     const antes = traer.mock.calls.length;
-    fireEvent.click(screen.getByRole("button", { name: /Ver los eventos de Bruno Pérez/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Ver la sesión de Bruno Pérez/ }));
     await esperar();
     expect(screen.getByRole("heading", { level: 1, name: "Bruno Pérez" })).toBeInTheDocument();
     expect(traer.mock.calls.length).toBe(antes);

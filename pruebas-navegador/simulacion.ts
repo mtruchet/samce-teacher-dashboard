@@ -166,7 +166,10 @@ function analisisDe(s: SesionFalsa) {
   if (s.id === 501) return analisisCerrado;
   const calculado = s.analysis_state === "not_analyzed" ? null : hora(s.started_at, 20);
   if (s.analysis_state !== "analyzed") {
-    const motivo = s.analysis_state === "insufficient_evidence" ? "low_activity" : s.analysis_state === "unavailable" ? "no_model" : null;
+    // El motivo con la forma del que manda el motor (insufficient_reason, en lenguaje llano): el veredicto lo
+    // muestra tal cual. El del análisis no disponible el panel no lo muestra, así que va vacío.
+    const motivo =
+      s.analysis_state === "insufficient_evidence" ? "Hubo muy poca actividad durante el examen para poder analizarlo." : null;
     return { state: s.analysis_state, reason: motivo, calculated_at: calculado, alerts: [], alert_history: [], metrics: null };
   }
   const nivel = s.risk_level;
@@ -264,6 +267,7 @@ export const VISTAS = {
   listaRiesgoAlto: `/panel?examen=${EXAMEN}&nivel=high`,
   detalleAlto: `/panel?examen=${EXAMEN}&sesion=501`,
   detalleNoAnalizado: `/panel?examen=${EXAMEN}&sesion=505`,
+  detalleNoSePudo: `/panel?examen=${EXAMEN}&sesion=506`,
   detalleEnCurso: `/panel?examen=${EXAMEN}&sesion=503`,
 } as const;
 

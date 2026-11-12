@@ -25,7 +25,7 @@ describe("ResumenEvaluacion", () => {
   it("los niveles llevan el tono de las alertas y el rótulo de nivel de todo el panel; los estados, sin medidor", () => {
     const { container } = render(<ResumenEvaluacion resumen={RESUMEN} filtros={{}} onFiltrar={() => {}} />);
     for (const nivel of ["high", "medium", "low"]) {
-      const tarjeta = container.querySelector(`.resumen__tarjeta--${nivel}`)!;
+      const tarjeta = container.querySelector(`.resumen__tarjeta[data-nivel="${nivel}"]`)!;
       expect(tarjeta.querySelector(".medidor")).toHaveAttribute("aria-hidden", "true");
       expect(tarjeta).toHaveAttribute("data-nivel", nivel);
       expect(tarjeta.querySelector(".rotulo-nivel")).toHaveAttribute("data-nivel", nivel);

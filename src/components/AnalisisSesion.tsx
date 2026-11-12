@@ -94,7 +94,6 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
               metricas={analisis.metrics}
               estado={analisis.state}
               abierta={abierta}
-              veredictoDiceNoDisponible={veredicto.diceNoDisponible}
             />
           ) : null}
         </div>

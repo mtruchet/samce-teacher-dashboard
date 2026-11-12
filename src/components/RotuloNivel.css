@@ -14,23 +14,42 @@
   white-space: nowrap;
 }
 
-/* Una línea vertical fina entre el nivel y el complemento, sin ningún carácter en el texto. */
-.rotulo-nivel__separador {
-  display: inline-block;
+/* La línea vertical fina entre el nivel y el complemento es del complemento, sin ningún carácter en el texto:
+   si el complemento no entra en el renglón, baja entero, con la línea al principio, y el nivel nunca queda con
+   una barra suelta al final. */
+.rotulo-nivel__complemento {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+  padding-left: var(--e1);
+  color: var(--tinta-media);
+}
+
+.rotulo-nivel__complemento::before {
+  content: "";
+  flex: none;
+  align-self: stretch;
   width: 1px;
-  height: 1.1em;
-  margin: 0 var(--e2);
+  min-height: 1.1em;
   background: var(--tinta-suave);
   opacity: 0.5;
 }
 
-.rotulo-nivel__complemento {
-  color: var(--tinta-media);
+/* En un teléfono el complemento va siempre en su propio renglón, debajo del nivel y sin la línea. */
+@media (max-width: 480px) {
+  .rotulo-nivel__complemento {
+    flex-basis: 100%;
+    padding-left: 0;
+  }
+
+  .rotulo-nivel__complemento::before {
+    content: none;
+  }
 }
 
 /* Con colores forzados la línea toma el color del texto del sistema. */
 @media (forced-colors: active) {
-  .rotulo-nivel__separador {
+  .rotulo-nivel__complemento::before {
     background: CanvasText;
     opacity: 1;
     forced-color-adjust: none;

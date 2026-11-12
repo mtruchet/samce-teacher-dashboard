@@ -6,10 +6,9 @@ import {
   escribirFiltros,
   hayFiltro as hayAlgunFiltro,
   leerFiltros,
+  SIN_FILTROS,
   type FiltrosSesiones,
 } from "../filtrosDeLaDireccion";
-
-const SIN_FILTROS: Partial<FiltrosSesiones> = { nivel: undefined, estado: undefined, analisis: undefined, q: undefined };
 
 /**
  * Los filtros de la lista de sesiones, leídos de la dirección de la página y escritos en ella.
@@ -18,9 +17,12 @@ const SIN_FILTROS: Partial<FiltrosSesiones> = { nivel: undefined, estado: undefi
  * cualquier otro cambio de la dirección (abrir una sesión) no lo rehacen, y lo que depende de él no se vuelve
  * a calcular sin motivo.
  *
- * Las funciones leen la dirección vigente de una referencia y no de la vuelta en que se crearon: la búsqueda
- * espera 300 ms antes de escribir, y si en ese lapso el docente eligió un nivel, partir de la dirección vieja
- * lo borraba.
+ * Las funciones leen la dirección vigente de una referencia (`vigentes`) y no de la vuelta en que se crearon.
+ * La referencia se adelanta al navegar, antes de que React confirme la dirección nueva (react-router envuelve
+ * cada navegación en una transición): dos cambios seguidos, como una tarjeta y enseguida la búsqueda que
+ * vence su espera, parten uno del otro y ninguno borra al anterior. Lo prueba useFiltrosDeLaDireccion.test.tsx.
+ * (FiltrosSesiones guarda aparte su última `onCambio`, que cubre otro caso: una espera armada en una vuelta
+ * vieja del componente.)
  */
 export function useFiltrosDeLaDireccion() {
   const [parametros, setParametros] = useSearchParams();

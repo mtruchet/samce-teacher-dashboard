@@ -606,7 +606,7 @@ describe("Enrutado y acceso", () => {
 
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /Ver los eventos de Ana Gómez/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Ver la sesión de Ana Gómez/i }));
 
     expect(within(await screen.findByRole("group", { name: "Registro de eventos" })).getByText("Pasó a otra ventana")).toBeInTheDocument();
     // Se pide por el examen y la sesión que se eligieron, y la dirección lo recuerda.

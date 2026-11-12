@@ -1,5 +1,5 @@
 import { ESTADOS_SIN_ALERTAS, NIVELES } from "../lenguajeAlerta";
-import { NIVELES_FILTRO, type FiltrosSesiones } from "../filtrosDeLaDireccion";
+import { enCifras, NIVELES_FILTRO, SIN_FILTROS, type FiltrosSesiones } from "../filtrosDeLaDireccion";
 import type { NivelDeRiesgo, ResumenDeEvaluacion } from "../services/sesionesService";
 import { RotuloNivel } from "./RotuloNivel";
 import "./ResumenEvaluacion.css";
@@ -21,10 +21,7 @@ const TARJETAS_DE_ESTADO: Array<{ analisis: EstadoDeAnalisis; rotulo: string }> 
   { analisis: "unavailable", rotulo: ESTADOS_SIN_ALERTAS.unavailable },
 ];
 
-const sesiones = (n: number) => (n === 1 ? "1 sesión" : `${n} sesiones`);
-
-/** Lo que borra una tarjeta al elegirse: los demás filtros, así la lista muestra justo las que cuenta. */
-const SOLO_ESTA = { nivel: undefined, estado: undefined, analisis: undefined, q: undefined };
+const sesiones = (n: number) => (n === 1 ? "1 sesión" : `${enCifras(n)} sesiones`);
 
 interface Props {
   resumen: ResumenDeEvaluacion;
@@ -67,13 +64,13 @@ export function ResumenEvaluacion({ resumen, filtros, onFiltrar }: Props) {
             <button
               key={nivel}
               type="button"
-              className={`resumen__tarjeta resumen__tarjeta--${nivel}`}
+              className="resumen__tarjeta"
               data-nivel={nivel}
               aria-pressed={elegida}
               aria-label={`${NIVELES[nivel]}: ${sesiones(n)}`}
-              onClick={() => onFiltrar(elegida ? { nivel: undefined } : { ...SOLO_ESTA, nivel })}
+              onClick={() => onFiltrar(elegida ? { nivel: undefined } : { ...SIN_FILTROS, nivel })}
             >
-              <span className="resumen__numero cifra">{n}</span>
+              <span className="resumen__numero cifra">{enCifras(n)}</span>
               <RotuloNivel nivel={nivel} />
             </button>
           );
@@ -90,9 +87,9 @@ export function ResumenEvaluacion({ resumen, filtros, onFiltrar }: Props) {
               className="resumen__tarjeta resumen__tarjeta--estado"
               aria-pressed={elegida}
               aria-label={`${rotulo}: ${sesiones(n)}`}
-              onClick={() => onFiltrar(elegida ? { analisis: undefined } : { ...SOLO_ESTA, analisis })}
+              onClick={() => onFiltrar(elegida ? { analisis: undefined } : { ...SIN_FILTROS, analisis })}
             >
-              <span className="resumen__numero cifra">{n}</span>
+              <span className="resumen__numero cifra">{enCifras(n)}</span>
               <span className="resumen__rotulo">{rotulo}</span>
             </button>
           );

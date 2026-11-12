@@ -15,6 +15,15 @@ describe("tramosDeRiesgo (pendiente 10, HU05_T02)", () => {
     }
   });
 
+  it("con alertas y sin historial, el tramo es «sin registro» y no el estado, y cada origen va aparte", () => {
+    for (const estado of ["analyzed", "insufficient_evidence", "unavailable"] as const) {
+      expect(tramosDeRiesgo([], [alerta("model", "high")], estado)).toEqual({
+        tramos: [{ tipo: "sin-registro" }],
+        sinRegistro: [{ origen: "model", nivel: "high" }],
+      });
+    }
+  });
+
   it("empieza sin alertas y cada subida es un tramo con la hora del análisis", () => {
     const { tramos } = tramosDeRiesgo([entrada("model", "low", 5), entrada("event", "high", 9)], [], "analyzed");
     expect(tramos).toEqual([

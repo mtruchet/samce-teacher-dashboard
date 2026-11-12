@@ -60,7 +60,7 @@ describe("ListaSesiones", () => {
     const [, filaAna, filaBruno] = screen.getAllByRole("row");
     expect(within(filaAna).getByRole("cell", { name: /Riesgo alto/ })).toBeInTheDocument();
     expect(container.querySelector(".medidor")).toHaveAttribute("aria-hidden", "true");
-    expect(filaBruno.querySelector(".indicador--low, .indicador--medium, .indicador--high")).toBeNull();
+    expect(filaBruno.querySelector("[data-nivel]")).toBeNull();
     expect(within(filaBruno).getByText("Sin alertas")).toBeInTheDocument();
   });
 });

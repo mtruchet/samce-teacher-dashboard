@@ -97,9 +97,7 @@ a {
      el color del sistema; en el resto no se ve. */
   outline: 2px solid transparent;
   outline-offset: 2px;
-  box-shadow:
-    0 0 0 2px var(--sup-1),
-    0 0 0 4px var(--celeste);
+  box-shadow: var(--anillo-foco);
   border-radius: var(--radio-chip);
 }
 

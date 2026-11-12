@@ -42,6 +42,23 @@ describe("ListaEventos", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("al mostrar todas, el foco va a la primera fila nueva y no vuelve al principio de la página", () => {
+    render(<ListaEventos eventos={eventos(194)} />);
+    const boton = screen.getByRole("button", { name: "Mostrar todos" });
+    boton.focus();
+    fireEvent.click(boton);
+    // Del más reciente al más viejo: después de los 50 que se veían (194 a 145) sigue el 144.
+    expect(document.getElementById("evento-144")).toHaveFocus();
+  });
+
+  it("un «Mostrar más» que no llega al final deja el foco en su botón", () => {
+    render(<ListaEventos eventos={eventos(194)} />);
+    const boton = screen.getByRole("button", { name: `Mostrar ${TANDA} más` });
+    boton.focus();
+    fireEvent.click(boton);
+    expect(boton).toHaveFocus();
+  });
+
   it("el último «Mostrar más» dice cuántos quedan, no la tanda entera", () => {
     render(<ListaEventos eventos={eventos(TANDA + 7)} />);
 

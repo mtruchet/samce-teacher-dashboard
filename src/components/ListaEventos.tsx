@@ -146,7 +146,19 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
   // «Se ven los N eventos más recientes de M» queda a la vista y al día, pero se anuncia solo cuando el
   // docente pide más filas: un evento nuevo cambia la cifra en silencio.
   const [anuncioVistos, anunciar] = useAnuncio();
+  // Cuando se muestran todas, los dos botones desaparecen y el foco caía al principio de la página: va a la
+  // primera fila nueva, la que sigue a la última que se veía, como en el salto desde los momentos.
+  const filaQueSigue = useRef<number | null>(null);
+  useEffect(() => {
+    if (filaQueSigue.current === null) return;
+    document.getElementById(`evento-${filaQueSigue.current}`)?.focus();
+    filaQueSigue.current = null;
+  }, [visibles]);
   const mostrar = (cuantas: number) => {
+    if (cuantas >= entradas.length) {
+      const siguiente = entradas.slice(visibles).find((e) => e.clase === "evento");
+      filaQueSigue.current = siguiente?.clase === "evento" ? siguiente.evento.id : null;
+    }
     setVisibles(cuantas);
     const vistos = entradas.slice(0, cuantas).filter((e) => e.clase !== "hueco").length;
     anunciar(

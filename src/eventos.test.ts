@@ -484,8 +484,8 @@ describe("eventosCriticos (pendiente 10, momentos para revisar de HU05_T02)", ()
     ]);
   });
 
-  it("una pérdida de foco seguida de una ocultación es una sola salida, con el salto a la primera", () => {
-    expect(titulos([evento(1, "focus_lost"), evento(2, "visibility_hidden")])).toEqual([[1, "El examen dejó de verse en pantalla"]]);
+  it("una pérdida de foco seguida de una ocultación es una sola salida, que lleva a la fila de la ocultación", () => {
+    expect(titulos([evento(1, "focus_lost"), evento(2, "visibility_hidden")])).toEqual([[2, "El examen dejó de verse en pantalla"]]);
   });
 
   it("en el otro orden, una ocultación seguida de una pérdida de foco también es una sola salida", () => {
@@ -514,5 +514,23 @@ describe("eventosCriticos (pendiente 10, momentos para revisar de HU05_T02)", ()
     const pegado = evento(1, "clipboard", { action: "paste", non_text: true });
     expect(titulos([pegado])).toEqual([[1, "Pegó contenido que no es texto"]]);
     expect(eventosCriticos([pegado])[0].titulo).toBe(describirEvento(pegado).titulo);
+  });
+
+  it("cada momento se llama igual que la fila del registro a la que lleva", () => {
+    const casos = [
+      [evento(1, "focus_lost"), evento(2, "visibility_hidden")],
+      [evento(1, "visibility_hidden"), evento(2, "focus_lost")],
+      [evento(1, "focus_lost"), evento(2, "focus_gained", { away_ms: 3000 }), evento(3, "visibility_hidden")],
+      [evento(1, "focus_lost")],
+      [evento(1, "clipboard", { action: "paste", length: 40 }), evento(2, "clipboard", { action: "paste", non_text: true })],
+      [evento(1, "fullscreen", { on: true }), evento(2, "fullscreen", { on: false })],
+    ];
+    for (const eventos of casos) {
+      for (const momento of eventosCriticos(eventos)) {
+        expect(momento.titulo).toBe(describirEvento(momento.evento).titulo);
+      }
+    }
+    const titulosVistos = casos.flatMap((eventos) => eventosCriticos(eventos).map((m) => m.titulo));
+    expect(titulosVistos).toContain("Pasó a otra ventana");
   });
 });

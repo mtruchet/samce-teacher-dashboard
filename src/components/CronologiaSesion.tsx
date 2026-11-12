@@ -34,15 +34,15 @@ export function CronologiaSesion({ eventos, onIrAlEvento }: Props) {
                 <span className="momentos__que">
                   <Icono size={16} aria-hidden="true" />
                   <span className="momentos__titulo">{titulo}</span>
-                  <button
-                    type="button"
-                    className="boton-texto momentos__ir"
-                    aria-label={`Ver en el registro: ${titulo}, a las ${hora}`}
-                    onClick={() => onIrAlEvento(evento.id)}
-                  >
-                    Ver en el registro
-                  </button>
                 </span>
+                <button
+                  type="button"
+                  className="boton-texto momentos__ir"
+                  aria-label={`Ver en el registro: ${titulo}, a las ${hora}`}
+                  onClick={() => onIrAlEvento(evento.id)}
+                >
+                  Ver en el registro
+                </button>
               </li>
             );
           })}

@@ -16,6 +16,7 @@ const PANTALLAS = [
   ["lista-sin-alertas", VISTAS.listaSinAlertas],
   ["detalle-riesgo-alto", VISTAS.detalleAlto],
   ["detalle-no-analizado", VISTAS.detalleNoAnalizado],
+  ["detalle-no-se-pudo-analizar", VISTAS.detalleNoSePudo],
   ["detalle-en-curso", VISTAS.detalleEnCurso],
 ] as const;
 
