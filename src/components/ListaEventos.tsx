@@ -1,3 +1,4 @@
+import { enCifras } from "../cifras";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { Evento } from "../services/sesionesService";
 import { cortesDeConexion, describirEvento, horaCorta, horaExacta } from "../eventos";
@@ -163,8 +164,8 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
     const vistos = entradas.slice(0, cuantas).filter((e) => e.clase !== "hueco").length;
     anunciar(
       vistos < eventos.length
-        ? `Se ven los ${vistos.toLocaleString("es-AR")} eventos más recientes de ${eventos.length.toLocaleString("es-AR")}.`
-        : `Se ven los ${eventos.length.toLocaleString("es-AR")} eventos.`
+        ? `Se ven los ${enCifras(vistos)} eventos más recientes de ${enCifras(eventos.length)}.`
+        : `Se ven los ${enCifras(eventos.length)} eventos.`
     );
   };
 
@@ -231,12 +232,12 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
       {quedan > 0 ? (
         <div className="eventos__mas">
           <p className="eventos__vistos">
-            Se ven los {eventosVistos.toLocaleString("es-AR")} eventos más recientes de{" "}
-            {eventos.length.toLocaleString("es-AR")}.
+            Se ven los {enCifras(eventosVistos)} eventos más recientes de{" "}
+            {enCifras(eventos.length)}.
           </p>
           <div className="eventos__botones">
             <button type="button" className="eventos__boton" onClick={() => mostrar(visibles + TANDA)}>
-              Mostrar {Math.min(TANDA, quedan).toLocaleString("es-AR")} más
+              Mostrar {enCifras(Math.min(TANDA, quedan))} más
             </button>
             <button type="button" className="eventos__boton" onClick={() => mostrar(entradas.length)}>
               Mostrar todos

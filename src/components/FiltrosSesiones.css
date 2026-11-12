@@ -54,7 +54,9 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .filtros__campo--busqueda {
+  /* La búsqueda y el orden, a todo lo ancho: el orden solo en la columna izquierda dejaba un hueco a su lado. */
+  .filtros__campo--busqueda,
+  .filtros__campo--orden {
     grid-column: 1 / -1;
   }
 }

@@ -256,7 +256,9 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
 
   it("«N de M» se anuncia una vez por vista: el refresco cambia la cifra a la vista sin volver a anunciarla", async () => {
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1));
-    montar("/panel?examen=1&nivel=high");
+    montar("/panel?examen=1");
+    await esperar();
+    fireEvent.change(screen.getByLabelText("Nivel de riesgo"), { target: { value: "high" } });
     await esperar();
     expect(viva()).toHaveTextContent("1 de 2 sesiones");
     const nodo = viva().firstElementChild;
@@ -271,7 +273,9 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
 
   it("el anuncio se vuelve a leer si se repite: ir a otro filtro y volver con la misma cifra", async () => {
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1));
-    montar("/panel?examen=1&nivel=high");
+    montar("/panel?examen=1");
+    await esperar();
+    fireEvent.change(screen.getByLabelText("Nivel de riesgo"), { target: { value: "high" } });
     await esperar();
     const primero = viva().firstElementChild;
 
@@ -339,5 +343,55 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     expect(screen.queryByRole("option", { name: "Alto" })).toBeNull();
     expectLenguajeLlano(document.querySelector(".control")!);
     for (const tabla of document.querySelectorAll(".lista")) expectLenguajeLlano(tabla, { excluir: ".alumno__captura" });
+  });
+  it("abrir un enlace que ya trae un filtro no anuncia nada: el anuncio es solo por acción del docente", async () => {
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1));
+    montar("/panel?examen=1&nivel=high");
+    await esperar();
+    expect(resultado()).toHaveTextContent("1 de 2 sesiones");
+    expect(viva().textContent).toBe("");
+    await esperar(CADENCIA);
+    expect(viva().textContent).toBe("");
+  });
+
+  it("«Quitar filtros» lleva el foco al selector de nivel, y no lo deja en el cuerpo de la página", async () => {
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([], 0));
+    montar("/panel?examen=1&nivel=high&q=nadie");
+    await esperar();
+    const quitar = screen.getByRole("button", { name: "Quitar filtros" });
+    quitar.focus();
+    fireEvent.click(quitar);
+    await esperar();
+    expect(resultado()).toBeNull();
+    expect(document.activeElement).not.toBe(document.body);
+    expect(screen.getByLabelText("Nivel de riesgo")).toHaveFocus();
+  });
+
+  it("con un filtro y la lista cortada, las cabeceras de los grupos no llevan cifra: la única es «N de M»", async () => {
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(
+      pagina([{ ...entregadaHaceRato(), ...conAnalisis("high") }], 120)
+    );
+    montar("/panel?examen=1&nivel=high");
+    await esperar();
+    expect(screen.getByRole("button", { name: "Ver más sesiones" })).toBeInTheDocument();
+    const finalizadas = screen.getByRole("heading", { name: "Finalizadas" }).closest("section")!;
+    expect(finalizadas.querySelector(".lamina__cuenta")).toBeNull();
+  });
+
+  it("con un filtro y todas las coincidencias cargadas, cada grupo cuenta sus filas", async () => {
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(
+      pagina([{ ...entregadaHaceRato(), ...conAnalisis("high") }], 1)
+    );
+    montar("/panel?examen=1&nivel=high");
+    await esperar();
+    const finalizadas = screen.getByRole("heading", { name: "Finalizadas" }).closest("section")!;
+    expect(finalizadas.querySelector(".lamina__cuenta")).toHaveTextContent("1");
+  });
+
+  it("el vacío del filtro va dentro de una lámina", async () => {
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([], 0));
+    montar("/panel?examen=1&nivel=high");
+    await esperar();
+    expect(screen.getByText("Ninguna sesión coincide con el filtro.").closest(".lamina")).not.toBeNull();
   });
 });

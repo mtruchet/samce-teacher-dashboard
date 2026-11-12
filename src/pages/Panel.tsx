@@ -1,17 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { claveDelPedido, enCifras, leerFiltros, textoDelResultado } from "../filtrosDeLaDireccion";
+import { enCifras } from "../cifras";
+import { claveDelPedido } from "../filtrosDeLaDireccion";
 import { Broadcast, Examen, Materia } from "../iconos";
 import { clearSession, esPanelGeneral, getStoredSession } from "../services/authService";
 import {
-  CADENCIA_MS,
   SESIONES_POR_PAGINA,
   SESIONES_TOPE,
-  SesionVencida,
-  traerExamenes,
-  traerSesiones,
   type ExamenMonitoreado,
-  type ResumenDeEvaluacion,
   type SesionDeExamen,
   type SesionNumerada,
   nombreDeAlumno,
@@ -25,12 +21,14 @@ import { AnuncioVivo, useAnuncio } from "../components/AnuncioVivo";
 import { FiltrosSesiones } from "../components/FiltrosSesiones";
 import { GruposDeSesiones } from "../components/GruposDeSesiones";
 import { ResultadoDelFiltro } from "../components/ResultadoDelFiltro";
+import { textoDelResultado } from "../components/textoDelResultado";
 import { ResumenEvaluacion } from "../components/ResumenEvaluacion";
 import { Migas, type Escalon } from "../components/Migas";
 import { PulsoEnlace, type EstadoEnlace } from "../components/PulsoEnlace";
 import { Pie } from "../components/Pie";
 import { SinSesion } from "./SinSesion";
 import { useFiltrosDeLaDireccion } from "./useFiltrosDeLaDireccion";
+import { useSesionesDelExamen } from "./useSesionesDelExamen";
 import { API_CONFIG } from "../config/api.config";
 import "./Panel.css";
 
@@ -124,18 +122,6 @@ export function Panel() {
   // la consulta y no vuelve a pedir la lista.
   const clavePedido = claveDelPedido(filtros, Boolean(sesionElegida));
 
-  const [examenes, setExamenes] = useState<ExamenMonitoreado[]>([]);
-  // Solo las sesiones del examen que se está mirando, con el examen del que
-  // son: las de los demás no se piden.
-  const [cargadas, setCargadas] = useState<{
-    examenId: number;
-    /** De qué examen y consulta es la respuesta: `${examen}|${clavePedido}`. */
-    vista: string;
-    lista: SesionDeExamen[];
-    /** Cuántas cumplen el filtro en toda la evaluación (X-Total-Count); null con un backend viejo. */
-    total: number | null;
-    resumen: ResumenDeEvaluacion | null;
-  } | null>(null);
   // Cuántas «páginas» de 50 sesiones se pidieron, y de qué examen. Al cambiar
   // de examen (o volver a entrar a uno) vuelve a 1 en el mismo render, con el
   // ajuste de estado durante el render que React admite para esto: hacerlo
@@ -150,7 +136,6 @@ export function Panel() {
     () => setPaginasDe({ examen: vistaDeLista, n: paginas + 1 }),
     [vistaDeLista, paginas]
   );
-  const [enlace, setEnlace] = useState<EstadoEnlace>("vivo");
   // Cómo está el registro que se está mirando: si se sigue pidiendo y si la
   // última consulta falló. Lo avisa `DetalleSesion`, que es quien pregunta y
   // decide cuándo deja de hacerlo. Se guarda de qué sesión es, para que al
@@ -158,106 +143,16 @@ export function Panel() {
   const [registro, setRegistro] = useState<{ sesion: string | null; sigue: boolean; fallo: boolean } | null>(
     null
   );
-  const [marca, setMarca] = useState(0);
-  const [vencida, setVencida] = useState(false);
-  // Si alguna consulta llegó bien. Sin esto, una primera consulta fallida
-  // dejaba la lista de exámenes vacía y la pantalla afirmaba «todavía no hay
-  // ningún examen en curso», cuando lo único que se sabía es que el servidor
-  // no había contestado.
-  const [recibido, setRecibido] = useState(false);
+  // El ciclo de consultas: los exámenes y las sesiones del examen elegido (`useSesionesDelExamen`).
+  const { examenes, cargadas, enlace, marca, recibido, vencida, vencer } = useSesionesDelExamen(
+    examenElegido,
+    clavePedido,
+    paginas
+  );
   // Mientras no llegó nada y la primera consulta no falló.
   const cargando = !recibido && enlace === "vivo";
 
   const general = ingreso ? esPanelGeneral(ingreso) : false;
-
-  // El token dejó de valer: no se arregla reintentando.
-  const vencer = useCallback(() => {
-    clearSession();
-    setVencida(true);
-  }, []);
-
-  /**
-   * Cuál es la consulta que vale. Sube con cada pedido, y el que vuelve con un
-   * número viejo se descarta sin tocar la pantalla.
-   *
-   * Hacen falta dos llamadas al servidor y el docente puede cambiar de examen
-   * entre una y la otra, o mientras el refresco de los cinco segundos está en
-   * vuelo. Sin esto, la respuesta que llega tarde pisa la lista con las
-   * sesiones del examen anterior, y como también pisa `cargadas`, la pantalla
-   * queda convencida de que esas son las del examen que se está mirando.
-   */
-  const pedido = useRef(0);
-
-  const consultar = useCallback(async () => {
-    const mio = ++pedido.current;
-    try {
-      const lista = await traerExamenes();
-      if (mio !== pedido.current) return;
-
-      // Las sesiones se piden solo del examen que la dirección tiene elegido, y
-      // solo si es de uno de los cursos del docente (la lista ya viene filtrada
-      // por el backend según su token).
-      const elegido = examenElegido ? lista.find((e) => String(e.id) === examenElegido) : undefined;
-      const delPedido = leerFiltros(new URLSearchParams(clavePedido));
-      const respuesta = elegido ? await traerSesiones(elegido.id, paginas * SESIONES_POR_PAGINA, delPedido) : null;
-      const delElegido = respuesta && elegido ? respuesta.sesiones.map((s) => ({ ...s, examenId: elegido.id })) : [];
-
-      if (mio !== pedido.current) return;
-
-      setExamenes(lista);
-      setRecibido(true);
-      setCargadas(
-        elegido && respuesta
-          ? {
-              examenId: elegido.id,
-              vista: `${examenElegido}|${clavePedido}`,
-              lista: delElegido,
-              total: respuesta.total,
-              resumen: respuesta.resumen,
-            }
-          : null
-      );
-      setEnlace("vivo");
-      setMarca((m) => m + 1);
-    } catch (error) {
-      // Que el token haya vencido no es un problema de red, y tratarlo como
-      // tal es lo peor que puede hacer el panel: se queda mostrando «sin
-      // conexión, reintentando» encima de una lista que ya no se actualiza,
-      // mientras puede haber alumnos rindiendo de los que no se entera.
-      if (mio !== pedido.current) return;
-
-      if (error instanceof SesionVencida) {
-        vencer();
-        return;
-      }
-
-      // Cualquier otro fallo sí se reintenta, y se conserva lo último que
-      // llegó. Seguir mostrándolo como si fuera de ahora sería mentir, así que
-      // el estado del canal lo dice.
-      setEnlace("sin-conexion");
-    }
-  }, [examenElegido, clavePedido, paginas, vencer]);
-
-  useEffect(() => {
-    if (vencida) return;
-
-    // La próxima consulta se programa recién cuando termina la anterior. Con un
-    // intervalo fijo, un servidor que tardaba más de cinco segundos recibía un
-    // pedido nuevo antes de contestar el anterior, cada respuesta llegaba ya
-    // descartada por vieja, y el panel seguía diciendo «En vivo» sin mostrar
-    // nada nuevo.
-    let activo = true;
-    let proxima: number | undefined;
-    const ciclo = async () => {
-      await consultar();
-      if (activo) proxima = window.setTimeout(ciclo, CADENCIA_MS);
-    };
-    void ciclo();
-    return () => {
-      activo = false;
-      window.clearTimeout(proxima);
-    };
-  }, [consultar, vencida]);
 
   // `reemplazar` es para cuando el panel corrige la dirección solo, sin que el
   // docente haya hecho nada: esa corrección no puede quedar en el historial,
@@ -369,17 +264,43 @@ export function Panel() {
   // M de «N de M sesiones» (D3) sale del resumen de la misma respuesta que N y las siete tarjetas, así los
   // tres números son del mismo momento. Los recuentos de la ficha del examen quedan para un backend sin resumen.
   const totalDeLaEvaluacion = cargadas?.resumen?.total ?? totalDelExamen;
-  // «N de M sesiones» se ve siempre al día, pero se anuncia una sola vez por vista: con la primera respuesta
-  // de ese filtro. Las vueltas del refresco cambian el número en silencio. Cada anuncio va en un nodo nuevo,
-  // así volver a un filtro con la misma cifra también se lee.
+  // «N de M sesiones» se ve siempre al día, pero se anuncia una sola vez por vista y solo cuando la vista
+  // vino de una acción del docente (la barra, una tarjeta): abrir un enlace que ya trae un filtro, volver con
+  // Atrás o del detalle, o el refresco cambian el número en silencio. Cada anuncio va en un nodo nuevo, así
+  // volver a un filtro con la misma cifra también se lee. Va en un efecto, no en el render.
   const [anuncioFiltro, anunciarFiltro] = useAnuncio();
-  const [vistaAnunciada, setVistaAnunciada] = useState("");
-  if (respuestaDelFiltro && vistaAnunciada !== vistaDeLista) {
-    setVistaAnunciada(vistaDeLista);
-    anunciarFiltro(textoDelResultado(cargadas.total!, totalDeLaEvaluacion));
-  } else if (!hayFiltro && vistaAnunciada !== "") {
-    setVistaAnunciada("");
-  }
+  const porAccion = useRef(false);
+  const vistaAnunciada = useRef("");
+  const cuantasDelFiltro = respuestaDelFiltro ? cargadas.total! : null;
+  useEffect(() => {
+    if (!conFiltro) {
+      vistaAnunciada.current = "";
+      porAccion.current = false;
+      return;
+    }
+    if (cuantasDelFiltro === null || vistaAnunciada.current === vistaDeLista) return;
+    vistaAnunciada.current = vistaDeLista;
+    if (!porAccion.current) return;
+    porAccion.current = false;
+    anunciarFiltro(textoDelResultado(cuantasDelFiltro, totalDeLaEvaluacion));
+  }, [conFiltro, cuantasDelFiltro, vistaDeLista, totalDeLaEvaluacion, anunciarFiltro]);
+
+  /** Un cambio de filtro del docente: si la dirección cambió, la vista que viene se anuncia. */
+  const filtrar = useCallback(
+    (parciales: Parameters<typeof aplicarFiltros>[0]) => {
+      if (aplicarFiltros(parciales)) porAccion.current = true;
+    },
+    [aplicarFiltros]
+  );
+
+  // «Quitar filtros» desaparece con el renglón de resultado, y el foco quedaba en el cuerpo de la página: se
+  // lleva al primer control de la barra, que siempre existe (WCAG 2.4.3).
+  const selectorDeNivel = useRef<HTMLSelectElement>(null);
+  const quitar = useCallback(() => {
+    porAccion.current = false;
+    quitarFiltros();
+    selectorDeNivel.current?.focus();
+  }, [quitarFiltros]);
 
   // La sesión se busca entre las del examen, que son las que el backend
   // devolvió para este docente. Una dirección con una sesión que no está ahí
@@ -614,26 +535,31 @@ export function Panel() {
                     función que la barra. */}
                 <section className="lamina control" aria-label="Resumen y filtros de la evaluación">
                   {cargadas?.resumen ? (
-                    <ResumenEvaluacion resumen={cargadas.resumen} filtros={filtros} onFiltrar={aplicarFiltros} />
+                    <ResumenEvaluacion resumen={cargadas.resumen} filtros={filtros} onFiltrar={filtrar} />
                   ) : null}
-                  <FiltrosSesiones filtros={filtros} onCambio={aplicarFiltros} />
+                  <FiltrosSesiones filtros={filtros} onCambio={filtrar} nivelRef={selectorDeNivel} />
                   {conFiltro ? (
                     <ResultadoDelFiltro
                       cuantas={respuestaDelFiltro ? cargadas.total : null}
                       deCuantas={totalDeLaEvaluacion}
-                      onQuitar={quitarFiltros}
+                      onQuitar={quitar}
                     />
                   ) : null}
                   <AnuncioVivo aviso={anuncioFiltro} etiqueta="Resultado del filtro" />
                 </section>
 
+                {/* El vacío del filtro va en una lámina, como el «En curso» vacío: ningún texto de la lista
+                    queda fuera de una superficie. */}
                 {respuestaDelFiltro && cargadas.total === 0 ? (
-                  <p className="panel__vacio">Ninguna sesión coincide con el filtro.</p>
+                  <section className="lamina lista" aria-label="Resultado del filtro">
+                    <p className="grupos__vacio">Ninguna sesión coincide con el filtro.</p>
+                  </section>
                 ) : (
                   <GruposDeSesiones
                     enCurso={enCurso}
                     finalizadas={finalizadas}
                     conFiltro={conFiltro}
+                    todasCargadas={delExamen.length >= totalDeLaVista}
                     recuento={{ enCurso: recuento.enCurso, finalizadas: totalFinalizadas }}
                     onVerEventos={verEventos}
                   />

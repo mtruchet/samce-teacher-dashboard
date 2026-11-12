@@ -1,4 +1,4 @@
-import { NIVELES_DE_RIESGO, type NivelDeRiesgo } from "./services/sesionesService";
+import { NIVELES_DE_RIESGO, type NivelDeRiesgo } from "./niveles";
 
 /**
  * Los filtros de la lista de sesiones (HU04) tal como viven en la dirección de la página.
@@ -11,9 +11,9 @@ import { NIVELES_DE_RIESGO, type NivelDeRiesgo } from "./services/sesionesServic
 
 /** Los niveles del filtro, del más alto al más bajo: el mismo orden de las tarjetas del resumen. */
 export const NIVELES_FILTRO: readonly NivelDeRiesgo[] = [...NIVELES_DE_RIESGO].reverse();
-export const ESTADOS_FILTRO = ["open", "finished"] as const;
+const ESTADOS_FILTRO = ["open", "finished"] as const;
 /** Los estados del análisis de las sesiones sin alertas. Solo los escriben las tarjetas del resumen. */
-export const ANALISIS_FILTRO = ["no_alerts", "not_analyzed", "insufficient_evidence", "unavailable"] as const;
+const ANALISIS_FILTRO = ["no_alerts", "not_analyzed", "insufficient_evidence", "unavailable"] as const;
 /** Los parámetros de la dirección, en el orden en que se escriben. */
 export const PARAMETROS = ["nivel", "estado", "analisis", "q", "orden"] as const;
 /** El largo máximo de la búsqueda, en letras (puntos de código), igual que el backend. */
@@ -40,7 +40,7 @@ export const SIN_FILTROS: Readonly<Partial<FiltrosSesiones>> = {
 };
 
 /** Los filtros leídos de la dirección: las cinco claves siempre presentes, sin valor si no hay filtro. */
-export type FiltrosLeidos = { [K in keyof Required<FiltrosSesiones>]: Required<FiltrosSesiones>[K] | undefined };
+type FiltrosLeidos = { [K in keyof Required<FiltrosSesiones>]: Required<FiltrosSesiones>[K] | undefined };
 
 function uno<T extends string>(valor: string | null | undefined, validos: readonly T[]): T | undefined {
   return validos.find((v) => v === valor);
@@ -112,16 +112,6 @@ export function claveDeFiltros(parametros: URLSearchParams): string {
  */
 export function claveDelPedido(filtros: FiltrosSesiones, conSesionAbierta: boolean): string {
   return escribirFiltros(new URLSearchParams(), conSesionAbierta ? { orden: filtros.orden } : filtros).toString();
-}
-
-/** Un número como se escribe en el panel, con el punto de los miles: «1.245». */
-export function enCifras(n: number): string {
-  return n.toLocaleString("es-AR");
-}
-
-/** El resultado de un filtro (D3): «16 de 245 sesiones», con N las que cumplen el filtro y M el total. */
-export function textoDelResultado(cuantas: number, deCuantas: number): string {
-  return `${enCifras(cuantas)} de ${enCifras(deCuantas)} sesiones`;
 }
 
 /** Si hay algún filtro que recorta la lista. El orden no cuenta: ordenar no deja afuera a nadie. */

@@ -14,15 +14,12 @@ interface Props {
  * porcentajes y sin cajas: un rótulo y su valor, con una guía fina a la izquierda.
  *
  * Los valores, solo con la sesión finalizada y analizada.
- * - Mientras la sesión sigue abierta, en cualquier estado, se avisa que se muestran al terminar: una sesión
- *   recién empezada pasa un rato como «No se pudo analizar» y el docente igual tiene que saber cuándo verlas.
- *   La excepción es el análisis no disponible, que el veredicto ya dice siempre.
- * - Con la sesión terminada, si no se pudo analizar, no se analizó o el análisis no está disponible, el
- *   apartado no se dibuja: el veredicto ya lo dice, y las métricas quedarían cerca de cero y engañarían.
+ * - Si no se pudo analizar, no se analizó o el análisis no está disponible, el apartado no se dibuja, abierta o
+ *   terminada (R21): el veredicto ya lo dice, y las métricas quedarían cerca de cero y engañarían.
+ * - Con la sesión abierta y analizada, se avisa que se muestran al terminar (CP34).
  */
 export function MetricasSesion({ metricas, estado, abierta }: Props) {
-  if (estado === "unavailable") return null;
-  if (!abierta && estado !== "analyzed") return null;
+  if (estado !== "analyzed") return null;
 
   let contenido;
   if (abierta) {

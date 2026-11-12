@@ -13,7 +13,7 @@ import "./AnalisisSesion.css";
 import "./DetalleAnalisis.css";
 
 /**
- * El apartado «Análisis de la sesión» (SAMCE-36, TT_S4_02): la lámina que manda en el detalle, arriba del
+ * El apartado «Análisis de la sesión» (TT_S4_02): la lámina que manda en el detalle, arriba del
  * registro de eventos. Acá se lee lo que el análisis encontró; el registro cuenta lo que pasó.
  *
  * Arriba, el veredicto en una frase, con la misma forma en todos los estados («Hay 2 alertas para revisar.»,

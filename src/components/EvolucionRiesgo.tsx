@@ -1,8 +1,8 @@
-import { horaCorta } from "../eventos";
 import { tramosDeRiesgo, type Tramo } from "../evolucion";
 import { CaretRight } from "../iconos";
 import { ESTADOS_SIN_ALERTAS, ORIGENES, PALABRA_DEL_NIVEL } from "../lenguajeAlerta";
 import type { AlertaDeSesion, EntradaDelHistorial, EstadoDelAnalisis } from "../services/sesionesService";
+import { HoraDelAnalisis } from "./HoraDelAnalisis";
 import { RotuloNivel } from "./RotuloNivel";
 
 interface Props {
@@ -23,9 +23,7 @@ function Paso({ tramo }: { tramo: Tramo }) {
     case "nivel":
       return (
         <span className="paso paso--nivel" data-nivel={tramo.nivel}>
-          <span className="paso__hora">
-            Análisis de las <time className="cifra" dateTime={tramo.desde}>{horaCorta(tramo.desde)}</time>
-          </span>
+          <HoraDelAnalisis iso={tramo.desde} className="paso__hora" como="span" />
           <RotuloNivel nivel={tramo.nivel} />
         </span>
       );

@@ -1,3 +1,4 @@
+import { enCifras } from "../cifras";
 import { avisoDeCaptura } from "../captura";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -68,7 +69,7 @@ function fechaCorta(iso: string): string {
 
 /** «194 eventos», «1 evento». */
 function cuentaDeEventos(n: number): string {
-  return n === 1 ? "1 evento" : `${n.toLocaleString("es-AR")} eventos`;
+  return n === 1 ? "1 evento" : `${enCifras(n)} eventos`;
 }
 
 /** Tope de páginas por consulta, para que una sesión enorme no trabe el panel. */
@@ -293,7 +294,7 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
       {incompleto ? (
         <p className="detalle__aviso" role="status">
           Esta sesión tiene más eventos de los que el panel puede mostrar de una vez. Se ven
-          los {eventos.length.toLocaleString("es-AR")} primeros, desde el comienzo del examen;
+          los {enCifras(eventos.length)} primeros, desde el comienzo del examen;
           todavía falta lo más reciente.
         </p>
       ) : null}
@@ -335,9 +336,14 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
 
         {/* Los momentos para revisar son el índice del registro: van adentro de su lámina, entre el encabezado y
             la tabla, armados con los eventos que el detalle ya tiene, en el orden del registro (de lo más viejo a
-            lo más nuevo), y cada uno lleva a su fila. */}
-        {recibido ? (
-          <CronologiaSesion eventos={eventos} onIrAlEvento={(id) => setDestacado((d) => ({ id, vez: (d?.vez ?? 0) + 1 }))} />
+            lo más nuevo), y cada uno lleva a su fila. Sin eventos no se dibuja (el registro ya lo dice), y cuando no
+            hay momentos, lo que afirma depende de cuánto del registro se conoce. */}
+        {recibido && eventos.length > 0 ? (
+          <CronologiaSesion
+            eventos={eventos}
+            alcance={incompleto || aviso ? "parcial" : abierta ? "abierta" : "completo"}
+            onIrAlEvento={(id) => setDestacado((d) => ({ id, vez: (d?.vez ?? 0) + 1 }))}
+          />
         ) : null}
 
         {cargando ? (

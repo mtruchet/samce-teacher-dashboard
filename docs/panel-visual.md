@@ -136,11 +136,14 @@ inicio, el predeterminado, o Nivel de riesgo). La barra no tiene lámina propia.
   docente deje de escribir.
 - **El renglón de resultado** solo se dibuja con un filtro activo: «N de M
   sesiones» (N, las que cumplen el filtro; M, el total de la evaluación) y, al
-  lado, el único «Quitar filtros», que borra los filtros y conserva el orden. Sin
-  filtro no ocupa lugar.
-- Con un filtro, cada grupo cuenta sus filas y un grupo vacío no se dibuja. Si
-  nada coincide, se lee solo «Ninguna sesión coincide con el filtro.», sin un
-  segundo botón.
+  lado, el único «Quitar filtros», que borra los filtros, conserva el orden y
+  deja el foco en el selector de nivel. Sin filtro no ocupa lugar. La cifra se
+  anuncia una vez por vista y solo cuando el docente filtra: abrir un enlace que
+  ya trae un filtro, Atrás o el refresco no anuncian nada.
+- Con un filtro, un grupo vacío no se dibuja, y cada grupo cuenta sus filas solo
+  cuando están cargadas todas las coincidencias; si no, la cabecera va sin
+  cifra y la única es «N de M sesiones». Si nada coincide, se lee solo «Ninguna
+  sesión coincide con el filtro.», en una lámina y sin un segundo botón.
 
 Todo se resuelve en el backend sobre toda la evaluación. Con una sesión abierta en
 el detalle, la lista se pide sin filtrar, para que el detalle no se quede con una
@@ -171,14 +174,19 @@ lugar.
   reemplazó esta explicación por otra, sin cambiar el nivel de riesgo.» y queda
   abierta.
 - **«Métricas de la sesión»**: seis, como rótulo y valor, sin cajas, solo con la
-  sesión analizada y finalizada. Con la sesión abierta, una línea dice que se
-  muestran al terminar. Si la sesión no se pudo analizar o no se analizó, el
-  apartado no se dibuja, porque el veredicto ya lo dice. Nunca muestran un valor
+  sesión analizada y finalizada. Con la sesión abierta y analizada, una línea
+  dice que se muestran al terminar. Si la sesión no se pudo analizar o no se
+  analizó, abierta o terminada, el apartado no se dibuja, porque el veredicto ya
+  lo dice. Nunca muestran un valor
   esperado ni una comparación.
 - **«Momentos para revisar»** va dentro de la lámina del registro, arriba de la
   tabla, como su índice: cada pegado y cada salida de la ventana o de la pantalla
   completa, de lo más viejo a lo más nuevo, con el mismo ícono y el mismo nombre
-  que su fila, y «Ver en el registro» para ir a ella.
+  que su fila, y «Ver en el registro» para ir a ella. Sin eventos no se dibuja.
+  Si no hubo momentos, lo dice con las palabras de las métricas y según cuánto
+  se sabe: «No pegó texto, no estuvo en otra ventana ni en otra pestaña…» con
+  la sesión terminada, «Hasta ahora no pegó texto…» con la sesión abierta, y
+  «En lo que quedó registrado, no pegó texto…» con el registro incompleto.
 
 ## Las piezas del panel
 

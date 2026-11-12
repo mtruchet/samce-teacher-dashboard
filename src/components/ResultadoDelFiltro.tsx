@@ -1,4 +1,4 @@
-import { textoDelResultado } from "../filtrosDeLaDireccion";
+import { textoDelResultado } from "./textoDelResultado";
 import "./ResultadoDelFiltro.css";
 
 interface Props {

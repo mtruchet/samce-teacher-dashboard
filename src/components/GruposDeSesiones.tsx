@@ -6,6 +6,8 @@ interface Props {
   finalizadas: SesionNumerada[];
   /** Si la lista está filtrada: cambia qué recuento vale y si un grupo vacío se dibuja. */
   conFiltro: boolean;
+  /** Si ya están cargadas todas las sesiones que cumplen el filtro (no queda «Ver más sesiones»). */
+  todasCargadas: boolean;
   /** Cuántas sesiones tiene el examen en cada grupo, según los recuentos del backend. */
   recuento: { enCurso: number; finalizadas: number };
   onVerEventos: (sesion: SesionNumerada) => void;
@@ -18,21 +20,30 @@ interface Props {
  * paginada, contar filas daba un número distinto del de la ficha del examen. «En curso» se dibuja aunque
  * esté vacío, porque decir que nadie está rindiendo es un dato.
  *
- * Con un filtro, cada grupo cuenta sus filas y un grupo vacío no se dibuja: el recuento del examen dejaría
- * de coincidir con las filas, y un grupo vacío no dice nada que «N de M sesiones» no haya dicho ya.
+ * Con un filtro, un grupo vacío no se dibuja: no dice nada que «N de M sesiones» no haya dicho ya. Cada grupo
+ * cuenta sus filas solo cuando están cargadas todas las que cumplen el filtro. Si no, la cabecera va sin
+ * cifra: el backend no dice cómo se reparten entre los grupos, y contar las filas cargadas daba un número que
+ * no cerraba con «N de M sesiones» y que crecía con cada «Ver más sesiones».
  */
-export function GruposDeSesiones({ enCurso, finalizadas, conFiltro, recuento, onVerEventos }: Props) {
+export function GruposDeSesiones({ enCurso, finalizadas, conFiltro, todasCargadas, recuento, onVerEventos }: Props) {
   if (conFiltro) {
     return (
       <>
         {enCurso.length > 0 ? (
-          <ListaSesiones titulo="En curso" sesiones={enCurso} total={enCurso.length} onVerEventos={onVerEventos} />
+          <ListaSesiones
+            titulo="En curso"
+            sesiones={enCurso}
+            total={enCurso.length}
+            conCuenta={todasCargadas}
+            onVerEventos={onVerEventos}
+          />
         ) : null}
         {finalizadas.length > 0 ? (
           <ListaSesiones
             titulo="Finalizadas"
             sesiones={finalizadas}
             total={finalizadas.length}
+            conCuenta={todasCargadas}
             cerradas
             onVerEventos={onVerEventos}
           />

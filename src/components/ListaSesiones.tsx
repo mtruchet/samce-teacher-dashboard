@@ -55,6 +55,8 @@ interface Props {
   sesiones: SesionNumerada[];
   /** Cuántas tiene el grupo en total, aunque no estén todas cargadas. */
   total?: number;
+  /** Si la cabecera lleva la cifra. Con un filtro y la lista cortada no se sabe cuántas tiene el grupo. */
+  conCuenta?: boolean;
   /** Las cerradas no llevan un reloj corriendo sino una duración. */
   cerradas?: boolean;
   vacio?: React.ReactNode;
@@ -62,7 +64,7 @@ interface Props {
   onVerEventos: (sesion: SesionNumerada) => void;
 }
 
-export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio, onVerEventos }: Props) {
+export function ListaSesiones({ titulo, sesiones, total, conCuenta = true, cerradas = false, vacio, onVerEventos }: Props) {
   // «50 de 80» cuando la lista está cortada, para que el número coincida con el
   // de la ficha del examen y se note que faltan filas por traer.
   const cuenta =
@@ -71,7 +73,7 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
     <section className="lamina lista">
       <header className="lamina__encabezado lista__encabezado">
         <h2 className="lamina__titulo">{titulo}</h2>
-        <span className="lamina__cuenta cifra">{cuenta}</span>
+        {conCuenta ? <span className="lamina__cuenta cifra">{cuenta}</span> : null}
       </header>
 
       {sesiones.length === 0 ? (
@@ -81,8 +83,8 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
           <table className="tabla">
             <caption className="solo-lectores">
               {/* Corto a propósito: el lector de pantalla lo lee entero cada vez que entra a la tabla. */}
-              {titulo}: una fila por alumno, con su análisis, la hora de inicio, la duración y el acceso al
-              detalle.
+              {titulo}: una fila por alumno, con su análisis, la hora de inicio,{" "}
+              {cerradas ? "la duración" : "el tiempo transcurrido"} y el acceso al detalle.
             </caption>
             <thead>
               <tr>

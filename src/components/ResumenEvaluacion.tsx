@@ -1,5 +1,6 @@
 import { ESTADOS_SIN_ALERTAS, NIVELES } from "../lenguajeAlerta";
-import { enCifras, NIVELES_FILTRO, SIN_FILTROS, type FiltrosSesiones } from "../filtrosDeLaDireccion";
+import { cuantasSesiones, enCifras } from "../cifras";
+import { NIVELES_FILTRO, SIN_FILTROS, type FiltrosSesiones } from "../filtrosDeLaDireccion";
 import type { NivelDeRiesgo, ResumenDeEvaluacion } from "../services/sesionesService";
 import { RotuloNivel } from "./RotuloNivel";
 import "./ResumenEvaluacion.css";
@@ -21,7 +22,6 @@ const TARJETAS_DE_ESTADO: Array<{ analisis: EstadoDeAnalisis; rotulo: string }> 
   { analisis: "unavailable", rotulo: ESTADOS_SIN_ALERTAS.unavailable },
 ];
 
-const sesiones = (n: number) => (n === 1 ? "1 sesión" : `${enCifras(n)} sesiones`);
 
 interface Props {
   resumen: ResumenDeEvaluacion;
@@ -67,7 +67,7 @@ export function ResumenEvaluacion({ resumen, filtros, onFiltrar }: Props) {
               className="resumen__tarjeta"
               data-nivel={nivel}
               aria-pressed={elegida}
-              aria-label={`${NIVELES[nivel]}: ${sesiones(n)}`}
+              aria-label={`${NIVELES[nivel]}: ${cuantasSesiones(n)}`}
               onClick={() => onFiltrar(elegida ? { nivel: undefined } : { ...SIN_FILTROS, nivel })}
             >
               <span className="resumen__numero cifra">{enCifras(n)}</span>
@@ -86,7 +86,7 @@ export function ResumenEvaluacion({ resumen, filtros, onFiltrar }: Props) {
               type="button"
               className="resumen__tarjeta resumen__tarjeta--estado"
               aria-pressed={elegida}
-              aria-label={`${rotulo}: ${sesiones(n)}`}
+              aria-label={`${rotulo}: ${cuantasSesiones(n)}`}
               onClick={() => onFiltrar(elegida ? { analisis: undefined } : { ...SIN_FILTROS, analisis })}
             >
               <span className="resumen__numero cifra">{enCifras(n)}</span>

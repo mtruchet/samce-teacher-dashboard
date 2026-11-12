@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type Ref } from "react";
 import { LARGO_MAXIMO_BUSQUEDA, NIVELES_FILTRO, type FiltrosSesiones as Filtros } from "../filtrosDeLaDireccion";
 import { NIVELES } from "../lenguajeAlerta";
 import "./FiltrosSesiones.css";
@@ -10,6 +10,8 @@ interface Props {
   filtros: Filtros;
   /** Recibe solo lo que cambió; quien lo monta lo escribe en la dirección de la página. */
   onCambio: (parciales: Partial<Filtros>) => void;
+  /** El selector de nivel, el primer control de la barra: adonde vuelve el foco después de «Quitar filtros». */
+  nivelRef?: Ref<HTMLSelectElement>;
 }
 
 /**
@@ -29,7 +31,7 @@ interface Props {
  * Va dentro de la lámina de control, sin lámina propia. «N de M sesiones» y «Quitar filtros» no son de la
  * barra: van en el renglón de resultado (`ResultadoDelFiltro`), debajo.
  */
-export function FiltrosSesiones({ filtros, onCambio }: Props) {
+export function FiltrosSesiones({ filtros, onCambio, nivelRef }: Props) {
   const id = useId();
   const [texto, setTexto] = useState(filtros.q ?? "");
   const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -50,21 +52,23 @@ export function FiltrosSesiones({ filtros, onCambio }: Props) {
   const q = filtros.q ?? "";
   const enviada = useRef(q);
   const [ultimaQ, setUltimaQ] = useState(q);
-  const [cambiosDeAfuera, setCambiosDeAfuera] = useState(0);
+  // El último cambio de afuera, con la búsqueda que trajo. La referencia se asienta en el efecto y no en el
+  // render: un render descartado no puede dejarla adelantada.
+  const [deAfuera, setDeAfuera] = useState<{ vez: number; q: string } | null>(null);
   if (q !== ultimaQ) {
     setUltimaQ(q);
     if (q !== enviada.current) {
-      enviada.current = q;
       if (texto.trim() !== q) setTexto(q);
-      setCambiosDeAfuera((n) => n + 1);
+      setDeAfuera((d) => ({ vez: (d?.vez ?? 0) + 1, q }));
     }
   }
 
   useEffect(() => {
-    if (cambiosDeAfuera === 0) return;
+    if (!deAfuera) return;
+    enviada.current = deAfuera.q;
     if (espera.current) clearTimeout(espera.current);
     espera.current = null;
-  }, [cambiosDeAfuera]);
+  }, [deAfuera]);
 
   useEffect(() => () => {
     if (espera.current) clearTimeout(espera.current);
@@ -85,6 +89,7 @@ export function FiltrosSesiones({ filtros, onCambio }: Props) {
       <div className="filtros__campo">
         <label htmlFor={`${id}-nivel`}>Nivel de riesgo</label>
         <select
+          ref={nivelRef}
           id={`${id}-nivel`}
           value={filtros.nivel ?? ""}
           onChange={(e) => onCambio({ nivel: (e.target.value || undefined) as Filtros["nivel"] })}
@@ -120,7 +125,7 @@ export function FiltrosSesiones({ filtros, onCambio }: Props) {
           onChange={(e) => escribir(e.target.value)}
         />
       </div>
-      <div className="filtros__campo">
+      <div className="filtros__campo filtros__campo--orden">
         <label htmlFor={`${id}-orden`}>Ordenar por</label>
         {/* «Hora de inicio» es el orden predeterminado: en la dirección no se escribe, y en el control lleva
             un valor propio que se traduce a «sin orden». */}

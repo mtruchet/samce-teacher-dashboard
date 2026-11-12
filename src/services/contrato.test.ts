@@ -10,6 +10,11 @@
  * Cuando exista `testdata/contrato/` en el backend (las respuestas que genera su `contract_test.go` con el router
  * real), los archivos de `src/test/contrato/` se reemplazan por esa copia, sin tocar esta prueba.
  *
+ * Hasta entonces, el pendiente 16 queda resuelto a medias: estos JSON están escritos a mano en el panel (con la
+ * cabecera X-Total-Count en una clave «_headers» armada acá), así que un campo renombrado en Go no hace fallar
+ * esta prueba. Para que la copia funcione sin tocarla, el `contract_test.go` del backend tiene que escribir la
+ * lista con la misma forma: `{ "_headers": { "X-Total-Count": "N" }, "body": … }`.
+ *
  * Los nombres de los alumnos son ficticios.
  */
 import { createElement } from "react";

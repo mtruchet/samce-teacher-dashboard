@@ -4,7 +4,12 @@
  * en cada ronda: no se cambian para que pase un texto; se cambia el texto.
  */
 
-/** Lo que Facundo rechazó del primer rediseño: no puede volver a aparecer. */
+/**
+ * Lo que Facundo rechazó del primer rediseño: no puede volver a aparecer. La alternativa «Esta sesión\n» solo
+ * puede coincidir sobre el `textContent` entero (un renglón que termina en «Esta sesión» y sigue en otro
+ * elemento): por elemento los espacios se colapsan. Por eso el detalle conserva una prueba con el
+ * `textContent` completo (AnalisisSesion.test.tsx).
+ */
 export const RECHAZADOS =
   /Por cómo se desarrolló|Una alerta señala|no atribuye intención|la revisión es del docente|Las cifras son las del momento|Una sesión habitual|Esta sesión\n/;
 /**

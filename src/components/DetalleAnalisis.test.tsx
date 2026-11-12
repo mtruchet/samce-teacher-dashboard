@@ -52,20 +52,19 @@ describe("HU05_T02 (pendiente 10): Métricas de la sesión", () => {
     expect(screen.getByText("un minuto")).toBeInTheDocument();
   });
 
-  it("con la sesión abierta dice que se muestran al terminar, también si todavía no se pudo analizar (CP34)", () => {
-    for (const estado of ["analyzed", "insufficient_evidence", "not_analyzed"] as const) {
-      const { unmount } = metricas({ metricas: null, abierta: true, estado });
-      expect(screen.getByText("Las métricas se muestran cuando la sesión termina.")).toBeInTheDocument();
-      expect(document.querySelector(".metricas")).toBeNull();
-      unmount();
-    }
+  it("con la sesión abierta y analizada dice que se muestran al terminar (CP34)", () => {
+    metricas({ metricas: null, abierta: true, estado: "analyzed" });
+    expect(screen.getByText("Las métricas se muestran cuando la sesión termina.")).toBeInTheDocument();
+    expect(document.querySelector(".metricas")).toBeNull();
   });
 
-  it("terminada, si no se pudo analizar o todavía no se analizó no se dibuja: el veredicto ya lo dice", () => {
+  it("si no se pudo analizar o todavía no se analizó no se dibuja, abierta o terminada: el veredicto ya lo dice (R21)", () => {
     for (const estado of ["insufficient_evidence", "not_analyzed"] as const) {
-      const { container, unmount } = metricas({ estado });
-      expect(container).toBeEmptyDOMElement();
-      unmount();
+      for (const abierta of [false, true]) {
+        const { container, unmount } = metricas({ estado, abierta });
+        expect(container).toBeEmptyDOMElement();
+        unmount();
+      }
     }
   });
 
@@ -253,7 +252,7 @@ describe("HU05_T02 (pendiente 10): Momentos para revisar", () => {
   it("cada momento lleva a su fila del registro, con un nombre que dice cuál es", () => {
     const onIrAlEvento = vi.fn();
     const { container } = render(
-      <CronologiaSesion eventos={[evento(3, "clipboard", { action: "paste" })]} onIrAlEvento={onIrAlEvento} />
+      <CronologiaSesion eventos={[evento(3, "clipboard", { action: "paste" })]} alcance="completo" onIrAlEvento={onIrAlEvento} />
     );
     expect(screen.getByRole("heading", { level: 3, name: "Momentos para revisar" })).toBeInTheDocument();
     const boton = screen.getByRole("button", { name: /^Ver en el registro: Pegó un texto, a las \d{2}:\d{2}$/ });
@@ -267,15 +266,27 @@ describe("HU05_T02 (pendiente 10): Momentos para revisar", () => {
   });
 
   it("un pegado que no es texto se nombra como en su fila del registro", () => {
-    render(<CronologiaSesion eventos={[evento(3, "clipboard", { action: "paste", non_text: true })]} onIrAlEvento={() => {}} />);
+    render(
+      <CronologiaSesion eventos={[evento(3, "clipboard", { action: "paste", non_text: true })]} alcance="completo" onIrAlEvento={() => {}} />
+    );
     expect(screen.getByText("Pegó contenido que no es texto")).toBeInTheDocument();
   });
 
-  it("sin eventos críticos lo dice", () => {
-    const { container } = render(<CronologiaSesion eventos={[evento(1, "keystroke")]} onIrAlEvento={() => {}} />);
-    expect(
-      screen.getByText("No pegó texto, no cambió de ventana ni de pestaña y no salió de pantalla completa.")
-    ).toBeInTheDocument();
-    expect(choquesConLasListas([container.textContent ?? ""])).toEqual([]);
+  it("sin eventos críticos lo dice con las palabras de las métricas, y según cuánto del registro se conoce", () => {
+    const casos = {
+      completo: "No pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa.",
+      abierta: "Hasta ahora no pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa.",
+      parcial:
+        "En lo que quedó registrado, no pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa.",
+    } as const;
+    for (const [alcance, texto] of Object.entries(casos) as [keyof typeof casos, string][]) {
+      const { container, unmount } = render(
+        <CronologiaSesion eventos={[evento(1, "keystroke")]} alcance={alcance} onIrAlEvento={() => {}} />
+      );
+      expect(screen.getByText(texto)).toBeInTheDocument();
+      expect(choquesConLasListas([container.textContent ?? ""])).toEqual([]);
+      expectLenguajeLlano(container);
+      unmount();
+    }
   });
 });

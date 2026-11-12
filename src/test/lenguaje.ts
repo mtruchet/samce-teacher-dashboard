@@ -19,8 +19,10 @@ export {
 const espacios = (texto: string) => texto.replace(/\s+/g, " ").trim();
 
 /**
- * Los textos de una pantalla, elemento por elemento: de cada uno, sus nodos de texto propios unidos por un
- * espacio, con los espacios colapsados; y aparte su `aria-label` y su `title`. Por elemento y no el
+ * Los textos de una pantalla, elemento por elemento: de cada uno, sus nodos de texto propios, con los espacios
+ * colapsados; y aparte su `aria-label` y su `title`. Los nodos de texto seguidos se unen sin nada en el medio,
+ * tal como se leen en pantalla (React parte «{origen}: riesgo {nivel}» en varios nodos); donde hay un elemento
+ * hijo entre dos nodos, se separan con un espacio, porque ese elemento se revisa aparte. Por elemento y no el
  * `textContent` entero: pegados sin espacio, el final de un renglón y el principio del siguiente forman
  * palabras que no están en la pantalla, y los nombres accesibles no figuran en el `textContent`.
  */
@@ -28,12 +30,17 @@ export function textosPorElemento(container: Element, excluir?: string): string[
   const textos: string[] = [];
   for (const elemento of [container, ...container.querySelectorAll("*")]) {
     if (excluir && elemento.closest(excluir)) continue;
-    const propio = espacios(
-      [...elemento.childNodes]
-        .filter((n) => n.nodeType === Node.TEXT_NODE)
-        .map((n) => n.textContent ?? "")
-        .join(" ")
-    );
+    let unido = "";
+    let hayHijoEnElMedio = false;
+    for (const nodo of elemento.childNodes) {
+      if (nodo.nodeType === Node.TEXT_NODE) {
+        unido += (hayHijoEnElMedio && unido ? " " : "") + (nodo.textContent ?? "");
+        hayHijoEnElMedio = false;
+      } else if (nodo.nodeType === Node.ELEMENT_NODE) {
+        hayHijoEnElMedio = true;
+      }
+    }
+    const propio = espacios(unido);
     if (propio) textos.push(propio);
     for (const atributo of ["aria-label", "title"]) {
       const valor = espacios(elemento.getAttribute(atributo) ?? "");

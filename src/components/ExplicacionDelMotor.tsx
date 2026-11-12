@@ -2,7 +2,7 @@ import { ordenarExplicacion } from "../explicacion";
 import { Info } from "../iconos";
 
 /** Una nota dentro de una explicación o de un apartado: el ícono de información y el texto tal cual. */
-export function Nota({ texto }: { texto: string }) {
+function Nota({ texto }: { texto: string }) {
   return (
     <p className="analisis__nota">
       <Info size={16} aria-hidden="true" />
@@ -35,7 +35,7 @@ export function ExplicacionDelMotor({ texto, variante }: Props) {
   return (
     <div className={`explicacion explicacion--${variante}`}>
       <p className="analisis__hecho">{e.hecho}</p>
-      {notasAntes.map((renglon) => <Nota key={renglon} texto={renglon} />)}
+      {notasAntes.map((renglon, i) => <Nota key={`${i}-${renglon}`} texto={renglon} />)}
 
       {e.viñetas.length > 0 ? (
         <div className="analisis__atencion">
@@ -44,12 +44,12 @@ export function ExplicacionDelMotor({ texto, variante }: Props) {
               salteando un nivel. Diez entradas del historial tampoco tienen que llenar de títulos la navegación. */}
           {e.encabezadoDeLista ? <p className="analisis__subtitulo">{e.encabezadoDeLista}</p> : null}
           <ul className="analisis__lista">
-            {e.viñetas.map((v) => <li key={v}>{v}</li>)}
+            {e.viñetas.map((v, i) => <li key={`${i}-${v}`}>{v}</li>)}
           </ul>
         </div>
       ) : null}
 
-      {e.notas.map((renglon) => <Nota key={renglon} texto={renglon} />)}
+      {e.notas.map((renglon, i) => <Nota key={`${i}-${renglon}`} texto={renglon} />)}
     </div>
   );
 }

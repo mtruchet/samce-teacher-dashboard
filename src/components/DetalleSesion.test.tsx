@@ -612,4 +612,42 @@ describe("DetalleSesion", () => {
       "Pegó un texto",
     ]);
   });
+  it("HU05_T02, momentos: sin ningún evento no se dibujan, porque no hay con qué afirmar que no pegó ni salió", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
+    const cerrada = sesionNumerada({ status: "closed", closed_at: new Date(Date.now() - 60 * 60_000).toISOString() });
+    render(<DetalleSesion sesion={cerrada} onVencida={nada} />);
+    await esperar();
+
+    expect(screen.getByText("No quedó ningún evento registrado en esta sesión.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Momentos para revisar" })).toBeNull();
+    expect(screen.queryByText(/no pegó texto/i)).toBeNull();
+  });
+
+  it("HU05_T02, momentos: con el registro incompleto no afirma nada sobre lo que no se cargó", async () => {
+    // Veinte páginas llenas: el panel corta y avisa que falta lo más reciente.
+    vi.spyOn(sesionesService, "traerEventos").mockImplementation(async (_e, _s, cursor = 0) =>
+      Array.from({ length: sesionesService.EVENTOS_POR_PAGINA }, (_, i) => evento(cursor + i + 1, "keystroke", { count: 1 }))
+    );
+    const cerrada = sesionNumerada({ status: "closed", closed_at: new Date(Date.now() - 60 * 60_000).toISOString() });
+    render(<DetalleSesion sesion={cerrada} onVencida={nada} />);
+    await esperar();
+
+    expect(screen.getByText(/todavía falta lo más reciente/)).toBeInTheDocument();
+    expect(screen.queryByText("No pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa.")).toBeNull();
+    expect(
+      screen.getByText(
+        "En lo que quedó registrado, no pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("HU05_T02, momentos: con la sesión abierta dice «hasta ahora»", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "keystroke", { count: 1 })]);
+    render(<DetalleSesion sesion={sesionNumerada({ status: "open", closed_at: undefined })} onVencida={nada} />);
+    await esperar();
+
+    expect(
+      screen.getByText("Hasta ahora no pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa.")
+    ).toBeInTheDocument();
+  });
 });

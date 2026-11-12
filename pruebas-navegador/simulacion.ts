@@ -151,16 +151,24 @@ const EXPLICACION_MODELO: Record<Nivel, string> = {
 const EXPLICACION_EVENTO =
   "A las 09:20, en la pregunta 2, pegó de una sola vez un texto largo en una respuesta que todavía estaba vacía, algo poco común en un examen.";
 
-const METRICAS = {
+/**
+ * Las métricas del cierre, coherentes con las alertas de la sesión: con alerta, salió de la ventana y pegó un
+ * texto (como dicen sus explicaciones); sin alertas, no salió ni pegó. Así las capturas no muestran «No pegó
+ * texto» al lado de una alerta de pegado.
+ */
+const METRICAS_BASE = {
   outside_time_ratio: 0.1,
-  outside_longest_s: 0,
   typing_rate_median_per_s: 1.04,
-  largest_paste_chars: 0,
   pasted_chars_ratio: 0,
   mouse_idle_longest_s: 0,
   question_time_median_s: 95,
   silence_longest_s: 60,
 };
+const metricasDe = (conAlertas: boolean) => ({
+  ...METRICAS_BASE,
+  outside_longest_s: conAlertas ? 40 : 0,
+  largest_paste_chars: conAlertas ? 340 : 0,
+});
 
 function analisisDe(s: SesionFalsa) {
   if (s.id === 501) return analisisCerrado;
@@ -196,7 +204,7 @@ function analisisDe(s: SesionFalsa) {
     calculated_at: calculado,
     alerts: alertas,
     alert_history: historial,
-    metrics: s.status === "open" ? null : METRICAS,
+    metrics: s.status === "open" ? null : metricasDe(alertas.length > 0),
   };
 }
 

@@ -40,9 +40,10 @@ export function useFiltrosDeLaDireccion() {
       const siguiente = escribirFiltros(actuales, parciales);
       // Sin cambios no se navega: cada pausa al escribir dejaba una entrada igual en el historial, y Atrás
       // parecía no hacer nada.
-      if (siguiente.toString() === actuales.toString()) return;
+      if (siguiente.toString() === actuales.toString()) return false;
       vigentes.current = siguiente;
       setParametros(siguiente, { replace: reemplazar });
+      return true;
     },
     [setParametros]
   );
@@ -52,16 +53,18 @@ export function useFiltrosDeLaDireccion() {
    * resumen. Queda en el historial, así Atrás vuelve a la vista anterior. La búsqueda que se va escribiendo
    * es la excepción: la primera pausa deja una entrada y las siguientes la reemplazan, así una búsqueda
    * tipeada es una sola entrada.
+   *
+   * Devuelve si la dirección cambió: quien la llama sabe así si la vista que viene es por acción del docente.
    */
   const aplicarFiltros = useCallback(
     (parciales: Partial<FiltrosSesiones>) => {
       const soloBusqueda = Object.keys(parciales).length === 1 && "q" in parciales;
-      navegar(parciales, soloBusqueda && vigentes.current.has("q"));
+      return navegar(parciales, soloBusqueda && vigentes.current.has("q"));
     },
     [navegar]
   );
 
-  /** Borra nivel, estado, análisis y búsqueda, y conserva el orden elegido. */
+  /** Borra nivel, estado, análisis y búsqueda, y conserva el orden elegido. Devuelve si la dirección cambió. */
   const quitarFiltros = useCallback(() => navegar(SIN_FILTROS, false), [navegar]);
 
   /** Le pasa a una dirección nueva los filtros vigentes, solo si es el mismo examen. */

@@ -202,11 +202,13 @@
 }
 
 /* Tres columnas compartidas por todos los momentos (subgrid): la hora, el ícono con el nombre y el botón. Así
-   los botones forman una columna y no siguen el largo de cada nombre. La hora va arriba, alineada con el
-   primer renglón del nombre. */
+   los botones forman una columna y no siguen el largo de cada nombre, pero esa columna se apoya en el nombre
+   más largo (a var(--e4)) y no en el borde: lejos del texto, el ojo no la relacionaba con su fila. La hora va
+   arriba, alineada con el primer renglón del nombre. */
 .momentos__lista {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto auto auto;
+  justify-content: start;
   gap: var(--e1) var(--e4);
   max-width: var(--medida);
 }
@@ -237,8 +239,11 @@
   color: var(--tinta-media);
 }
 
+/* El relleno del botón de texto lo bajaba medio renglón respecto de la hora y del nombre: se compensa para que
+   los tres compartan la línea. */
 .momentos__ir {
   justify-self: start;
+  margin-block: calc(-1 * var(--e1));
 }
 
 /* En un teléfono el botón va siempre en su propio renglón, debajo del nombre. */
@@ -254,6 +259,7 @@
 
   .momentos__ir {
     grid-column: 2;
+    margin-block: 0;
   }
 }
 

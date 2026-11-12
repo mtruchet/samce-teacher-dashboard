@@ -1,6 +1,6 @@
 import { API_CONFIG } from "../config/api.config";
 import { getStoredSession } from "./authService";
-import type { FiltrosSesiones } from "../filtrosDeLaDireccion";
+import { NIVELES_DE_RIESGO, type NivelDeRiesgo } from "../niveles";
 
 /**
  * Los exámenes monitoreados del docente y sus sesiones.
@@ -28,12 +28,21 @@ export interface ExamenMonitoreado {
   abandoned_sessions: number;
 }
 
+// Los niveles viven en `niveles.ts`; se reexportan para quien ya los toma del servicio.
+export { NIVELES_DE_RIESGO, type NivelDeRiesgo };
+
 /**
- * Los niveles de riesgo, de menor a mayor. Es el único lugar donde está el orden: el peso de cada nivel, sus
- * palabras y el tipo salen de acá (ver `lenguajeAlerta.ts`).
+ * Lo que el panel puede pedir sobre la lista de un examen, con los nombres del panel. `traerSesiones` lo
+ * traduce a los parámetros del backend (`risk_level`, `status`, `analysis`, `q`, `sort`). Cómo se escribe
+ * en la dirección de la página no es asunto del servicio (`filtrosDeLaDireccion.ts`).
  */
-export const NIVELES_DE_RIESGO = ["low", "medium", "high"] as const;
-export type NivelDeRiesgo = (typeof NIVELES_DE_RIESGO)[number];
+export interface PedidoDeSesiones {
+  nivel?: NivelDeRiesgo;
+  estado?: "open" | "finished";
+  analisis?: "no_alerts" | "not_analyzed" | "insufficient_evidence" | "unavailable";
+  q?: string;
+  orden?: "risk_level";
+}
 
 export interface Sesion {
   id: number;
@@ -233,7 +242,7 @@ function totalDeLaCabecera(valor: string | null): number | null {
 export async function traerSesiones(
   examenId: number,
   limite = SESIONES_POR_PAGINA,
-  filtros: FiltrosSesiones = {}
+  filtros: PedidoDeSesiones = {}
 ): Promise<PaginaDeSesiones> {
   // Nunca por encima del tope del backend: pedir de más no trae de más, y lo
   // único que consigue es que la cuenta del panel no cierre.
@@ -299,7 +308,7 @@ export function traerEventos(examenId: number, sesionId: number, despuesDeId = 0
 }
 
 /**
- * Cómo está el análisis de una sesión (SAMCE-36).
+ * Cómo está el análisis de una sesión (TT_S4_02).
  *
  * not_analyzed: todavía no hay ningún cálculo. analyzed: se analizó, con alertas o sin
  * ellas. insufficient_evidence: no tuvo evidencia suficiente (poca actividad o captura

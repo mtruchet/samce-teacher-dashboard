@@ -1,3 +1,4 @@
+import { enCifras } from "./cifras";
 import type { Metricas } from "./services/sesionesService";
 
 /**
@@ -36,7 +37,6 @@ export interface Metrica {
   siEsCero?: string;
 }
 
-const enCifras = (n: number) => n.toLocaleString("es-AR");
 
 /** «un minuto», «2 minutos»: el uno en letras, el resto en cifras. */
 const cuantos = (n: number, uno: string, plural: string) => (n === 1 ? uno : `${enCifras(n)} ${plural}`);
