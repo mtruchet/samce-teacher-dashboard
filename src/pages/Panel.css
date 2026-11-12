@@ -174,3 +174,19 @@ body:has(.panel) {
   font-size: var(--panel-cuerpo);
   color: var(--tinta-media);
 }
+
+/* ==== La lámina de control de la evaluación ============================ */
+
+/* El resumen, la barra de filtros y, con un filtro, el resultado: tres renglones en una sola lámina,
+   separados por aire y sin líneas. Sin filtro, el renglón del resultado no se dibuja y no deja hueco. */
+.control {
+  display: grid;
+  gap: var(--e5);
+}
+
+/* Un grupo sin filas: una línea liviana dentro de su lámina, sin un bloque alto que parezca contenido. */
+.grupos__vacio {
+  margin: 0;
+  font-size: var(--panel-cuerpo);
+  color: var(--tinta-media);
+}

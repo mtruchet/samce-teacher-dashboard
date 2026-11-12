@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
-import type { FiltrosSesiones as Filtros } from "../services/sesionesService";
+import { NIVELES_FILTRO, type FiltrosSesiones as Filtros } from "../filtrosDeLaDireccion";
+import { NIVELES } from "../lenguajeAlerta";
 import "./FiltrosSesiones.css";
 
 /** Cuánto se espera después de la última tecla antes de buscar: no se pide en cada letra. */
@@ -20,18 +21,36 @@ interface Props {
  * El orden predeterminado es por hora de inicio. Ordenar por nivel es una opción del docente, que
  * agrupa por nivel dentro de cada grupo y, a igual nivel, conserva la hora de inicio: nunca un
  * ranking por índice.
+ *
+ * Los niveles se nombran como en las tarjetas del resumen y en la lista («Riesgo alto»): el selector y la
+ * tarjeta son dos caminos al mismo filtro y se reflejan entre sí.
  */
 export function FiltrosSesiones({ filtros, onCambio }: Props) {
   const id = useId();
   const [texto, setTexto] = useState(filtros.q ?? "");
   const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // La espera llama siempre a la última función recibida, no a la de la vuelta en que se tecleó: si en esos
+  // 300 ms el docente eligió un nivel, la función vieja lo borraba al escribir la búsqueda.
+  const alCambiar = useRef(onCambio);
+  useEffect(() => {
+    alCambiar.current = onCambio;
+  }, [onCambio]);
 
-  // Si la búsqueda cambia desde afuera (Atrás, «Quitar filtros», una tarjeta), el campo la sigue.
-  const [ultimaQ, setUltimaQ] = useState(filtros.q ?? "");
-  if ((filtros.q ?? "") !== ultimaQ) {
-    setUltimaQ(filtros.q ?? "");
-    setTexto(filtros.q ?? "");
+  // Si la búsqueda cambia desde afuera (Atrás, «Quitar filtros», una tarjeta), el campo la sigue. Solo se
+  // pisa si dice otra cosa: la dirección guarda la búsqueda sin espacios en los bordes, y pisar «Juan » con
+  // «Juan» le borraba al docente el espacio que acababa de escribir.
+  const q = filtros.q ?? "";
+  const [ultimaQ, setUltimaQ] = useState(q);
+  if (q !== ultimaQ) {
+    setUltimaQ(q);
+    if (texto.trim() !== q) setTexto(q);
   }
+
+  // Lo que se estaba esperando escribir ya no vale cuando la búsqueda cambió desde afuera.
+  useEffect(() => {
+    if (espera.current) clearTimeout(espera.current);
+    espera.current = null;
+  }, [q]);
 
   useEffect(() => () => {
     if (espera.current) clearTimeout(espera.current);
@@ -40,7 +59,10 @@ export function FiltrosSesiones({ filtros, onCambio }: Props) {
   function escribir(valor: string) {
     setTexto(valor);
     if (espera.current) clearTimeout(espera.current);
-    espera.current = setTimeout(() => onCambio({ q: valor.trim() || undefined }), ESPERA_BUSQUEDA_MS);
+    espera.current = setTimeout(() => {
+      espera.current = null;
+      alCambiar.current({ q: valor.trim() || undefined });
+    }, ESPERA_BUSQUEDA_MS);
   }
 
   return (
@@ -53,9 +75,11 @@ export function FiltrosSesiones({ filtros, onCambio }: Props) {
           onChange={(e) => onCambio({ nivel: (e.target.value || undefined) as Filtros["nivel"] })}
         >
           <option value="">Todos</option>
-          <option value="high">Alto</option>
-          <option value="medium">Medio</option>
-          <option value="low">Bajo</option>
+          {NIVELES_FILTRO.map((nivel) => (
+            <option key={nivel} value={nivel}>
+              {NIVELES[nivel]}
+            </option>
+          ))}
         </select>
       </div>
       <div className="filtros__campo">
@@ -83,6 +107,8 @@ export function FiltrosSesiones({ filtros, onCambio }: Props) {
       </div>
       <div className="filtros__campo">
         <label htmlFor={`${id}-orden`}>Ordenar por</label>
+        {/* «Hora de inicio» es el orden predeterminado: en la dirección no se escribe, y en el control lleva
+            un valor propio que se traduce a «sin orden». */}
         <select
           id={`${id}-orden`}
           value={filtros.orden ?? "started_at"}

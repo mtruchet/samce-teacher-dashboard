@@ -120,7 +120,7 @@ describe("traerSesiones", () => {
     vi.stubGlobal("fetch", fetch);
 
     await traerSesiones(3, 50, { nivel: "high", estado: "finished", analisis: "not_analyzed", q: "Núñez", orden: "risk_level" });
-    await traerSesiones(3, 50, { orden: "started_at", q: "" });
+    await traerSesiones(3, 50, { orden: undefined, q: "" });
 
     const url = new URL(fetch.mock.calls[0][0]);
     expect(url.searchParams.get("risk_level")).toBe("high");
@@ -139,6 +139,15 @@ describe("traerSesiones", () => {
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta([])));
     expect(await traerSesiones(3)).toEqual({ sesiones: [], total: null, resumen: null });
+  });
+
+  it("un total que no es un número se toma como desconocido, así nunca se ve «NaN de 30»", async () => {
+    for (const raro of ["", "muchas", "-3", "2.5"]) {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta([], raro)));
+      expect((await traerSesiones(3)).total).toBeNull();
+    }
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta([], "0")));
+    expect((await traerSesiones(3)).total).toBe(0);
   });
 });
 

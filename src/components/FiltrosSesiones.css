@@ -1,14 +1,10 @@
-/* La barra de filtros de la lista de sesiones (HU04). Controles nativos, con los tokens del panel:
-   sin líneas horizontales, con el anillo de las superficies, y sin el celeste, que se reserva para la
-   marca viva del pulso. */
+/* La barra de filtros de la lista de sesiones (HU04). Controles nativos, con los tokens del panel: sin
+   líneas horizontales y con el anillo de las superficies. No tiene lámina propia: va dentro de la lámina de
+   control de la evaluación, entre el resumen y el resultado del filtro. */
 .filtros {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--e3) var(--e4);
-  padding: var(--e4) var(--e5);
-  border-radius: var(--radio-panel);
-  background: var(--sup-1);
-  box-shadow: var(--anillo), var(--elev-2);
 }
 
 .filtros__campo {
@@ -17,6 +13,8 @@
   min-width: 0;
 }
 
+/* Los rótulos van en mayúsculas espaciadas, como los encabezados de la tabla que tienen debajo: es la única
+   excepción a la minúscula inicial de los títulos del panel (docs/sistema-visual.md). */
 .filtros__campo label {
   font-size: var(--panel-rotulo);
   font-weight: 600;
@@ -28,7 +26,7 @@
 .filtros__campo select,
 .filtros__campo input {
   width: 100%;
-  min-height: 36px;
+  height: 40px;
   padding: 0 var(--e2);
   border: 0;
   border-radius: var(--radio-ficha);
@@ -39,7 +37,8 @@
   color: var(--tinta);
 }
 
-/* `.filtros__campo select` le gana por especificidad al anillo de base.css: sin esto, el foco no se ve. */
+/* `.filtros__campo select` le gana por especificidad al anillo de base.css: esto repite el mismo anillo, sin
+   cambiarlo, para que el foco se vea. */
 .filtros__campo select:focus-visible,
 .filtros__campo input:focus-visible {
   box-shadow: 0 0 0 2px var(--sup-1), 0 0 0 4px var(--celeste);
@@ -49,20 +48,21 @@
   color: var(--tinta-suave);
 }
 
-/* «N de M sesiones», el estado vacío con un filtro y su botón. */
-.filtros-resultado {
-  font-size: var(--panel-nota);
-  color: var(--tinta-media);
-}
-
 /* A 390 px los controles bajan de a dos por renglón y la búsqueda ocupa uno entero. */
 @media (max-width: 760px) {
   .filtros {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding-inline: var(--e4);
   }
 
   .filtros__campo--busqueda {
     grid-column: 1 / -1;
+  }
+}
+
+/* Con colores forzados (Windows) el anillo de las superficies desaparece y el control quedaba sin borde. */
+@media (forced-colors: active) {
+  .filtros__campo select,
+  .filtros__campo input {
+    border: 1px solid ButtonText;
   }
 }

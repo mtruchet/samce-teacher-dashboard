@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { leerFiltros } from "../filtrosDeLaDireccion";
 import { Broadcast, Examen, Materia } from "../iconos";
 import { clearSession, esPanelGeneral, getStoredSession } from "../services/authService";
 import {
   CADENCIA_MS,
-  NIVELES_DE_RIESGO,
   SESIONES_POR_PAGINA,
   SESIONES_TOPE,
   SesionVencida,
   traerExamenes,
   traerSesiones,
   type ExamenMonitoreado,
-  type FiltrosSesiones as FiltrosDeLista,
   type ResumenDeEvaluacion,
   type SesionDeExamen,
   type SesionNumerada,
@@ -22,13 +21,16 @@ import { BarraPanel } from "../components/BarraPanel";
 import { DetalleSesion } from "../components/DetalleSesion";
 import { Fichas, type Ficha } from "../components/Fichas";
 import { AvisoAlertas } from "../components/AvisoAlertas";
+import { AnuncioVivo, useAnuncio } from "../components/AnuncioVivo";
 import { FiltrosSesiones } from "../components/FiltrosSesiones";
+import { GruposDeSesiones } from "../components/GruposDeSesiones";
+import { ResultadoDelFiltro } from "../components/ResultadoDelFiltro";
 import { ResumenEvaluacion } from "../components/ResumenEvaluacion";
-import { ListaSesiones } from "../components/ListaSesiones";
 import { Migas, type Escalon } from "../components/Migas";
 import { PulsoEnlace, type EstadoEnlace } from "../components/PulsoEnlace";
 import { Pie } from "../components/Pie";
 import { SinSesion } from "./SinSesion";
+import { useFiltrosDeLaDireccion } from "./useFiltrosDeLaDireccion";
 import { API_CONFIG } from "../config/api.config";
 import "./Panel.css";
 
@@ -46,48 +48,15 @@ import "./Panel.css";
  * entrar. Cuando se entra desde un curso puntual ese escalón ya está resuelto
  * por el propio enlace, y el recorrido arranca en los exámenes.
  *
+ * Arriba de la lista, una sola lámina de control: el resumen de la evaluación, la barra de filtros y, con un
+ * filtro, «N de M sesiones» y «Quitar filtros». Los filtros viven en la dirección (`filtrosDeLaDireccion.ts`).
+ *
  * La columna «Análisis» de la lista dice el nivel de riesgo de cada sesión, con
  * su marca, o el estado de su análisis si no tiene alertas («Sin alertas», «Sin
  * analizar», «No se pudo analizar» o «Análisis no disponible»). Nunca el índice
  * de integridad. Una alerta nueva se anuncia a los lectores de pantalla con una
  * frase corta (`AvisoAlertas`), sin releer la lista.
  */
-
-/** Cómo se llama cada filtro de la lista en la dirección de la página. */
-const PARAMETRO_DE: Record<keyof FiltrosDeLista, string> = {
-  nivel: "nivel",
-  estado: "estado",
-  analisis: "analisis",
-  q: "q",
-  orden: "orden",
-};
-const PARAMETROS_DE_FILTRO = Object.values(PARAMETRO_DE);
-
-const ESTADOS_VALIDOS = ["open", "finished"] as const;
-const ANALISIS_VALIDOS = ["no_alerts", "not_analyzed", "insufficient_evidence", "unavailable"] as const;
-
-function uno<T extends string>(valor: string | null, validos: readonly T[]): T | undefined {
-  return validos.find((v) => v === valor);
-}
-
-/** Los filtros que dice la dirección. Un valor que no se conoce (escrito a mano) se ignora. */
-function leerFiltros(parametros: URLSearchParams): FiltrosDeLista {
-  return {
-    nivel: uno(parametros.get("nivel"), NIVELES_DE_RIESGO),
-    estado: uno(parametros.get("estado"), ESTADOS_VALIDOS),
-    analisis: uno(parametros.get("analisis"), ANALISIS_VALIDOS),
-    q: parametros.get("q")?.trim().slice(0, 100) || undefined,
-    orden: parametros.get("orden") === "risk_level" ? "risk_level" : undefined,
-  };
-}
-
-/**
- * La consulta que de verdad se le pide al backend, como texto. Sirve para saber de qué pedido es una
- * respuesta: con el detalle abierto se pide sin filtrar, y esa respuesta no vale para la lista filtrada.
- */
-function claveDePedido(filtros: FiltrosDeLista): string {
-  return [filtros.nivel, filtros.estado, filtros.analisis, filtros.q, filtros.orden].map((v) => v ?? "").join("|");
-}
 
 /**
  * Numera los intentos de cada alumno dentro de un examen, por orden de
@@ -148,16 +117,21 @@ export function Panel() {
 
   // Los filtros de la lista (HU04) también viven en la dirección: sobreviven a la actualización
   // automática, al botón Atrás y a la vuelta por las migas, y un enlace copiado abre la misma vista.
-  const filtros: FiltrosDeLista = useMemo(() => leerFiltros(parametros), [parametros]);
-  const claveFiltros = PARAMETROS_DE_FILTRO.map((p) => parametros.get(p) ?? "").join("|");
-  const hayFiltro = Boolean(filtros.nivel || filtros.estado || filtros.analisis || filtros.q);
+  const { filtros, claveFiltros, hayFiltro, aplicarFiltros, quitarFiltros, conservarFiltros } =
+    useFiltrosDeLaDireccion();
+  // Lo que de verdad se le pide al backend, como texto. Con una sesión abierta en el detalle se pide sin
+  // filtrar: si la sesión dejara de cumplir el filtro (el alumno entrega con «En curso»), saldría de la
+  // respuesta y el detalle se quedaría con una copia vieja. Los filtros siguen en la dirección y vuelven al
+  // volver a la lista. Como es texto, abrir o cerrar una sesión sin filtros no cambia la consulta y no
+  // vuelve a pedir la lista.
+  const clavePedido = sesionElegida ? (filtros.orden ? "orden=risk_level" : "") : claveFiltros;
 
   const [examenes, setExamenes] = useState<ExamenMonitoreado[]>([]);
   // Solo las sesiones del examen que se está mirando, con el examen del que
   // son: las de los demás no se piden.
   const [cargadas, setCargadas] = useState<{
     examenId: number;
-    /** De qué examen y consulta es la respuesta: `${examen}|${claveDePedido(lo pedido)}`. */
+    /** De qué examen y consulta es la respuesta: `${examen}|${clavePedido}`. */
     vista: string;
     lista: SesionDeExamen[];
     /** Cuántas cumplen el filtro en toda la evaluación (X-Total-Count); null con un backend viejo. */
@@ -226,10 +200,7 @@ export function Panel() {
       // solo si es de uno de los cursos del docente (la lista ya viene filtrada
       // por el backend según su token).
       const elegido = examenElegido ? lista.find((e) => String(e.id) === examenElegido) : undefined;
-      // Con una sesión abierta en el detalle se pide sin filtrar: si la sesión dejara de cumplir el
-      // filtro (el alumno entrega con «En curso»), saldría de la respuesta y el detalle se quedaría
-      // con una copia vieja. Los filtros siguen en la dirección y vuelven al volver a la lista.
-      const delPedido: FiltrosDeLista = sesionElegida ? { orden: filtros.orden } : filtros;
+      const delPedido = leerFiltros(new URLSearchParams(clavePedido));
       const respuesta = elegido ? await traerSesiones(elegido.id, paginas * SESIONES_POR_PAGINA, delPedido) : null;
       const delElegido = respuesta && elegido ? respuesta.sesiones.map((s) => ({ ...s, examenId: elegido.id })) : [];
 
@@ -241,7 +212,7 @@ export function Panel() {
         elegido && respuesta
           ? {
               examenId: elegido.id,
-              vista: `${examenElegido}|${claveDePedido(delPedido)}`,
+              vista: `${examenElegido}|${clavePedido}`,
               lista: delElegido,
               total: respuesta.total,
               resumen: respuesta.resumen,
@@ -267,7 +238,7 @@ export function Panel() {
       // el estado del canal lo dice.
       setEnlace("sin-conexion");
     }
-  }, [examenElegido, sesionElegida, filtros, paginas, vencer]);
+  }, [examenElegido, clavePedido, paginas, vencer]);
 
   useEffect(() => {
     if (vencida) return;
@@ -303,39 +274,9 @@ export function Panel() {
       // Los filtros se conservan mientras no cambie el examen (la miga del examen, la vuelta del
       // detalle, la corrección de la dirección). Otra evaluación abre sin filtros y con el orden
       // predeterminado: la elección no se guarda como preferencia.
-      if (destino.examen && destino.examen === examenElegido) {
-        for (const p of PARAMETROS_DE_FILTRO) {
-          const valor = parametros.get(p);
-          if (valor) siguiente.set(p, valor);
-        }
-      }
-      setParametros(siguiente, { replace: reemplazar });
+      setParametros(conservarFiltros(siguiente), { replace: reemplazar });
     },
-    [setParametros, parametros, examenElegido]
-  );
-
-  /**
-   * Escribe en la dirección lo que cambió de los filtros, con la misma función para la barra y para
-   * las tarjetas del resumen. Lo predeterminado no se escribe. Queda en el historial, así «Atrás»
-   * vuelve a la vista anterior.
-   */
-  const aplicarFiltros = useCallback(
-    (parciales: Partial<FiltrosDeLista>) => {
-      const siguiente = new URLSearchParams(parametros);
-      siguiente.delete("sesion");
-      const nuevos: FiltrosDeLista = { ...filtros, ...parciales };
-      for (const [clave, valor] of Object.entries(PARAMETRO_DE)) {
-        const v = nuevos[clave as keyof FiltrosDeLista];
-        if (v && !(clave === "orden" && v === "started_at")) siguiente.set(valor, v);
-        else siguiente.delete(valor);
-      }
-      setParametros(siguiente);
-    },
-    [parametros, filtros, setParametros]
-  );
-  const quitarFiltros = useCallback(
-    () => aplicarFiltros({ nivel: undefined, estado: undefined, analisis: undefined, q: undefined }),
-    [aplicarFiltros]
+    [setParametros, conservarFiltros]
   );
 
   function salir() {
@@ -425,16 +366,19 @@ export function Panel() {
   const conFiltro = hayFiltro && !sesionElegida;
   // «N de M» vale solo si la respuesta es del pedido de esta vista. Al volver del detalle (que pide sin
   // filtrar) la última respuesta es de todo el examen, y mostrar su total daba «M de M» hasta la siguiente.
-  const pedidoDeLaVista = `${examenElegido}|${claveDePedido(filtros)}`;
+  const pedidoDeLaVista = `${examenElegido}|${claveFiltros}`;
   const respuestaDelFiltro = conFiltro && cargadas?.vista === pedidoDeLaVista && cargadas.total != null;
   const totalDeLaVista = respuestaDelFiltro ? cargadas.total! : totalDelExamen;
-  // «N de M sesiones» se ve siempre al día, pero se anuncia una sola vez por filtro: con la primera respuesta
-  // de ese filtro. Las vueltas del refresco cambian el número en silencio.
-  const [anuncioFiltro, setAnuncioFiltro] = useState({ vista: "", texto: "" });
-  if (respuestaDelFiltro && anuncioFiltro.vista !== vistaDeLista) {
-    setAnuncioFiltro({ vista: vistaDeLista, texto: `${cargadas.total} de ${totalDelExamen} sesiones` });
-  } else if (!conFiltro && anuncioFiltro.vista !== "") {
-    setAnuncioFiltro({ vista: "", texto: "" });
+  // «N de M sesiones» se ve siempre al día, pero se anuncia una sola vez por vista: con la primera respuesta
+  // de ese filtro. Las vueltas del refresco cambian el número en silencio. Cada anuncio va en un nodo nuevo,
+  // así volver a un filtro con la misma cifra también se lee.
+  const [anuncioFiltro, anunciarFiltro] = useAnuncio();
+  const [vistaAnunciada, setVistaAnunciada] = useState("");
+  if (respuestaDelFiltro && vistaAnunciada !== vistaDeLista) {
+    setVistaAnunciada(vistaDeLista);
+    anunciarFiltro(`${cargadas.total} de ${totalDelExamen} sesiones`);
+  } else if (!hayFiltro && vistaAnunciada !== "") {
+    setVistaAnunciada("");
   }
 
   // La sesión se busca entre las del examen, que son las que el backend
@@ -658,72 +602,37 @@ export function Panel() {
               </p>
             ) : (
               <>
-                {/* El recuento de cada grupo es el del examen, no el de las filas
-                    cargadas: con la lista paginada, contar filas daba un número
-                    distinto del de la ficha del examen. */}
                 {/* La memoria del anuncio se vacía con el examen y con los filtros: una
                     sesión que entra a la lista por un filtro no es una alerta nueva. */}
                 <AvisoAlertas sesiones={delExamen} clave={vistaDeLista} />
-                {/* El resumen de la evaluación cuenta todas sus sesiones, y cada tarjeta filtra la
-                    lista con la misma función que la barra. Con un backend sin el resumen no se dibuja. */}
-                {cargadas?.resumen ? (
-                  <ResumenEvaluacion resumen={cargadas.resumen} filtros={filtros} onFiltrar={aplicarFiltros} />
-                ) : null}
-                <FiltrosSesiones filtros={filtros} onCambio={aplicarFiltros} />
-                {/* Con un filtro, «N de M sesiones» en una región que solo contiene la frase. */}
-                <p className="filtros-resultado">
-                  {respuestaDelFiltro ? `${cargadas.total} de ${totalDelExamen} sesiones` : ""}
-                </p>
-                {/* La región viva habla una vez por filtro. La clave pone el texto en un nodo nuevo, así dos
-                    filtros seguidos con la misma cifra también se anuncian. */}
-                <p className="solo-lectores" role="status">
-                  <span key={anuncioFiltro.vista}>{anuncioFiltro.texto}</span>
-                </p>
-                {respuestaDelFiltro && cargadas.total === 0 ? (
-                  <div className="panel__vacio">
-                    <p>Ninguna sesión coincide con el filtro.</p>
-                    <button type="button" className="panel__ver-mas" onClick={quitarFiltros}>
-                      Quitar filtros
-                    </button>
-                  </div>
-                ) : conFiltro ? (
-                  <>
-                    {/* Con un filtro, cada grupo cuenta sus filas cargadas y un grupo vacío no
-                        se dibuja: el recuento del examen dejaría de coincidir con las filas. */}
-                    {enCurso.length > 0 ? (
-                      <ListaSesiones titulo="En curso" sesiones={enCurso} total={enCurso.length} onVerEventos={verEventos} />
-                    ) : null}
-                    {finalizadas.length > 0 ? (
-                      <ListaSesiones
-                        titulo="Finalizadas"
-                        sesiones={finalizadas}
-                        total={finalizadas.length}
-                        cerradas
-                        onVerEventos={verEventos}
-                      />
-                    ) : null}
-                  </>
-                ) : (
-                  <>
-                    <ListaSesiones
-                      titulo="En curso"
-                      sesiones={enCurso}
-                      total={recuento.enCurso}
-                      vacio={<p className="panel__vacio">No hay sesiones de examen vigentes.</p>}
-                      onVerEventos={verEventos}
+                {/* Una sola lámina de control: el resumen de la evaluación (con un backend sin el resumen
+                    no se dibuja), la barra y, con un filtro, el resultado. Cada tarjeta filtra con la misma
+                    función que la barra. */}
+                <section className="lamina control" aria-label="Resumen y filtros de la evaluación">
+                  {cargadas?.resumen ? (
+                    <ResumenEvaluacion resumen={cargadas.resumen} filtros={filtros} onFiltrar={aplicarFiltros} />
+                  ) : null}
+                  <FiltrosSesiones filtros={filtros} onCambio={aplicarFiltros} />
+                  {conFiltro ? (
+                    <ResultadoDelFiltro
+                      cuantas={respuestaDelFiltro ? cargadas.total : null}
+                      deCuantas={totalDelExamen}
+                      onQuitar={quitarFiltros}
                     />
+                  ) : null}
+                  <AnuncioVivo aviso={anuncioFiltro} etiqueta="Resultado del filtro" />
+                </section>
 
-                    {finalizadas.length > 0 || totalFinalizadas > 0 ? (
-                      <ListaSesiones
-                        titulo="Finalizadas"
-                        sesiones={finalizadas}
-                        total={totalFinalizadas}
-                        cerradas
-                        vacio={<p className="panel__vacio">Se ven con «Ver más sesiones».</p>}
-                        onVerEventos={verEventos}
-                      />
-                    ) : null}
-                  </>
+                {respuestaDelFiltro && cargadas.total === 0 ? (
+                  <p className="panel__vacio">Ninguna sesión coincide con el filtro.</p>
+                ) : (
+                  <GruposDeSesiones
+                    enCurso={enCurso}
+                    finalizadas={finalizadas}
+                    conFiltro={conFiltro}
+                    recuento={{ enCurso: recuento.enCurso, finalizadas: totalFinalizadas }}
+                    onVerEventos={verEventos}
+                  />
                 )}
 
                 {/* «Ver más» solo si el examen tiene más sesiones de las que se ven, y

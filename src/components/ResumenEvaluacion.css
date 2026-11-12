@@ -1,54 +1,60 @@
-/* El resumen de la evaluación (HU03). Siete tarjetas en dos renglones de sentido: los tres niveles de
-   riesgo, con los tonos de las alertas (--alerta-tono-*), los mismos de la lista y del detalle, y los
-   cuatro estados del análisis de las sesiones sin alertas, en tinta neutra. El tono lo pone `data-nivel`
-   (styles/nivel.css). El número y el rótulo van siempre en --tinta: el color está en el borde, el medidor y
-   un fondo suave, nunca en el texto. */
+/* El resumen de la evaluación (HU03), dentro de la lámina de control: el título y siete tarjetas en dos
+   renglones de sentido.
+   - Los tres niveles de riesgo llevan la marca de todo el panel: el borde de tarjeta y un fondo suave en el
+     tono de las alertas (--tono, que pone `data-nivel` en styles/nivel.css), y RotuloNivel.
+   - Los cuatro estados del análisis van en un renglón más liviano: sin marca ni tono, en la superficie de
+     segundo plano.
+   El número y la palabra van siempre en --tinta: el color está en el borde, el medidor y el fondo, nunca en
+   el texto. Las dos filas usan la misma grilla de cuatro columnas, así todas las tarjetas miden lo mismo. */
 .resumen {
   display: grid;
   gap: var(--e3);
-  padding: var(--e4) var(--e5);
-  border-radius: var(--radio-panel);
-  background: var(--sup-1);
-  box-shadow: var(--anillo), var(--elev-2);
-}
-
-.resumen__titulo {
-  font-size: var(--panel-pieza);
-  font-weight: 600;
-  line-height: 25px;
-  letter-spacing: var(--track-titulo);
-  color: var(--tinta);
 }
 
 .resumen__tarjetas {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--e3);
 }
 
 .resumen__tarjeta {
   display: grid;
   gap: var(--e1);
+  align-content: start;
   justify-items: start;
   padding: var(--e3) var(--e4);
   border: 0;
-  border-left: var(--marca-tarjeta) solid var(--tono, var(--tinta-suave));
   border-radius: var(--radio-ficha);
-  background: color-mix(in srgb, var(--tono, var(--tinta-suave)) 8%, var(--sup-1));
-  box-shadow: var(--anillo);
   font: inherit;
   text-align: left;
   color: var(--tinta);
   cursor: pointer;
+  transition: box-shadow var(--mov-estado) var(--curva);
 }
 
-/* La tarjeta del filtro vigente: un anillo del mismo tono, además de aria-pressed. */
+.resumen__tarjeta[data-nivel] {
+  border-left: var(--marca-tarjeta) solid var(--tono);
+  background: color-mix(in srgb, var(--tono) 8%, var(--sup-1));
+  box-shadow: var(--anillo);
+}
+
+.resumen__tarjeta--estado {
+  background: var(--sup-2);
+  box-shadow: var(--anillo);
+}
+
+.resumen__tarjeta:hover {
+  box-shadow: var(--anillo), var(--elev-1);
+}
+
+/* La tarjeta del filtro vigente: un anillo interior (del tono, o de la tinta en los estados), además de
+   aria-pressed. */
 .resumen__tarjeta[aria-pressed="true"] {
   box-shadow: inset 0 0 0 2px var(--tono, var(--tinta-media));
 }
 
-/* El anillo de foco de base.css, que el box-shadow de arriba pisaba (misma especificidad, regla posterior).
-   La elegida suma su anillo interior. */
+/* El anillo de foco de base.css, que las reglas de arriba pisan por especificidad: se repite igual, y la
+   elegida suma su anillo interior. */
 .resumen__tarjeta:focus-visible {
   box-shadow: 0 0 0 2px var(--sup-1), 0 0 0 4px var(--celeste);
 }
@@ -64,27 +70,46 @@
   font-size: var(--panel-cifra);
   font-weight: 600;
   line-height: 35px;
+  letter-spacing: var(--track-titulo);
+}
+
+.resumen__tarjeta .rotulo-nivel {
+  font-size: var(--panel-fila);
 }
 
 .resumen__rotulo {
-  display: inline-flex;
-  align-items: center;
   font-size: var(--panel-fila);
-  font-weight: 600;
-}
-
-.resumen__tarjeta--estado .resumen__rotulo {
-  font-weight: 400;
   color: var(--tinta-media);
 }
 
-/* A 390 px, dos columnas, sin desplazar la página de costado. */
+/* A menos de 760 px: los tres niveles en un renglón, con el número arriba, el medidor y la palabra entera
+   debajo; los cuatro estados de a dos. Ninguna tarjeta queda sola en un renglón. */
 @media (max-width: 760px) {
-  .resumen {
-    padding-inline: var(--e4);
+  .resumen__tarjetas {
+    gap: var(--e2);
   }
 
-  .resumen__tarjetas {
+  .resumen__tarjetas--niveles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .resumen__tarjetas--estados {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .resumen__tarjeta {
+    padding: var(--e2) var(--e3) var(--e2) var(--e2);
+  }
+
+  .resumen__tarjeta .rotulo-nivel {
+    font-size: var(--panel-nota);
+  }
+}
+
+/* Con colores forzados el anillo de la elegida desaparece: se marca con el contorno del sistema. */
+@media (forced-colors: active) {
+  .resumen__tarjeta[aria-pressed="true"] {
+    outline: 3px solid Highlight;
+    outline-offset: -3px;
   }
 }

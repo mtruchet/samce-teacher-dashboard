@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { expectLenguajeLlano } from "../test/lenguaje";
 import { ESPERA_BUSQUEDA_MS, FiltrosSesiones } from "./FiltrosSesiones";
 
 describe("FiltrosSesiones", () => {
@@ -50,6 +51,52 @@ describe("FiltrosSesiones", () => {
   it("si la búsqueda cambia desde afuera, el campo la sigue", () => {
     const { rerender } = render(<FiltrosSesiones filtros={{ q: "Ana" }} onCambio={() => {}} />);
     rerender(<FiltrosSesiones filtros={{}} onCambio={() => {}} />);
+    expect(screen.getByLabelText("Buscar alumno")).toHaveValue("");
+  });
+
+  it("los niveles se nombran como en el resto del panel, del más alto al más bajo", () => {
+    const { container } = render(<FiltrosSesiones filtros={{}} onCambio={() => {}} />);
+    const opciones = [...(screen.getByLabelText("Nivel de riesgo") as HTMLSelectElement).options];
+    expect(opciones.map((o) => [o.value, o.text])).toEqual([
+      ["", "Todos"],
+      ["high", "Riesgo alto"],
+      ["medium", "Riesgo medio"],
+      ["low", "Riesgo bajo"],
+    ]);
+    const orden = [...(screen.getByLabelText("Ordenar por") as HTMLSelectElement).options].map((o) => o.text);
+    expect(orden).toEqual(["Hora de inicio", "Nivel de riesgo"]);
+    expectLenguajeLlano(container);
+  });
+
+  it("la espera llama a la última función recibida, no a la de cuando se tecleó", () => {
+    const vieja = vi.fn();
+    const nueva = vi.fn();
+    const { rerender } = render(<FiltrosSesiones filtros={{}} onCambio={vieja} />);
+    fireEvent.change(screen.getByLabelText("Buscar alumno"), { target: { value: "Ana" } });
+    rerender(<FiltrosSesiones filtros={{ nivel: "high" }} onCambio={nueva} />);
+    act(() => vi.advanceTimersByTime(ESPERA_BUSQUEDA_MS));
+    expect(vieja).not.toHaveBeenCalled();
+    expect(nueva).toHaveBeenCalledWith({ q: "Ana" });
+  });
+
+  it("la búsqueda guardada sin el espacio final no le borra el espacio al campo", () => {
+    const onCambio = vi.fn();
+    const { rerender } = render(<FiltrosSesiones filtros={{}} onCambio={onCambio} />);
+    const campo = screen.getByLabelText("Buscar alumno");
+    fireEvent.change(campo, { target: { value: "Juan " } });
+    act(() => vi.advanceTimersByTime(ESPERA_BUSQUEDA_MS));
+    expect(onCambio).toHaveBeenLastCalledWith({ q: "Juan" });
+    rerender(<FiltrosSesiones filtros={{ q: "Juan" }} onCambio={onCambio} />);
+    expect(campo).toHaveValue("Juan ");
+  });
+
+  it("si la búsqueda cambia desde afuera mientras se espera, lo tecleado no se escribe", () => {
+    const onCambio = vi.fn();
+    const { rerender } = render(<FiltrosSesiones filtros={{ q: "Ana" }} onCambio={onCambio} />);
+    fireEvent.change(screen.getByLabelText("Buscar alumno"), { target: { value: "Ana M" } });
+    rerender(<FiltrosSesiones filtros={{}} onCambio={onCambio} />);
+    act(() => vi.advanceTimersByTime(ESPERA_BUSQUEDA_MS));
+    expect(onCambio).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Buscar alumno")).toHaveValue("");
   });
 });

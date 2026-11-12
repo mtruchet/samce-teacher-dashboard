@@ -1,5 +1,6 @@
 import { API_CONFIG } from "../config/api.config";
 import { getStoredSession } from "./authService";
+import type { FiltrosSesiones } from "../filtrosDeLaDireccion";
 
 /**
  * Los exámenes monitoreados del docente y sus sesiones.
@@ -222,6 +223,13 @@ export const SESIONES_TOPE = 1000;
  * primera; el panel lo sube de a 50 con «Ver más» y sigue refrescando todo lo
  * que ya mostró.
  */
+/** Un total que no es un número entero no negativo (cabecera ausente, vacía o rara) no se usa: así nunca se ve «NaN de 30». */
+function cifra(valor: string | null): number | null {
+  if (valor === null || valor.trim() === "") return null;
+  const n = Number(valor);
+  return Number.isInteger(n) && n >= 0 ? n : null;
+}
+
 export async function traerSesiones(
   examenId: number,
   limite = SESIONES_POR_PAGINA,
@@ -234,28 +242,15 @@ export async function traerSesiones(
   if (filtros.estado) consulta.set("status", filtros.estado);
   if (filtros.analisis) consulta.set("analysis", filtros.analisis);
   if (filtros.q) consulta.set("q", filtros.q);
-  if (filtros.orden && filtros.orden !== "started_at") consulta.set("sort", filtros.orden);
+  if (filtros.orden) consulta.set("sort", filtros.orden);
 
   const respuesta = await pedirRespuesta(`${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?${consulta}`);
   const cuerpo = (await respuesta.json()) as Sesion[] | { sessions: Sesion[]; summary: ResumenDeEvaluacion };
-  const total = respuesta.headers.get("X-Total-Count");
+  const total = cifra(respuesta.headers.get("X-Total-Count"));
   // Lectura tolerante: un backend sin el resumen devuelve el arreglo de siempre.
   return Array.isArray(cuerpo)
-    ? { sesiones: cuerpo, total: total === null ? null : Number(total), resumen: null }
-    : { sesiones: cuerpo.sessions, total: total === null ? null : Number(total), resumen: cuerpo.summary };
-}
-
-/**
- * Lo que el docente pidió sobre la lista de un examen (HU04). Vive en la dirección de la página, así
- * sobrevive a la actualización automática, al botón Atrás y a la vuelta por las migas. Vacío es la
- * lista de siempre. `analisis` solo lo escriben las tarjetas del resumen de la evaluación.
- */
-export interface FiltrosSesiones {
-  nivel?: NivelDeRiesgo;
-  estado?: "open" | "finished";
-  analisis?: "no_alerts" | "not_analyzed" | "insufficient_evidence" | "unavailable";
-  q?: string;
-  orden?: "started_at" | "risk_level";
+    ? { sesiones: cuerpo, total, resumen: null }
+    : { sesiones: cuerpo.sessions, total, resumen: cuerpo.summary };
 }
 
 /**

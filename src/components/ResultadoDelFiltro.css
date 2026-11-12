@@ -1,0 +1,14 @@
+/* El renglón del resultado de un filtro, dentro de la lámina de control: la cifra y el botón de texto en la
+   misma línea de base, sin caja ni línea que los separe del resto. */
+.control__resultado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e1) var(--e3);
+}
+
+.control__cifra {
+  margin: 0;
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+}
