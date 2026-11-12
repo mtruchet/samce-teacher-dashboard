@@ -60,4 +60,23 @@ describe("AvisoAlertas", () => {
     rerender(<AvisoAlertas sesiones={[...viejas]} clave="3" />);
     expect(region()).toHaveTextContent("");
   });
+
+  it("un segundo anuncio con el mismo texto va en un nodo nuevo, para que el lector lo lea", () => {
+    const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, null), sesion(2, null), sesion(3, null), sesion(4, null)]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "low"), sesion(2, "low"), sesion(3, null), sesion(4, null)]} clave="3" />);
+    const primero = region().firstElementChild;
+    expect(primero).toHaveTextContent("Nuevas alertas en 2 sesiones.");
+    rerender(<AvisoAlertas sesiones={[sesion(1, "low"), sesion(2, "low"), sesion(3, "low"), sesion(4, "low")]} clave="3" />);
+    const segundo = region().firstElementChild;
+    expect(segundo).toHaveTextContent("Nuevas alertas en 2 sesiones.");
+    expect(segundo).not.toBe(primero);
+  });
+
+  it("una vuelta sin novedades no vuelve a escribir el anuncio", () => {
+    const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, null)]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "medium")]} clave="3" />);
+    const antes = region().firstElementChild;
+    rerender(<AvisoAlertas sesiones={[sesion(1, "medium")]} clave="3" />);
+    expect(region().firstElementChild).toBe(antes);
+  });
 });

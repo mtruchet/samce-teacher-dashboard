@@ -39,6 +39,12 @@
   color: var(--tinta);
 }
 
+/* `.filtros__campo select` le gana por especificidad al anillo de base.css: sin esto, el foco no se ve. */
+.filtros__campo select:focus-visible,
+.filtros__campo input:focus-visible {
+  box-shadow: 0 0 0 2px var(--sup-1), 0 0 0 4px var(--celeste);
+}
+
 .filtros__campo input::placeholder {
   color: var(--tinta-suave);
 }

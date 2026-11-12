@@ -82,6 +82,14 @@ function leerFiltros(parametros: URLSearchParams): FiltrosDeLista {
 }
 
 /**
+ * La consulta que de verdad se le pide al backend, como texto. Sirve para saber de qué pedido es una
+ * respuesta: con el detalle abierto se pide sin filtrar, y esa respuesta no vale para la lista filtrada.
+ */
+function claveDePedido(filtros: FiltrosDeLista): string {
+  return [filtros.nivel, filtros.estado, filtros.analisis, filtros.q, filtros.orden].map((v) => v ?? "").join("|");
+}
+
+/**
  * Numera los intentos de cada alumno dentro de un examen, por orden de
  * comienzo. El cuestionario admite reintentos, así que sin esto dos filas del
  * mismo alumno quedan idénticas y no hay manera de saber cuál es cuál.
@@ -149,6 +157,8 @@ export function Panel() {
   // son: las de los demás no se piden.
   const [cargadas, setCargadas] = useState<{
     examenId: number;
+    /** De qué examen y consulta es la respuesta: `${examen}|${claveDePedido(lo pedido)}`. */
+    vista: string;
     lista: SesionDeExamen[];
     /** Cuántas cumplen el filtro en toda la evaluación (X-Total-Count); null con un backend viejo. */
     total: number | null;
@@ -229,7 +239,13 @@ export function Panel() {
       setRecibido(true);
       setCargadas(
         elegido && respuesta
-          ? { examenId: elegido.id, lista: delElegido, total: respuesta.total, resumen: respuesta.resumen }
+          ? {
+              examenId: elegido.id,
+              vista: `${examenElegido}|${claveDePedido(delPedido)}`,
+              lista: delElegido,
+              total: respuesta.total,
+              resumen: respuesta.resumen,
+            }
           : null
       );
       setEnlace("vivo");
@@ -407,7 +423,19 @@ export function Panel() {
       : delEsteExamen.map((s) => ({ ...s, intento: 1, intentos: 1 }));
   // Con un filtro, el total que vale es el que dice el backend para el filtro, no el del examen.
   const conFiltro = hayFiltro && !sesionElegida;
-  const totalDeLaVista = conFiltro && cargadas?.total != null ? cargadas.total : totalDelExamen;
+  // «N de M» vale solo si la respuesta es del pedido de esta vista. Al volver del detalle (que pide sin
+  // filtrar) la última respuesta es de todo el examen, y mostrar su total daba «M de M» hasta la siguiente.
+  const pedidoDeLaVista = `${examenElegido}|${claveDePedido(filtros)}`;
+  const respuestaDelFiltro = conFiltro && cargadas?.vista === pedidoDeLaVista && cargadas.total != null;
+  const totalDeLaVista = respuestaDelFiltro ? cargadas.total! : totalDelExamen;
+  // «N de M sesiones» se ve siempre al día, pero se anuncia una sola vez por filtro: con la primera respuesta
+  // de ese filtro. Las vueltas del refresco cambian el número en silencio.
+  const [anuncioFiltro, setAnuncioFiltro] = useState({ vista: "", texto: "" });
+  if (respuestaDelFiltro && anuncioFiltro.vista !== vistaDeLista) {
+    setAnuncioFiltro({ vista: vistaDeLista, texto: `${cargadas.total} de ${totalDelExamen} sesiones` });
+  } else if (!conFiltro && anuncioFiltro.vista !== "") {
+    setAnuncioFiltro({ vista: "", texto: "" });
+  }
 
   // La sesión se busca entre las del examen, que son las que el backend
   // devolvió para este docente. Una dirección con una sesión que no está ahí
@@ -643,10 +671,15 @@ export function Panel() {
                 ) : null}
                 <FiltrosSesiones filtros={filtros} onCambio={aplicarFiltros} />
                 {/* Con un filtro, «N de M sesiones» en una región que solo contiene la frase. */}
-                <p className="filtros-resultado" role="status" aria-atomic="true">
-                  {conFiltro && cargadas?.total != null ? `${cargadas.total} de ${totalDelExamen} sesiones` : ""}
+                <p className="filtros-resultado">
+                  {respuestaDelFiltro ? `${cargadas.total} de ${totalDelExamen} sesiones` : ""}
                 </p>
-                {conFiltro && cargadas?.total === 0 ? (
+                {/* La región viva habla una vez por filtro. La clave pone el texto en un nodo nuevo, así dos
+                    filtros seguidos con la misma cifra también se anuncian. */}
+                <p className="solo-lectores" role="status">
+                  <span key={anuncioFiltro.vista}>{anuncioFiltro.texto}</span>
+                </p>
+                {respuestaDelFiltro && cargadas.total === 0 ? (
                   <div className="panel__vacio">
                     <p>Ninguna sesión coincide con el filtro.</p>
                     <button type="button" className="panel__ver-mas" onClick={quitarFiltros}>

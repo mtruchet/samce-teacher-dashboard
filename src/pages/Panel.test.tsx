@@ -300,9 +300,44 @@ describe("Los filtros de la lista de sesiones", () => {
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1));
     montar("/panel?examen=1&nivel=high");
     await esperar();
-    expect(screen.getByText("1 de 2 sesiones")).toBeInTheDocument();
+    // Una vez a la vista y una en la región viva.
+    expect(screen.getAllByText("1 de 2 sesiones")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "En curso" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Finalizadas" })).toBeNull();
+  });
+
+  it("«N de M» se anuncia una vez por filtro: el refresco cambia la cifra a la vista sin volver a anunciarla", async () => {
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1));
+    montar("/panel?examen=1&nivel=high");
+    await esperar();
+    const viva = () => screen.getAllByRole("status").find((r) => /de \d+ sesiones/.test(r.textContent ?? ""));
+    expect(viva()).toHaveTextContent("1 de 2 sesiones");
+    const nodo = viva()!.firstElementChild;
+    vi.mocked(sesionesService.traerExamenes).mockResolvedValue([{ ...EXAMEN, open_sessions: 2 }]);
+    await esperar(sesionesService.CADENCIA_MS);
+    expect(document.querySelector(".filtros-resultado")).toHaveTextContent("1 de 3 sesiones");
+    expect(viva()).toHaveTextContent("1 de 2 sesiones");
+    expect(viva()!.firstElementChild).toBe(nodo);
+  });
+
+  it("al volver del detalle a una lista filtrada no muestra el total del examen como si fuera el del filtro", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue({
+      state: "not_analyzed", reason: null, calculated_at: null, alerts: [],
+    });
+    // El detalle pide sin filtrar y recibe las dos sesiones del examen. La lista filtrada, al volver, todavía
+    // no contestó: hasta que conteste no hay cifra que mostrar.
+    vi.spyOn(sesionesService, "traerSesiones").mockImplementation((_examen, _limite, filtros) =>
+      filtros?.nivel ? new Promise(() => undefined) : Promise.resolve(pagina([rindiendo, entregadaHaceRato()], 2))
+    );
+    montar("/panel?examen=1&sesion=6&nivel=high", ["/panel?examen=1&nivel=high"]);
+    await esperar();
+    expect(screen.getByRole("heading", { level: 1, name: "Bruno Pérez" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Atrás del navegador" }));
+    await esperar();
+    expect(screen.queryByText(/\d+ de \d+ sesiones/)).toBeNull();
+    expect(document.querySelector(".filtros-resultado")).toHaveTextContent("");
   });
 
   it("si ninguna coincide lo dice, y «Quitar filtros» vuelve a la lista completa", async () => {

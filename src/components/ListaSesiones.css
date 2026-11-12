@@ -32,6 +32,8 @@
   max-height: min(52vh, 520px);
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* Al volver con Mayús+Tab, el encabezado fijo de la tabla (25 px) tapaba el «Ver» de la fila de arriba. */
+  scroll-padding-top: var(--e10);
 }
 
 /* ==== La tabla ========================================================= */
@@ -192,9 +194,60 @@
     display: none;
   }
 
-  .tabla th:not(:first-child),
+  /* La fila se apila: el alumno, la duración y «Ver» en un renglón, y el análisis entero abajo, alineado
+     con el nombre. Las celdas siguen siendo celdas de la tabla; los rótulos de columna quedan para los
+     lectores de pantalla. */
+  .tabla,
+  .tabla tbody {
+    display: block;
+  }
+
+  .tabla thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .tabla tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "alumno tiempo eventos"
+      "analisis analisis analisis";
+    align-items: center;
+    column-gap: var(--e2);
+    padding-block: var(--e2);
+  }
+
+  /* Sin `display`: como hijas de la grilla, las celdas ya se dibujan como bloques, y la hora de comienzo
+     sigue oculta por la regla de arriba. */
+  .tabla td,
   .tabla td:not(:first-child) {
-    width: 96px;
+    width: auto;
+    height: auto;
+    padding: 0 var(--e1);
+  }
+
+  .tabla td:first-child {
+    grid-area: alumno;
+  }
+
+  .tabla td.tabla__duracion {
+    grid-area: tiempo;
+  }
+
+  .tabla td.tabla__eventos {
+    grid-area: eventos;
+  }
+
+  /* El margen de la celda, el ícono (18 px) y su separación: el análisis empieza donde el nombre. */
+  .tabla td.tabla__analisis {
+    grid-area: analisis;
+    padding-left: calc(var(--e3) + 18px + var(--e3));
+    white-space: normal;
   }
 
   /* Un nombre largo baja de renglón antes que empujar la tabla de costado. */

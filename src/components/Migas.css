@@ -27,7 +27,9 @@
 }
 
 .migas__volver {
-  padding: 0;
+  /* 24 px de alto como mínimo: el blanco que piden las pautas de accesibilidad para tocar o hacer clic. */
+  min-height: 24px;
+  padding: 2px 0;
   border: 0;
   background: none;
   font: inherit;

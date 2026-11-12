@@ -1,8 +1,9 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { Evento } from "../services/sesionesService";
 import { cortesDeConexion, describirEvento, horaCorta, horaExacta } from "../eventos";
 import { conHuecos } from "../huecos";
 import { Silencio } from "../iconos";
+import { AnuncioVivo, useAnuncio } from "./AnuncioVivo";
 import "./ListaEventos.css";
 
 /**
@@ -44,6 +45,9 @@ import "./ListaEventos.css";
 /** Cuántas filas se agregan con cada «Mostrar más». */
 export const TANDA = 50;
 
+/** Cuánto dura resaltada la fila a la que se saltó. */
+const RESALTADO_MS = 2000;
+
 function Hora({ evento }: { evento: Evento }) {
   return (
     <time
@@ -66,11 +70,20 @@ function Hora({ evento }: { evento: Evento }) {
  * tanto. El evento de una fila ya guardada no cambia nunca, así que comparar la
  * referencia alcanza.
  */
-const Fila = memo(function Fila({ evento, cortadaMs }: { evento: Evento; cortadaMs?: number }) {
+const Fila = memo(function Fila({
+  evento,
+  cortadaMs,
+  destacada,
+}: {
+  evento: Evento;
+  cortadaMs?: number;
+  /** Si es la fila a la que se acaba de saltar desde «Momentos para revisar». */
+  destacada: boolean;
+}) {
   const { titulo, detalle, icono: Icono } = describirEvento(evento, { cortadaMs });
   // El `id` y el foco programático son el destino del salto desde «Momentos para revisar».
   return (
-    <tr id={`evento-${evento.id}`} tabIndex={-1}>
+    <tr id={`evento-${evento.id}`} tabIndex={-1} className={destacada ? "eventos__fila--destacada" : undefined}>
       <td className="eventos__hora"><Hora evento={evento} /></td>
       <td className="eventos__que">
         <span className="eventos__tipo">
@@ -103,21 +116,45 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
 
   // Si la fila pedida no está entre las que se ven, se muestran filas hasta incluirla; después se la lleva a
   // la vista, recibe el foco y queda resaltada un momento.
-  const indiceDestacado = destacado
-    ? entradas.findIndex((e) => e.clase !== "hueco" && e.evento.id === destacado.id)
+  // Cada pedido (`vez`) se atiende una sola vez: «Mostrar N más» y los eventos nuevos no vuelven a llevar el
+  // foco a la fila.
+  const atendido = useRef(0);
+  // El resaltado es estado de React y no una clase puesta a mano: con dos saltos seguidos, la clase de la
+  // primera fila quedaba puesta, y una fila que se volvía a dibujar la perdía antes de tiempo.
+  const [resaltada, setResaltada] = useState<{ id: number; vez: number } | null>(null);
+  // Un solo temporizador: cada salto cancela el anterior y arranca otro.
+  const apagar = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(apagar.current), []);
+  const pendiente = destacado && destacado.vez !== atendido.current ? destacado : null;
+  const indiceDestacado = pendiente
+    ? entradas.findIndex((e) => e.clase !== "hueco" && e.evento.id === pendiente.id)
     : -1;
   if (indiceDestacado >= visibles) setVisibles(indiceDestacado + 1);
   useEffect(() => {
-    if (!destacado) return;
+    if (!destacado || destacado.vez === atendido.current) return;
     const fila = document.getElementById(`evento-${destacado.id}`);
     if (!fila) return;
+    atendido.current = destacado.vez;
     const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     fila.scrollIntoView?.({ block: "center", behavior: reducido ? "auto" : "smooth" });
     fila.focus({ preventScroll: true });
-    fila.classList.add("eventos__fila--destacada");
-    const quitar = window.setTimeout(() => fila.classList.remove("eventos__fila--destacada"), 2000);
-    return () => window.clearTimeout(quitar);
+    setResaltada({ id: destacado.id, vez: destacado.vez });
+    window.clearTimeout(apagar.current);
+    apagar.current = window.setTimeout(() => setResaltada(null), RESALTADO_MS);
   }, [destacado, visibles]);
+
+  // «Se ven los N eventos más recientes de M» queda a la vista y al día, pero se anuncia solo cuando el
+  // docente pide más filas: un evento nuevo cambia la cifra en silencio.
+  const [anuncioVistos, anunciar] = useAnuncio();
+  const mostrar = (cuantas: number) => {
+    setVisibles(cuantas);
+    const vistos = entradas.slice(0, cuantas).filter((e) => e.clase !== "hueco").length;
+    anunciar(
+      vistos < eventos.length
+        ? `Se ven los ${vistos.toLocaleString("es-AR")} eventos más recientes de ${eventos.length.toLocaleString("es-AR")}.`
+        : `Se ven los ${eventos.length.toLocaleString("es-AR")} eventos.`
+    );
+  };
 
   if (eventos.length === 0) return <>{vacio}</>;
 
@@ -167,27 +204,35 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
                 );
               }
 
-              return <Fila key={entrada.clave} evento={entrada.evento} cortadaMs={cortes.get(entrada.evento.id)} />;
+              return (
+                <Fila
+                  key={entrada.clave}
+                  evento={entrada.evento}
+                  cortadaMs={cortes.get(entrada.evento.id)}
+                  destacada={resaltada?.id === entrada.evento.id}
+                />
+              );
             })}
           </tbody>
         </table>
       </div>
       {quedan > 0 ? (
         <div className="eventos__mas">
-          <p className="eventos__vistos" role="status">
+          <p className="eventos__vistos">
             Se ven los {eventosVistos.toLocaleString("es-AR")} eventos más recientes de{" "}
             {eventos.length.toLocaleString("es-AR")}.
           </p>
           <div className="eventos__botones">
-            <button type="button" className="eventos__boton" onClick={() => setVisibles((v) => v + TANDA)}>
+            <button type="button" className="eventos__boton" onClick={() => mostrar(visibles + TANDA)}>
               Mostrar {Math.min(TANDA, quedan).toLocaleString("es-AR")} más
             </button>
-            <button type="button" className="eventos__boton" onClick={() => setVisibles(entradas.length)}>
+            <button type="button" className="eventos__boton" onClick={() => mostrar(entradas.length)}>
               Mostrar todos
             </button>
           </div>
         </div>
       ) : null}
+      <AnuncioVivo aviso={anuncioVistos} etiqueta="Eventos a la vista" />
     </>
   );
 }

@@ -89,7 +89,7 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
                 <th scope="col">Alumno</th>
                 <th scope="col" className="tabla__analisis">Análisis</th>
                 <th scope="col" className="tabla__der tabla__hora">Comenzó</th>
-                <th scope="col" className="tabla__der">
+                <th scope="col" className="tabla__der tabla__duracion">
                   {cerradas ? "Duración" : "Transcurrido"}
                 </th>
                 <th scope="col" className="tabla__der tabla__eventos">Eventos</th>
@@ -134,7 +134,7 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
                     <td className="tabla__der tabla__hora">
                       <span className="cifra">{comienzo(s.started_at)}</span>
                     </td>
-                    <td className="tabla__der">
+                    <td className="tabla__der tabla__duracion">
                       {/* Un intento sin entregar no tiene una duración que el panel
                           conozca: el cierre es cuando Moodle procesó el abandono,
                           que puede ser mucho después de que el alumno dejó de

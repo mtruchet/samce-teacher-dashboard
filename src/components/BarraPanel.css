@@ -24,6 +24,11 @@
   background: rgb(255 255 255 / 20%);
 }
 
+/* La barra es fija: al tabular hacia atrás, lo enfocado quedaba debajo de ella a 390 px. */
+html:has(.barra) {
+  scroll-padding-top: calc(var(--panel-barra) + var(--e2));
+}
+
 .barra__pantalla:focus-visible {
   outline: 2px solid var(--celeste);
   outline-offset: 2px;

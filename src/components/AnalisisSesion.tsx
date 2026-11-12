@@ -12,6 +12,7 @@ import {
   type Analisis,
   type SesionNumerada,
 } from "../services/sesionesService";
+import { AnuncioVivo, useAnuncio } from "./AnuncioVivo";
 import { EvolucionRiesgo } from "./EvolucionRiesgo";
 import { HistorialAlertas } from "./HistorialAlertas";
 import { MedidorNivel } from "./MedidorNivel";
@@ -204,7 +205,7 @@ function novedades(antes: AlertaDeSesion[], ahora: AlertaDeSesion[]): string {
   for (const a of ahora) {
     const previa = antes.find((b) => b.origin === a.origin);
     const donde = ORIGENES[a.origin].toLowerCase();
-    if (!previa) frases.push(`Apareció una alerta ${donde}: riesgo ${PALABRA_DEL_NIVEL[a.level]}.`);
+    if (!previa) frases.push(`Nueva alerta ${donde}: riesgo ${PALABRA_DEL_NIVEL[a.level]}.`);
     else if (PESO_DEL_NIVEL[a.level] > PESO_DEL_NIVEL[previa.level]) {
       frases.push(`La alerta ${donde} subió a riesgo ${PALABRA_DEL_NIVEL[a.level]}.`);
     }
@@ -215,7 +216,8 @@ function novedades(antes: AlertaDeSesion[], ahora: AlertaDeSesion[]): string {
 export function AnalisisSesion({ sesion, onVencida }: Props) {
   const [analisis, setAnalisis] = useState<Analisis | null>(null);
   // La frase del anuncio y las alertas de la consulta anterior, para saber qué cambió.
-  const [anuncio, setAnuncio] = useState("");
+  // Cada novedad va en un nodo nuevo: dos novedades seguidas con la misma frase se leen las dos veces.
+  const [anuncio, anunciar] = useAnuncio();
   const anteriores = useRef<AlertaDeSesion[] | null>(null);
   const [sinConexion, setSinConexion] = useState(false);
   // El aviso de vencida va en una referencia: el panel se redibuja con cada respuesta de su
@@ -267,10 +269,10 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
     // La primera respuesta solo se memoriza: lo que ya estaba al abrir no es nuevo.
     if (anteriores.current !== null) {
       const frase = novedades(anteriores.current, analisis.alerts);
-      if (frase) setAnuncio(frase);
+      if (frase) anunciar(frase);
     }
     anteriores.current = analisis.alerts;
-  }, [analisis]);
+  }, [analisis, anunciar]);
 
   return (
     <section className="analisis" aria-labelledby="analisis-titulo">
@@ -326,9 +328,7 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
       {/* Región viva aparte, con solo la frase de lo nuevo: «role=status» lleva aria-atomic verdadero de forma
           implícita, y envolviendo todo el apartado hacía releerlo entero ante cualquier cambio. Lleva nombre
           porque el componente tiene otros dos «role=status» (el aviso sin conexión y «Cargando»). */}
-      <p className="solo-lectores" role="status" aria-live="polite" aria-atomic="false" aria-label="Alertas de la sesión">
-        {anuncio}
-      </p>
+      <AnuncioVivo aviso={anuncio} etiqueta="Alertas de la sesión" />
     </section>
   );
 }

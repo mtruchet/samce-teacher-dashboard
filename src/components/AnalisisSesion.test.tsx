@@ -531,6 +531,34 @@ describe("AnalisisSesion", () => {
     expect(within(region).queryByText("Riesgo alto")).not.toBeInTheDocument();
   });
 
+  it("dos novedades con la misma frase se anuncian las dos veces, y una vuelta sin novedades no toca la región", async () => {
+    const traer = vi.spyOn(sesionesService, "traerAnalisis");
+    traer.mockResolvedValueOnce(analisis());
+    render(<AnalisisSesion sesion={sesionNumerada({ status: "open" })} onVencida={nada} />);
+    await esperar();
+    const region = screen.getByRole("status", { name: "Alertas de la sesión" });
+
+    traer.mockResolvedValueOnce(analisis({ alerts: [alerta({ level: "low" })] }));
+    await esperar(sesionesService.CADENCIA_MS);
+    const frase = "Nueva alerta en toda la sesión: riesgo bajo.";
+    expect(region).toHaveTextContent(frase);
+    for (const lista of [RECHAZADOS, MARCADOS_EN_LA_RONDA_1, MARCADOS_EN_LA_RONDA_2, MARCADOS_EN_LA_RONDA_3, TECNICAS]) {
+      expect(frase).not.toMatch(lista);
+    }
+    const primera = region.firstChild;
+
+    // Una vuelta sin nada nuevo conserva el nodo: el lector no vuelve a leer nada.
+    traer.mockResolvedValueOnce(analisis());
+    await esperar(sesionesService.CADENCIA_MS);
+    expect(region.firstChild).toBe(primera);
+
+    // La misma frase otra vez va en un nodo nuevo, y por eso se vuelve a leer.
+    traer.mockResolvedValue(analisis({ alerts: [alerta({ level: "low" })] }));
+    await esperar(sesionesService.CADENCIA_MS);
+    expect(region.firstChild).not.toBe(primera);
+    expect(region).toHaveTextContent(frase);
+  });
+
   it("una sesión entregada hace mucho no sigue preguntando", async () => {
     const traer = vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis());
     const entregada = sesionNumerada({ status: "closed", closed_at: new Date(Date.now() - 60 * 60 * 1000).toISOString() });

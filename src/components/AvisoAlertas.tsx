@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { nombreDeAlumno, type Sesion } from "../services/sesionesService";
+import { AnuncioVivo, useAnuncio } from "./AnuncioVivo";
 
 type Nivel = NonNullable<Sesion["risk_level"]>;
 
@@ -21,7 +22,8 @@ const PALABRA: Record<Nivel, string> = { low: "bajo", medium: "medio", high: "al
  */
 export function AvisoAlertas({ sesiones, clave }: { sesiones: Sesion[]; clave: string }) {
   const memoria = useRef<{ clave: string; niveles: Map<number, Sesion["risk_level"]> } | null>(null);
-  const [mensaje, setMensaje] = useState("");
+  // Cada anuncio va en un nodo nuevo, así un anuncio igual al anterior también se lee.
+  const [aviso, anunciar] = useAnuncio();
 
   useEffect(() => {
     const anterior = memoria.current;
@@ -37,15 +39,11 @@ export function AvisoAlertas({ sesiones, clave }: { sesiones: Sesion[]; clave: s
     }
     if (nuevas.length === 1) {
       const { sesion, nivel } = nuevas[0];
-      setMensaje(`Nueva alerta en la sesión de ${nombreDeAlumno(sesion)}: riesgo ${PALABRA[nivel]}.`);
+      anunciar(`Nueva alerta en la sesión de ${nombreDeAlumno(sesion)}: riesgo ${PALABRA[nivel]}.`);
     } else if (nuevas.length > 1) {
-      setMensaje(`Nuevas alertas en ${nuevas.length} sesiones.`);
+      anunciar(`Nuevas alertas en ${nuevas.length} sesiones.`);
     }
-  }, [sesiones, clave]);
+  }, [sesiones, clave, anunciar]);
 
-  return (
-    <p role="status" aria-live="polite" aria-atomic="false" className="solo-lectores">
-      {mensaje}
-    </p>
-  );
+  return <AnuncioVivo aviso={aviso} />;
 }
