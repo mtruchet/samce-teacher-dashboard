@@ -5,7 +5,7 @@ import { choquesConLasListas } from "./test/lenguaje";
 
 const metrica = (clave: Metrica["clave"]) => METRICAS.find((m) => m.clave === clave) as Metrica;
 
-describe("las formas de las métricas (D5)", () => {
+describe("valorDeMetrica: las formas de las métricas (D5, pendiente 10)", () => {
   it("las duraciones, con el uno en letras", () => {
     const tabla: Array<[number, string]> = [
       [0, "menos de un segundo"],

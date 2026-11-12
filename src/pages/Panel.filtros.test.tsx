@@ -14,7 +14,7 @@ const CADENCIA = sesionesService.CADENCIA_MS;
 const viva = () => screen.getByRole("status", { name: "Resultado del filtro" });
 const resultado = () => document.querySelector(".control__resultado");
 
-describe("Los filtros de la lista de sesiones", () => {
+describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     ingresar();
@@ -96,7 +96,7 @@ describe("Los filtros de la lista de sesiones", () => {
     expect(direccion().toString()).toBe("examen=1");
   });
 
-  it("la miga del examen, desde el detalle, vuelve a la lista con el filtro", async () => {
+  it("P5: la miga del examen, desde el detalle, vuelve a la lista con el filtro", async () => {
     simularSesiones([rindiendo]);
     montar("/panel?examen=1&sesion=6&nivel=high");
     await esperar();

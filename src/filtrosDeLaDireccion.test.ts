@@ -11,7 +11,7 @@ import {
 
 const dir = (texto: string) => new URLSearchParams(texto);
 
-describe("leerFiltros", () => {
+describe("leerFiltros: la lectura de la dirección (pendiente 10)", () => {
   it("devuelve siempre las cinco claves, en vacío sin filtros", () => {
     expect(leerFiltros(dir("examen=1"))).toEqual({
       nivel: undefined,

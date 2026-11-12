@@ -13,7 +13,7 @@ import { EXAMEN, direccion, ingresar, montar, rindiendo, ultimoPedido } from "..
 const RESUMEN = resumen({ risk_high: 1, no_alerts: 1 });
 const resultado = () => document.querySelector(".control__resultado");
 
-describe("El resumen de la evaluación en el panel", () => {
+describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     ingresar();

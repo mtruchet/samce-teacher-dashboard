@@ -66,14 +66,25 @@ describe("Enrutado y acceso", () => {
 
   it("canjea el token de lanzamiento y entra al panel", async () => {
     window.history.pushState({}, "", "/auth/callback?token=un-token-de-lanzamiento");
-    vi.spyOn(authService, "verifyMoodleLaunch").mockImplementation(async () => {
-      guardarSesion();
-      return SESION;
-    });
+    // El canje queda pendiente hasta soltarlo: si contestara enseguida, según el orden en que corren las
+    // pruebas (con --sequence.shuffle --sequence.seed=33, por ejemplo) la pantalla ya pasaba al panel antes
+    // de que la prueba alcanzara a ver «Verificando el acceso».
+    let soltar: (() => void) | undefined;
+    vi.spyOn(authService, "verifyMoodleLaunch").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          soltar = () => {
+            guardarSesion();
+            resolve(SESION);
+          };
+        })
+    );
 
     render(<App />);
 
     expect(await screen.findByText(/Verificando el acceso/i)).toBeInTheDocument();
+    await waitFor(() => expect(soltar).toBeDefined());
+    soltar!();
 
     await waitFor(() => {
       expect(

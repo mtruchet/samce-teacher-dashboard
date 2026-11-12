@@ -474,7 +474,7 @@ describe("describirEvento", () => {
   });
 });
 
-describe("eventosCriticos", () => {
+describe("eventosCriticos (pendiente 10, momentos para revisar de HU05_T02)", () => {
   const titulos = (eventos: ReturnType<typeof evento>[]) => eventosCriticos(eventos).map((c) => [c.evento.id, c.titulo]);
 
   it("una salida a otra ventana con su vuelta y después una ocultación son dos momentos", () => {
@@ -486,6 +486,10 @@ describe("eventosCriticos", () => {
 
   it("una pérdida de foco seguida de una ocultación es una sola salida, con el salto a la primera", () => {
     expect(titulos([evento(1, "focus_lost"), evento(2, "visibility_hidden")])).toEqual([[1, "El examen dejó de verse en pantalla"]]);
+  });
+
+  it("en el otro orden, una ocultación seguida de una pérdida de foco también es una sola salida", () => {
+    expect(titulos([evento(1, "visibility_hidden"), evento(2, "focus_lost")])).toEqual([[1, "El examen dejó de verse en pantalla"]]);
   });
 
   it("una ocultación sola es un momento", () => {

@@ -84,7 +84,7 @@ describe("AnalisisSesion", () => {
     expect(screen.queryByText(/Analizada/)).not.toBeInTheDocument();
   });
 
-  it("sin analizar y cerrada: solo la frase, sin bajada ni hora", async () => {
+  it("HU05_T02, detalle real sin analizar y cerrada: solo la frase, sin bajada ni hora", async () => {
     await mostrar(analisis({ state: "not_analyzed", calculated_at: null }), CERRADA);
 
     expect(veredicto()).toHaveTextContent(/^Esta sesión todavía no se analizó\.$/);
@@ -476,7 +476,7 @@ describe("AnalisisSesion", () => {
 
   // ---- HU05 dentro del apartado real ------------------------------------------------------------
 
-  it("cerrada, con historial y métricas: evolución, historial y seis métricas, sin el índice ni lo esperado", async () => {
+  it("HU05_T02, detalle real cerrada, con historial y métricas: evolución, historial y seis métricas, sin el índice ni lo esperado", async () => {
     const conDeMas = {
       ...analisis({
         alerts: [alerta()],
@@ -510,7 +510,7 @@ describe("AnalisisSesion", () => {
     expectLenguajeLlano(container, { excluir: ".explicacion" });
   });
 
-  it("abierta: vuelve a preguntar y las métricas dicen que se muestran al terminar", async () => {
+  it("HU05_T02, detalle real abierta: vuelve a preguntar y las métricas dicen que se muestran al terminar", async () => {
     const traer = vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis({ metrics: null }));
     render(<AnalisisSesion sesion={sesionNumerada({ status: "open" })} onVencida={nada} />);
     await esperar();
@@ -521,7 +521,7 @@ describe("AnalisisSesion", () => {
     expect(document.querySelector(".metricas")).toBeNull();
   });
 
-  it("sin evidencia suficiente no hay apartado de métricas: el veredicto ya lo dice", async () => {
+  it("HU05_T02, detalle real que no se pudo analizar: sin evidencia suficiente no hay apartado de métricas: el veredicto ya lo dice", async () => {
     await mostrar(analisis({ state: "insufficient_evidence", reason: SIN_EVIDENCIA_457, metrics: metricasDelCierre() }), CERRADA);
 
     expect(screen.queryByRole("heading", { name: "Métricas de la sesión" })).not.toBeInTheDocument();

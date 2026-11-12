@@ -603,8 +603,12 @@ export function Panel() {
             ) : (
               <>
                 {/* La memoria del anuncio se vacía con el examen y con los filtros: una
-                    sesión que entra a la lista por un filtro no es una alerta nueva. */}
-                <AvisoAlertas sesiones={delExamen} clave={vistaDeLista} />
+                    sesión que entra a la lista por un filtro no es una alerta nueva. La clave es
+                    la de la respuesta que se está mostrando y no la de la dirección: con la de
+                    la dirección, al quitar un filtro se memorizaba la lista vieja con la clave
+                    nueva y la respuesta sin filtro anunciaba como nuevas las alertas que el
+                    filtro ocultaba (HU04_T02, P14). */}
+                <AvisoAlertas sesiones={delExamen} clave={cargadas?.vista ?? ""} />
                 {/* Una sola lámina de control: el resumen de la evaluación (con un backend sin el resumen
                     no se dibuja), la barra y, con un filtro, el resultado. Cada tarjeta filtra con la misma
                     función que la barra. */}

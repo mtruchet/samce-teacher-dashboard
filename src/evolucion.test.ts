@@ -8,7 +8,7 @@ const entrada = (origin: EntradaDelHistorial["origin"], level: EntradaDelHistori
   entradaDelHistorial({ origin, level, recorded_at: `2026-11-10T10:${String(minuto).padStart(2, "0")}:00Z`, carried_over });
 const alerta = (origin: AlertaDeSesion["origin"], level: AlertaDeSesion["level"]) => alertaVigente({ origin, level });
 
-describe("tramosDeRiesgo", () => {
+describe("tramosDeRiesgo (pendiente 10, HU05_T02)", () => {
   it("sin alertas, un solo tramo con el estado del último análisis", () => {
     for (const estado of ["analyzed", "not_analyzed", "insufficient_evidence", "unavailable"] as const) {
       expect(tramosDeRiesgo([], [], estado)).toEqual({ tramos: [{ tipo: "inicio", estado }], sinRegistro: [] });

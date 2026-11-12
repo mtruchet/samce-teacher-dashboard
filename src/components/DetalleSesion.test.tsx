@@ -546,7 +546,7 @@ describe("DetalleSesion", () => {
 
   // ---- Momentos para revisar, dentro del registro ----------------------------------------------
 
-  it("los momentos para revisar van adentro de la lámina del registro, entre el encabezado y la tabla", async () => {
+  it("HU05_T02, momentos: van adentro de la lámina del registro, entre el encabezado y la tabla", async () => {
     vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "clipboard", { action: "paste" })]);
     render(<DetalleSesion sesion={SESION} onVencida={nada} />);
     await esperar();
@@ -562,7 +562,7 @@ describe("DetalleSesion", () => {
     expect(document.querySelectorAll(".lamina")).toHaveLength(2);
   });
 
-  it("«Ver en el registro» lleva el foco a la fila, aunque sea la más vieja de 120", async () => {
+  it("HU05_T02, momentos: «Ver en el registro» lleva el foco a la fila, aunque esté fuera de las primeras 50 (la más vieja de 120)", async () => {
     const eventos = [
       evento(1, "clipboard", { action: "paste" }),
       ...Array.from({ length: 119 }, (_, i) => evento(i + 2, "keystroke", { count: 1 })),
@@ -597,7 +597,7 @@ describe("DetalleSesion", () => {
     expect(mas).toHaveFocus();
   });
 
-  it("con el seq desordenado, los momentos siguen el orden del registro: hora de llegada, seq e id", async () => {
+  it("HU05_T02, momentos (P8): con el seq desordenado, los momentos siguen el orden del registro: hora de llegada, seq e id", async () => {
     vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
       evento(5, "clipboard", { action: "paste" }, { id: 1, received_at: "2026-09-21T14:05:03.000Z" }),
       evento(1, "focus_lost", {}, { id: 2, received_at: "2026-09-21T14:05:03.000Z" }),

@@ -22,7 +22,7 @@ const entrada = (cambios: Partial<EntradaDelHistorial> = {}) => entradaDelHistor
 const alerta = (cambios: Partial<AlertaDeSesion> = {}) =>
   alertaVigente({ level: PRIMERO.level, explanation: PRIMERO.explanation, level_since: PRIMERO.recorded_at, ...cambios });
 
-describe("Métricas de la sesión", () => {
+describe("HU05_T02 (pendiente 10): Métricas de la sesión", () => {
   const metricas = (props: Partial<Parameters<typeof MetricasSesion>[0]> = {}) =>
     render(
       <MetricasSesion metricas={METRICAS_CIERRE} estado="analyzed" abierta={false} veredictoDiceNoDisponible={false} {...props} />
@@ -82,7 +82,7 @@ describe("Métricas de la sesión", () => {
   });
 });
 
-describe("Historial de alertas", () => {
+describe("HU05_T02 (pendiente 10): Historial de alertas", () => {
   it("cada entrada con la hora del análisis en su renglón, la marca y el rótulo del nivel con su origen", () => {
     const { container } = render(
       <HistorialAlertas
@@ -160,7 +160,7 @@ describe("Historial de alertas", () => {
   });
 });
 
-describe("Cómo cambió el riesgo", () => {
+describe("HU05_T02 (pendiente 10): Cómo cambió el riesgo", () => {
   it("una escalera en niveles, desde el inicio, con la hora de cada análisis arriba del rótulo", () => {
     const { container } = render(
       <EvolucionRiesgo
@@ -217,7 +217,7 @@ describe("Cómo cambió el riesgo", () => {
   });
 });
 
-describe("Momentos para revisar", () => {
+describe("HU05_T02 (pendiente 10): Momentos para revisar", () => {
   it("los tres tipos de eventos críticos, en el orden del registro", () => {
     const eventos = [
       evento(1, "keystroke"),
