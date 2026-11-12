@@ -9,12 +9,14 @@ interface Props {
   historial: EntradaDelHistorial[];
   alertas: AlertaDeSesion[];
   estado: EstadoDelAnalisis;
+  /** Cuándo empezó la sesión: si un análisis es de otro día, su hora lleva la fecha. */
+  inicio?: string;
 }
 
 /** «Sin alertas» → «sin alertas»: después de los dos puntos sigue la frase, en minúscula. */
 const enMinuscula = (texto: string) => texto.charAt(0).toLowerCase() + texto.slice(1);
 
-function Paso({ tramo }: { tramo: Tramo }) {
+function Paso({ tramo, inicio }: { tramo: Tramo; inicio?: string }) {
   switch (tramo.tipo) {
     case "inicio":
       return <span className="paso">Desde el inicio: {enMinuscula(ESTADOS_SIN_ALERTAS[tramo.estado])}</span>;
@@ -23,7 +25,7 @@ function Paso({ tramo }: { tramo: Tramo }) {
     case "nivel":
       return (
         <span className="paso paso--nivel" data-nivel={tramo.nivel}>
-          <HoraDelAnalisis iso={tramo.desde} className="paso__hora" como="span" />
+          <HoraDelAnalisis iso={tramo.desde} inicio={inicio} className="paso__hora" como="span" />
           <RotuloNivel nivel={tramo.nivel} />
         </span>
       );
@@ -38,19 +40,21 @@ function Paso({ tramo }: { tramo: Tramo }) {
  *
  * Debajo van los orígenes cuyo nivel vigente no quedó registrado, sin hora.
  */
-export function EvolucionRiesgo({ historial, alertas, estado }: Props) {
+export function EvolucionRiesgo({ historial, alertas, estado, inicio }: Props) {
   const { tramos, sinRegistro } = tramosDeRiesgo(historial, alertas, estado);
   return (
     <div className="apartado">
       <h3 className="apartado__titulo">Cómo cambió el riesgo</h3>
-      <ol className="pasos">
-        {tramos.map((tramo, i) => (
-          <li key={i} className="pasos__item">
-            {i > 0 ? <CaretRight className="pasos__flecha" size={14} aria-hidden="true" /> : null}
-            <Paso tramo={tramo} />
-          </li>
-        ))}
-      </ol>
+      {tramos.length > 0 ? (
+        <ol className="pasos">
+          {tramos.map((tramo, i) => (
+            <li key={i} className="pasos__item">
+              {i > 0 ? <CaretRight className="pasos__flecha" size={14} aria-hidden="true" /> : null}
+              <Paso tramo={tramo} inicio={inicio} />
+            </li>
+          ))}
+        </ol>
+      ) : null}
       {sinRegistro.map(({ origen, nivel }) => (
         <p key={origen} className="apartado__nota">
           {ORIGENES[origen]}: riesgo {PALABRA_DEL_NIVEL[nivel]}, sin registro de cuándo llegó a ese nivel.

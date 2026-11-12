@@ -19,6 +19,13 @@ describe("ListaSesiones", () => {
     expect(recuento("En curso").getByText("1 de 80")).toBeInTheDocument();
   });
 
+  it("la cuenta de la cabecera escribe los miles con punto, como «N de M sesiones» (H12)", () => {
+    render(
+      <ListaSesiones titulo="En curso" sesiones={[sesion(1, new Date().toISOString())]} total={1200} onVerEventos={verEventos} />,
+    );
+    expect(recuento("En curso").getByText("1 de 1.200")).toBeInTheDocument();
+  });
+
   it("con la lista completa muestra solo el número", () => {
     render(
       <ListaSesiones titulo="En curso" sesiones={[sesion(1, new Date().toISOString())]} total={1} onVerEventos={verEventos} />,

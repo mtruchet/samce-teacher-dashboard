@@ -1,10 +1,11 @@
 import { enCifras } from "../cifras";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { Evento } from "../services/sesionesService";
 import { cortesDeConexion, describirEvento, horaCorta, horaExacta } from "../eventos";
 import { conHuecos } from "../huecos";
 import { Silencio } from "../iconos";
-import { AnuncioVivo, useAnuncio } from "./AnuncioVivo";
+import { AnuncioVivo } from "./AnuncioVivo";
+import { useAnuncio } from "./useAnuncio";
 import "./ListaEventos.css";
 
 /**
@@ -97,6 +98,27 @@ const Fila = memo(function Fila({
   );
 });
 
+/**
+ * Si el contenido de un elemento es más ancho que el elemento (se desplaza de costado). Se vuelve a medir
+ * cuando cambia el tamaño del elemento o de su contenido.
+ */
+function useDesborde(): [RefObject<HTMLDivElement>, boolean] {
+  const ref = useRef<HTMLDivElement>(null);
+  const [desborda, setDesborda] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const medir = () => setDesborda(el.scrollWidth > el.clientWidth + 1);
+    medir();
+    if (typeof ResizeObserver === "undefined") return;
+    const observador = new ResizeObserver(medir);
+    observador.observe(el);
+    if (el.firstElementChild) observador.observe(el.firstElementChild);
+    return () => observador.disconnect();
+  });
+  return [ref, desborda];
+}
+
 interface Props {
   eventos: Evento[];
   vacio?: React.ReactNode;
@@ -147,6 +169,7 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
   // «Se ven los N eventos más recientes de M» queda a la vista y al día, pero se anuncia solo cuando el
   // docente pide más filas: un evento nuevo cambia la cifra en silencio.
   const [anuncioVistos, anunciar] = useAnuncio();
+  const [marco, desborda] = useDesborde();
   // Cuando se muestran todas, los dos botones desaparecen y el foco caía al principio de la página: va a la
   // primera fila nueva, la que sigue a la última que se veía, como en el salto desde los momentos.
   const filaQueSigue = useRef<number | null>(null);
@@ -176,15 +199,20 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
   // Los huecos no son eventos: la cuenta dice cuántos eventos se ven, que es lo que dice el encabezado.
   const eventosVistos = mostradas.filter((e) => e.clase !== "hueco").length;
 
-  // El marco recorta la tabla y se desplaza por dentro, pero adentro no hay nada
-  // que pueda recibir el foco: sin tabIndex, quien navega con teclado no pasa de
-  // la primera pantalla de filas.
   return (
     <>
       {/* Visible y no solo en la `caption`: sin esto, quien mira la tabla por
           primera vez no sabe si lo de arriba es el comienzo o el final. */}
       <p className="eventos__orden" aria-hidden="true">Lo más reciente va arriba.</p>
-      <div className="eventos__marco" tabIndex={0} role="group" aria-label="Registro de eventos">
+      {/* El marco solo se desplaza de costado si la tabla no entra. Solo entonces es una parada del
+          tabulador, para que el teclado pueda desplazarlo (adentro no hay nada que reciba el foco). Si entra,
+          que es lo normal a cualquier ancho, era una parada de más con un anillo alrededor de todo el
+          registro, y un grupo con el mismo nombre que la región que lo contiene. */}
+      <div
+        className="eventos__marco"
+        ref={marco}
+        {...(desborda ? { tabIndex: 0, role: "group", "aria-label": "Registro de eventos" } : {})}
+      >
         <table className="eventos">
           <caption className="solo-lectores">
             Eventos de la sesión, del más reciente al más viejo, uno por fila. Cada fila dice a
@@ -236,10 +264,10 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
             {enCifras(eventos.length)}.
           </p>
           <div className="eventos__botones">
-            <button type="button" className="eventos__boton" onClick={() => mostrar(visibles + TANDA)}>
+            <button type="button" className="boton-secundario" onClick={() => mostrar(visibles + TANDA)}>
               Mostrar {enCifras(Math.min(TANDA, quedan))} más
             </button>
-            <button type="button" className="eventos__boton" onClick={() => mostrar(entradas.length)}>
+            <button type="button" className="boton-secundario" onClick={() => mostrar(entradas.length)}>
               Mostrar todos
             </button>
           </div>

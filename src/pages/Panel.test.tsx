@@ -116,6 +116,33 @@ describe("El pulso del panel en el registro de un intento", () => {
     expect(screen.queryByText(QUIETO)).not.toBeInTheDocument();
   });
 
+  it("A2: al abrir una sesión el foco va al nombre del alumno y el título lo dice; al volver, al «Ver» de esa fila", async () => {
+    montar("/panel?examen=1");
+    await esperar();
+    expect(document.title).toBe("Primer Parcial — SAMCE");
+
+    const ver = screen.getByRole("button", { name: /Ver la sesión de Bruno Pérez/i });
+    ver.focus();
+    fireEvent.click(ver);
+    await esperar();
+    const h1 = screen.getByRole("heading", { level: 1, name: "Bruno Pérez" });
+    expect(h1).toHaveFocus();
+    expect(h1).toHaveAttribute("tabindex", "-1");
+    expect(document.title).toBe("Bruno Pérez — SAMCE");
+
+    fireEvent.click(screen.getByRole("button", { name: "Atrás del navegador" }));
+    await esperar();
+    expect(screen.getByRole("heading", { level: 1, name: "Primer Parcial" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Ver la sesión de Bruno Pérez/i })).toHaveFocus();
+    expect(document.title).toBe("Primer Parcial — SAMCE");
+  });
+
+  it("A2: abrir el panel directamente en una sesión no mueve el foco", async () => {
+    montar("/panel?examen=1&sesion=6");
+    await esperar();
+    expect(screen.getByRole("heading", { level: 1, name: "Bruno Pérez" })).not.toHaveFocus();
+  });
+
   it("si el registro no se puede actualizar, el pulso no dice «En vivo» aunque la lista ande", async () => {
     vi.mocked(sesionesService.traerEventos)
       .mockResolvedValueOnce([])

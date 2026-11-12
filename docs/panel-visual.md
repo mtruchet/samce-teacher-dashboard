@@ -164,7 +164,9 @@ lugar.
 - **«Cómo cambió el riesgo»** es una escalera de pastillas, de izquierda a
   derecha: el primer paso dice desde el inicio («Desde el inicio: sin alertas») y
   cada paso siguiente es una subida del nivel de la sesión, con «Análisis de las
-  HH:MM» arriba y el rótulo del nivel debajo. Debajo de 480 px pasa a una
+  HH:MM» arriba y el rótulo del nivel debajo; si el análisis es de otro día que
+  el comienzo de la sesión, dice «Análisis del 4/11 a las 00:53» (lo mismo en el
+  historial). Debajo de 480 px pasa a una
   columna. Es el único lugar que dice cómo cambió el nivel de la sesión.
 - **«Historial de alertas»**: cada aparición o subida de nivel de cada alerta,
   con la hora del análisis en su renglón, el rótulo con el origen y la
@@ -233,6 +235,10 @@ es un paso de letra más chica con la misma estructura.
 **El botón de texto.** `.boton-texto` (13 px, 600, subrayado en
 `--tinta-tenue`, fondo `--sup-3` al pasar) es «Ver», «Ver en el registro» y
 «Quitar filtros». No pisa el anillo de foco.
+
+**El botón secundario.** `.boton-secundario` (13 px, 500, 40 px de alto, borde
+fino `--sup-4`) es la única forma de traer más: «Ver más sesiones» en la lista y
+«Mostrar 50 más» / «Mostrar todos» en el registro.
 
 **La escalera.** `.pasos` es la lista de pastillas de «Cómo cambió el riesgo»,
 unidas por una flecha chica oculta para los lectores de pantalla.

@@ -1,0 +1,8 @@
+{
+  "state": "insufficient_evidence",
+  "reason": "Una parte de lo que pasó durante el examen no se pudo registrar bien por un problema técnico, así que no alcanza para analizarlo.",
+  "calculated_at": "2026-10-23T12:21:10Z",
+  "alerts": [],
+  "alert_history": [],
+  "metrics": null
+}

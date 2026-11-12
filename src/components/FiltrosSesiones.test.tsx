@@ -31,6 +31,19 @@ describe("FiltrosSesiones", () => {
     expect(onCambio).toHaveBeenLastCalledWith({ estado: undefined });
   });
 
+  it("si desde afuera llega la misma búsqueda sin el espacio del borde, el campo conserva «Juan » (H03)", () => {
+    const onCambio = vi.fn();
+    const { rerender } = render(<FiltrosSesiones filtros={{}} onCambio={onCambio} />);
+    const campo = screen.getByLabelText("Buscar alumno");
+    fireEvent.change(campo, { target: { value: "Juan " } });
+    // Antes de que termine la espera, Atrás trae una dirección con q=Juan (la dirección guarda sin espacios).
+    rerender(<FiltrosSesiones filtros={{ q: "Juan" }} onCambio={onCambio} />);
+    expect(campo).toHaveValue("Juan ");
+    // Y lo que se estaba esperando escribir ya no vale.
+    act(() => vi.advanceTimersByTime(ESPERA_BUSQUEDA_MS));
+    expect(onCambio).not.toHaveBeenCalled();
+  });
+
   it("la búsqueda espera a que se deje de escribir y no busca espacios", () => {
     const onCambio = vi.fn();
     render(<FiltrosSesiones filtros={{}} onCambio={onCambio} />);

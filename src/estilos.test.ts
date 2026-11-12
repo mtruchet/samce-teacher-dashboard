@@ -58,6 +58,14 @@ describe("las hojas de estilo", () => {
     expect(HOJAS["./styles/tokens.css"]).toMatch(/--anillo-foco:/);
   });
 
+  it("sobre las superficies oscuras el foco usa --anillo-foco-oscuro, y el celeste no marca el foco ahí (A1)", () => {
+    const base = sinComentarios(HOJAS["./styles/base.css"]).replace(/\s+/g, " ");
+    expect(base).toContain(".barra :focus-visible, .pie :focus-visible, .decision :focus-visible { box-shadow: var(--anillo-foco-oscuro); }");
+    for (const hoja of ["./components/BarraPanel.css", "./components/Pie.css"]) {
+      expect(sinComentarios(HOJAS[hoja])).not.toMatch(/outline\s*:[^;]*var\(--celeste\)/);
+    }
+  });
+
   it("nadie apaga el contorno del foco", () => {
     expect(buscar(/outline\s*:\s*(none|0)\b/)).toEqual([]);
   });

@@ -38,6 +38,12 @@ describe("AvisoAlertas", () => {
     expect(region()).toHaveTextContent("Nueva alerta en la sesión de Ana Gómez: riesgo alto.");
   });
 
+  it("no anuncia una bajada de nivel (H02)", () => {
+    const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, "high", "Ana Gómez")]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "low", "Ana Gómez")]} clave="3" />);
+    expect(region()).toHaveTextContent("");
+  });
+
   it("las frases del anuncio pasan las listas de las rondas", () => {
     const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, null, "Ana Gómez"), sesion(2, null)]} clave="3" />);
     rerender(<AvisoAlertas sesiones={[sesion(1, "high", "Ana Gómez"), sesion(2, null)]} clave="3" />);

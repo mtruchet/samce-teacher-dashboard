@@ -1,20 +1,20 @@
 import { useEffect, useRef } from "react";
 import { PALABRA_DEL_NIVEL, subio } from "../lenguajeAlerta";
-import { nombreDeAlumno, type NivelDeRiesgo, type Sesion } from "../services/sesionesService";
-import { AnuncioVivo, useAnuncio } from "./AnuncioVivo";
+import type { NivelDeRiesgo } from "../niveles";
+import { nombreDeAlumno, type Sesion } from "../services/sesionesService";
+import { AnuncioVivo } from "./AnuncioVivo";
+import { useAnuncio } from "./useAnuncio";
 
 /**
  * El anuncio accesible de una alerta nueva en la lista de sesiones (HU03).
  *
- * No se ve: es una región viva que contiene solo la frase del anuncio, así el lector de pantalla
- * dice la frase y no vuelve a leer toda la lista. `role="status"` lleva `aria-atomic` verdadero de
- * forma implícita, que es lo que hacía releer toda la región de alertas del detalle: acá se declara
- * en falso, y como la región no tiene nada más que la frase, no hay nada más que releer.
+ * No se ve: es una región viva (`AnuncioVivo`, que explica por qué no relee la lista) con solo la frase
+ * del anuncio.
  *
  * Solo anuncia una sesión que ya estaba en la respuesta anterior y cuyo nivel aparece o sube. Una
  * sesión que no estaba (porque entró por «Ver más sesiones», o por un filtro) solo se memoriza. La
- * memoria se vacía cuando cambia `clave` (el examen elegido), y la primera respuesta después de eso
- * solo memoriza. El nivel nunca baja, así que no hay anuncio de bajada.
+ * memoria se vacía cuando cambia `clave` (la vista de la respuesta que se muestra: el examen y los
+ * filtros), y la primera respuesta después de eso solo memoriza. El nivel nunca baja, así que no hay anuncio de bajada.
  */
 export function AvisoAlertas({ sesiones, clave }: { sesiones: Sesion[]; clave: string }) {
   const memoria = useRef<{ clave: string; niveles: Map<number, Sesion["risk_level"]> } | null>(null);

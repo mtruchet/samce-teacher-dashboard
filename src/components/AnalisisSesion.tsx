@@ -83,9 +83,14 @@ export function AnalisisSesion({ sesion, onVencida }: Props) {
               backend sin el historial, no se dibujan la evolución ni el historial. */}
           {analisis.alert_history ? (
             <>
-              <EvolucionRiesgo historial={analisis.alert_history} alertas={alertas} estado={analisis.state} />
+              <EvolucionRiesgo
+                historial={analisis.alert_history}
+                alertas={alertas}
+                estado={analisis.state}
+                inicio={sesion.started_at}
+              />
               {analisis.alert_history.length > 0 ? (
-                <HistorialAlertas historial={analisis.alert_history} alertas={alertas} />
+                <HistorialAlertas historial={analisis.alert_history} alertas={alertas} inicio={sesion.started_at} />
               ) : null}
             </>
           ) : null}

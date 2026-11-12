@@ -109,13 +109,12 @@ a {
 }
 
 /* Sobre las superficies oscuras (la barra, el pie y el bloque de decisiones de
-   la portada) el anillo separa con el mismo fondo oscuro, no con el claro. */
+   la portada) el anillo separa con el mismo fondo oscuro, no con el claro, y
+   la capa de afuera es clara: el celeste no se distinguía de la pizarra. */
 .barra :focus-visible,
 .pie :focus-visible,
 .decision :focus-visible {
-  box-shadow:
-    0 0 0 2px var(--sup-5),
-    0 0 0 4px var(--celeste);
+  box-shadow: var(--anillo-foco-oscuro);
 }
 
 /* El defecto más barato de arreglar: sin esto, al hacer clic en un enlace del
@@ -364,4 +363,42 @@ a {
 .boton-texto:focus-visible {
   background: var(--sup-3);
   text-decoration-color: currentcolor;
+}
+
+/* Un solo botón secundario para la misma acción de traer más: «Ver más sesiones» en la lista y «Mostrar 50
+   más» / «Mostrar todos» en el registro. Es una acción de apoyo y no la principal de la pantalla: letra de
+   fila, peso medio, 40 px de alto y el borde fino de las superficies. Antes la lista tenía el suyo, en 19 px y
+   600, más grande que los títulos de lámina. */
+.boton-secundario {
+  height: 40px;
+  padding-inline: var(--e5);
+  border: 0;
+  border-radius: var(--radio-chip);
+  background: var(--sup-1);
+  box-shadow: inset 0 0 0 1px var(--sup-4);
+  font: inherit;
+  font-size: var(--panel-fila);
+  font-weight: 500;
+  color: var(--pizarra);
+  cursor: pointer;
+  transition: background var(--mov-estado) var(--curva);
+}
+
+.boton-secundario:hover {
+  background: var(--sup-3);
+}
+
+/* La sombra del borde pisaba el anillo de :focus-visible de arriba (misma especificidad, regla posterior): se
+   repite el anillo encima del borde. Lo verifica B1 en pruebas-navegador/a11y.spec.ts. */
+.boton-secundario:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px var(--sup-4),
+    var(--anillo-foco);
+}
+
+/* Con colores forzados la sombra del borde desaparece: el botón lleva un borde del sistema. */
+@media (forced-colors: active) {
+  .boton-secundario {
+    border: 1px solid ButtonText;
+  }
 }

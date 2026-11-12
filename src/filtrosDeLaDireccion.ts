@@ -1,4 +1,7 @@
-import { NIVELES_DE_RIESGO, type NivelDeRiesgo } from "./niveles";
+import {
+  ANALISIS_FILTRO, ESTADOS_FILTRO, NIVELES_DE_RIESGO,
+  type AnalisisDelFiltro, type EstadoDelFiltro, type NivelDeRiesgo,
+} from "./niveles";
 
 /**
  * Los filtros de la lista de sesiones (HU04) tal como viven en la dirección de la página.
@@ -11,9 +14,6 @@ import { NIVELES_DE_RIESGO, type NivelDeRiesgo } from "./niveles";
 
 /** Los niveles del filtro, del más alto al más bajo: el mismo orden de las tarjetas del resumen. */
 export const NIVELES_FILTRO: readonly NivelDeRiesgo[] = [...NIVELES_DE_RIESGO].reverse();
-const ESTADOS_FILTRO = ["open", "finished"] as const;
-/** Los estados del análisis de las sesiones sin alertas. Solo los escriben las tarjetas del resumen. */
-const ANALISIS_FILTRO = ["no_alerts", "not_analyzed", "insufficient_evidence", "unavailable"] as const;
 /** Los parámetros de la dirección, en el orden en que se escriben. */
 export const PARAMETROS = ["nivel", "estado", "analisis", "q", "orden"] as const;
 /** El largo máximo de la búsqueda, en letras (puntos de código), igual que el backend. */
@@ -25,8 +25,8 @@ export const LARGO_MAXIMO_BUSQUEDA = 100;
  */
 export interface FiltrosSesiones {
   nivel?: NivelDeRiesgo;
-  estado?: (typeof ESTADOS_FILTRO)[number];
-  analisis?: (typeof ANALISIS_FILTRO)[number];
+  estado?: EstadoDelFiltro;
+  analisis?: AnalisisDelFiltro;
   q?: string;
   orden?: "risk_level";
 }

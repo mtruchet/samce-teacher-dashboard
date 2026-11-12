@@ -1,3 +1,4 @@
+import { enCifras } from "../cifras";
 import { nombreDeAlumno, type SesionNumerada } from "../services/sesionesService";
 import { Usuario } from "../iconos";
 import { avisoDeCaptura } from "../captura";
@@ -68,7 +69,9 @@ export function ListaSesiones({ titulo, sesiones, total, conCuenta = true, cerra
   // «50 de 80» cuando la lista está cortada, para que el número coincida con el
   // de la ficha del examen y se note que faltan filas por traer.
   const cuenta =
-    total !== undefined && total > sesiones.length ? `${sesiones.length} de ${total}` : String(sesiones.length);
+    total !== undefined && total > sesiones.length
+      ? `${enCifras(sesiones.length)} de ${enCifras(total)}`
+      : enCifras(sesiones.length);
   return (
     <section className="lamina lista">
       <header className="lamina__encabezado lista__encabezado">
@@ -154,6 +157,7 @@ export function ListaSesiones({ titulo, sesiones, total, conCuenta = true, cerra
                       <button
                         className="boton-texto"
                         type="button"
+                        data-sesion={s.id}
                         onClick={() => onVerEventos(s)}
                         aria-label={`Ver la sesión de ${nombreDeAlumno(s)}${
                           s.intentos > 1 ? `, intento ${s.intento} de ${s.intentos}` : ""

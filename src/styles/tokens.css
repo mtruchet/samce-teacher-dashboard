@@ -40,7 +40,9 @@
 
   --tinta-clara: #ffffff;
   --tinta-clara-media: rgb(255 255 255 / 78%);
-  --tinta-clara-suave: rgb(255 255 255 / 58%);
+  /* 62 % y no 58 %: sobre la pizarra del pie, el texto chico daba 4,34:1, debajo del 4,5:1 de WCAG 1.4.3.
+     Con 62 % da 4,72:1. */
+  --tinta-clara-suave: rgb(255 255 255 / 62%);
 
   /* ---- Guías verticales. Las horizontales están vedadas. ---------------- */
   --guia: rgb(17 76 94 / 8%);
@@ -89,6 +91,10 @@
      acción. Lo usa :focus-visible en base.css, y cada regla de componente que necesita sumarle su propia
      sombra lo repite con este token, nunca con los valores escritos a mano. */
   --anillo-foco: 0 0 0 2px var(--sup-1), 0 0 0 4px var(--celeste);
+  /* El mismo anillo sobre las superficies oscuras (la barra, el pie y el bloque de decisiones de la portada):
+     el celeste sobre la pizarra daba 2,43:1, debajo del 3:1 que pide WCAG 1.4.11 para el foco. Por fuera va
+     el blanco (9,5:1), separado por la misma pizarra. */
+  --anillo-foco-oscuro: 0 0 0 2px var(--sup-5), 0 0 0 4px var(--tinta-clara);
 
   /* ---- El veredicto sin alertas ------------------------------------------ */
   /* Un verde suave solo en el cuadro del ícono de «No hay alertas para revisar» (ronda 3), para que se distinga de

@@ -64,42 +64,7 @@
   gap: var(--e3);
 }
 
-/* Botones secundarios: el registro es para ubicar un momento, no la acción
-   principal de la pantalla. */
-.eventos__boton {
-  height: 40px;
-  padding-inline: var(--e5);
-  border: 0;
-  border-radius: var(--radio-chip);
-  background: var(--sup-1);
-  box-shadow: inset 0 0 0 1px var(--sup-4);
-  font: inherit;
-  font-size: var(--panel-fila);
-  font-weight: 500;
-  color: var(--pizarra);
-  cursor: pointer;
-  transition: background var(--mov-estado) var(--curva);
-}
-
-.eventos__boton:hover {
-  background: var(--sup-3);
-}
-
-/* La sombra del borde de arriba pisaba el anillo de :focus-visible de base.css (misma especificidad, hoja
-   posterior): «Mostrar 50 más» y «Mostrar todos» quedaban sin foco visible. Se repite el anillo encima del
-   borde. Lo verifica B1 en pruebas-navegador/a11y.spec.ts. */
-.eventos__boton:focus-visible {
-  box-shadow:
-    inset 0 0 0 1px var(--sup-4),
-    var(--anillo-foco);
-}
-
-/* Con colores forzados la sombra del borde desaparece: el botón lleva un borde del sistema. */
-@media (forced-colors: active) {
-  .eventos__boton {
-    border: 1px solid ButtonText;
-  }
-}
+/* «Mostrar 50 más» y «Mostrar todos» son el botón secundario compartido (.boton-secundario, en base.css). */
 
 .eventos td {
   /* Altura por relleno y no por `height`: una fila con el detalle envuelto

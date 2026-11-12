@@ -5,8 +5,10 @@
    - Los cuatro estados del análisis van en un renglón más liviano: sin marca ni tono, en la superficie de
      segundo plano.
    El número y la palabra van siempre en --tinta: el color está en el borde, el medidor y el fondo, nunca en
-   el texto. Los dos renglones llegan al borde: tres tarjetas de nivel arriba (4 de 12 columnas cada una) y
-   cuatro de estado abajo (3 de 12), sin ningún lugar vacío que parezca una tarjeta que falta. */
+   el texto. A lo ancho, los dos renglones comparten la grilla de cuatro columnas de la barra de filtros, con
+   el mismo espacio entre columnas: las tarjetas de nivel ocupan las tres primeras celdas y las de estado, las
+   cuatro. Así las tarjetas y los controles de abajo caen sobre las mismas líneas verticales (3 + 4 con el
+   mismo ancho de celda, como pide el plan). */
 .resumen {
   display: grid;
   gap: var(--e3);
@@ -14,11 +16,12 @@
 
 .resumen__tarjetas {
   display: grid;
-  gap: var(--e3);
+  /* El mismo espacio entre columnas que .filtros (FiltrosSesiones.css). */
+  gap: var(--e3) var(--e4);
 }
 
 .resumen__tarjetas--niveles {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .resumen__tarjetas--estados {
@@ -44,6 +47,14 @@
   border-left: var(--marca-tarjeta) solid var(--tono);
   background: color-mix(in srgb, var(--tono) 8%, var(--sup-1));
   box-shadow: var(--anillo);
+}
+
+/* Un nivel sin sesiones pesa menos: sin el fondo teñido y con el borde apagado, para que los tonos más
+   llamativos no marquen cifras vacías y la tarjeta que sí tiene sesiones se distinga. Conserva el medidor, la
+   palabra y el número, y sigue siendo un botón. */
+.resumen__tarjeta--cero[data-nivel] {
+  border-left-color: var(--sup-4);
+  background: var(--sup-1);
 }
 
 .resumen__tarjeta--estado {

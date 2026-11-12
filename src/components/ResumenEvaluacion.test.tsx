@@ -35,6 +35,18 @@ describe("ResumenEvaluacion", () => {
     expect(container.querySelectorAll(".resumen__tarjeta--estado .medidor")).toHaveLength(0);
   });
 
+  it("un nivel sin sesiones pesa menos, pero conserva el medidor, la palabra y el botón (V6)", () => {
+    render(<ResumenEvaluacion resumen={{ ...RESUMEN, risk_high: 0, risk_low: 2 }} filtros={{}} onFiltrar={() => {}} />);
+    const cero = screen.getByRole("button", { name: "Riesgo alto: 0 sesiones" });
+    expect(cero).toHaveClass("resumen__tarjeta--cero");
+    expect(cero).toHaveAttribute("aria-pressed", "false");
+    expect(cero.querySelector(".medidor")).not.toBeNull();
+    expect(cero).toHaveTextContent("Riesgo alto");
+    for (const nombre of [/^Riesgo medio:/, /^Riesgo bajo:/]) {
+      expect(screen.getByRole("button", { name: nombre })).not.toHaveClass("resumen__tarjeta--cero");
+    }
+  });
+
   it("no es una región viva y no muestra nombres, índice ni promedios", () => {
     const { container } = render(<ResumenEvaluacion resumen={RESUMEN} filtros={{}} onFiltrar={() => {}} />);
     expect(container.querySelector("[aria-live], [role='status']")).toBeNull();

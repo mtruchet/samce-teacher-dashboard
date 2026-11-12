@@ -217,7 +217,7 @@ describe("DetalleSesion", () => {
     expect(onConsulta).toHaveBeenLastCalledWith(true, true);
     // Lo que ya había llegado sigue a la vista, con el aviso.
     expect(screen.getByText(/No se pudo actualizar el registro/)).toBeInTheDocument();
-    expect(within(screen.getByRole("group", { name: "Registro de eventos" })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+    expect(within(screen.getByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
 
     await esperar(5000);
     expect(onConsulta).toHaveBeenLastCalledWith(true, false);
@@ -461,12 +461,12 @@ describe("DetalleSesion", () => {
 
     const { rerender } = render(<DetalleSesion sesion={SESION} onVencida={() => undefined} />);
     await esperar();
-    expect(within(screen.getByRole("group", { name: "Registro de eventos" })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+    expect(within(screen.getByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
 
     for (let segundo = 0; segundo < 3; segundo++) {
       rerender(<DetalleSesion sesion={{ ...SESION }} onVencida={() => undefined} />);
       await esperar(1000);
-      expect(within(screen.getByRole("group", { name: "Registro de eventos" })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+      expect(within(screen.getByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
       expect(screen.queryByText(/Cargando los eventos/)).not.toBeInTheDocument();
     }
 
@@ -572,7 +572,7 @@ describe("DetalleSesion", () => {
     await esperar();
     expect(document.getElementById("evento-1")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /^Ver en el registro: Pegó un texto, a las \d{2}:\d{2}$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Ver en el registro: Pegó un texto, a las \d{2}:\d{2}:\d{2}$/ }));
     await esperar();
     expect(document.getElementById("evento-1")).toHaveFocus();
   });
@@ -633,6 +633,27 @@ describe("DetalleSesion", () => {
     await esperar();
 
     expect(screen.getByText(/todavía falta lo más reciente/)).toBeInTheDocument();
+    expect(screen.queryByText("No pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa.")).toBeNull();
+    expect(
+      screen.getByText(
+        "En lo que quedó registrado, no pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("HU05_T02, momentos: si se perdió parte del registro, habla solo de lo que quedó, aunque la captura figure completa", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
+      evento(1, "keystroke", { count: 1 }),
+      evento(2, "events_dropped", { count: 1, rejected: 1 }),
+    ]);
+    const cerrada = sesionNumerada({
+      status: "closed",
+      closed_at: new Date(Date.now() - 60 * 60_000).toISOString(),
+      capture: { state: "ok" },
+    });
+    render(<DetalleSesion sesion={cerrada} onVencida={nada} />);
+    await esperar();
+
     expect(screen.queryByText("No pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa.")).toBeNull();
     expect(
       screen.getByText(

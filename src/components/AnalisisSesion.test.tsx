@@ -563,6 +563,21 @@ describe("AnalisisSesion", () => {
     expect(within(region).queryByText("Riesgo alto")).not.toBeInTheDocument();
   });
 
+  it("si la respuesta siguiente trae la alerta en un nivel menor, no se anuncia nada (H02)", async () => {
+    const traer = vi.spyOn(sesionesService, "traerAnalisis");
+    traer.mockResolvedValueOnce(analisis({ alerts: [alerta({ level: "high" })] }));
+    render(<AnalisisSesion sesion={sesionNumerada({ status: "open" })} onVencida={nada} />);
+    await esperar();
+    const region = screen.getByRole("status", { name: "Alertas de la sesión" });
+    const antes = region.firstChild;
+
+    traer.mockResolvedValue(analisis({ alerts: [alerta({ level: "medium" })] }));
+    await esperar(sesionesService.CADENCIA_MS);
+    expect(screen.getByText("Riesgo medio")).toBeInTheDocument();
+    expect(region.firstChild).toBe(antes);
+    expect(region).toHaveTextContent("");
+  });
+
   it("dos novedades con la misma frase se anuncian las dos veces, y una vuelta sin novedades no toca la región", async () => {
     const traer = vi.spyOn(sesionesService, "traerAnalisis");
     traer.mockResolvedValueOnce(analisis());

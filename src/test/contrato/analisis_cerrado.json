@@ -43,7 +43,7 @@
     "largest_paste_chars": 1241,
     "pasted_chars_ratio": 0.41,
     "mouse_idle_longest_s": 93,
-    "question_time_median_s": 120,
+    "question_time_median_s": null,
     "silence_longest_s": 61
   }
 }

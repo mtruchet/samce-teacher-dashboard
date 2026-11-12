@@ -1,4 +1,5 @@
-import { describirEvento, eventosCriticos, horaCorta } from "../eventos";
+import { useMemo } from "react";
+import { eventosCriticos, horaCorta, horaExacta } from "../eventos";
 import type { Evento } from "../services/sesionesService";
 import "./DetalleAnalisis.css";
 
@@ -36,7 +37,9 @@ const SIN_MOMENTOS: Record<Props["alcance"], string> = {
  * con qué sostenerse. Eso lo decide quien lo monta.
  */
 export function CronologiaSesion({ eventos, onIrAlEvento, alcance }: Props) {
-  const criticos = eventosCriticos(eventos);
+  // Con la sesión abierta el detalle se vuelve a dibujar cada 5 s: los momentos se recalculan solo si
+  // cambiaron los eventos.
+  const criticos = useMemo(() => eventosCriticos(eventos), [eventos]);
   return (
     <div className="apartado momentos">
       <h3 className="apartado__titulo">Momentos para revisar</h3>
@@ -44,8 +47,7 @@ export function CronologiaSesion({ eventos, onIrAlEvento, alcance }: Props) {
         <p className="apartado__nota">{SIN_MOMENTOS[alcance]}</p>
       ) : (
         <ol className="momentos__lista">
-          {criticos.map(({ evento, titulo }) => {
-            const { icono: Icono } = describirEvento(evento);
+          {criticos.map(({ evento, titulo, icono: Icono }) => {
             const hora = horaCorta(evento.received_at);
             return (
               <li key={evento.id} className="momentos__momento">
@@ -57,7 +59,9 @@ export function CronologiaSesion({ eventos, onIrAlEvento, alcance }: Props) {
                 <button
                   type="button"
                   className="boton-texto momentos__ir"
-                  aria-label={`Ver en el registro: ${titulo}, a las ${hora}`}
+                  // Con los segundos, como la fila: dos momentos del mismo tipo en el mismo minuto tenían el
+                  // mismo nombre y el lector de pantalla no los distinguía. A la vista queda la hora corta.
+                  aria-label={`Ver en el registro: ${titulo}, a las ${horaExacta(evento.received_at)}`}
                   onClick={() => onIrAlEvento(evento.id)}
                 >
                   Ver en el registro

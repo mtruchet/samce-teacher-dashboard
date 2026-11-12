@@ -608,7 +608,7 @@ describe("Enrutado y acceso", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /Ver la sesión de Ana Gómez/i }));
 
-    expect(within(await screen.findByRole("group", { name: "Registro de eventos" })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+    expect(within(await screen.findByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
     // Se pide por el examen y la sesión que se eligieron, y la dirección lo recuerda.
     expect(traerEventos).toHaveBeenCalledWith(1, 5, 0);
     expect(window.location.search).toContain("sesion=5");

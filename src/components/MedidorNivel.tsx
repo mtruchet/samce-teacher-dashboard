@@ -1,4 +1,4 @@
-import { NIVELES_DE_RIESGO, type NivelDeRiesgo } from "../services/sesionesService";
+import { NIVELES_DE_RIESGO, type NivelDeRiesgo } from "../niveles";
 import { PESO_DEL_NIVEL } from "../lenguajeAlerta";
 import "./MedidorNivel.css";
 

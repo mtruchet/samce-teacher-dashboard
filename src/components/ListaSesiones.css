@@ -13,6 +13,12 @@
   overscroll-behavior: contain;
   /* Al volver con Mayús+Tab, el encabezado fijo de la tabla (25 px) tapaba el «Ver» de la fila de arriba. */
   scroll-padding-top: var(--e10);
+  /* Una sombra al pie mientras quedan filas abajo: la fila cortada a la mitad (y un trozo suelto de su marca
+     de nivel) no decía que la tabla seguía. La primera capa se mueve con el contenido y tapa la sombra al
+     llegar al final; la segunda queda fija al pie del marco. Las dos van detrás de las filas. */
+  background:
+    linear-gradient(transparent, var(--sup-1) 60%) 0 100% / 100% var(--e8) no-repeat local,
+    linear-gradient(transparent, color-mix(in srgb, var(--tinta) 14%, transparent)) 0 100% / 100% var(--e4) no-repeat scroll;
 }
 
 /* ==== La tabla ========================================================= */
@@ -125,7 +131,8 @@
   color: var(--tinta);
 }
 
-/* La marca de una captura incompleta: está o no está, sin color de riesgo. */
+/* La marca de una captura incompleta: está o no está, sin color de riesgo. En un solo renglón: partida dentro
+   de su píldora quedaba un óvalo deformado entre el nombre y el intento. */
 .alumno__captura {
   display: inline-block;
   width: fit-content;
@@ -133,22 +140,30 @@
   padding: 1px 8px;
   font-size: 0.75rem;
   font-weight: 600;
+  white-space: nowrap;
   border: 1px solid currentColor;
-  border-radius: 999px;
+  border-radius: var(--radio-chip);
 }
 
 @media (max-width: 760px) {
-  /* La hora de comienzo se va: el transcurrido dice lo mismo y ocupa menos.
-     Va por su clase y no por su posición, porque el número de columna cambia
-     en cuanto se agrega una y la regla termina escondiendo otra cosa. */
-  .tabla th.tabla__hora,
-  .tabla td.tabla__hora {
-    display: none;
+  /* La hora de comienzo se va de la vista: el transcurrido dice lo mismo y ocupa menos. Sigue para los
+     lectores de pantalla, como su rótulo de columna, así la tabla y su título (que la nombra) siguen diciendo
+     lo mismo. Va por su clase y no por su posición, porque el número de columna cambia en cuanto se agrega
+     una y la regla termina escondiendo otra cosa. */
+  .tabla tbody td.tabla__hora {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
-  /* La fila se apila: el alumno, la duración y «Ver» en un renglón, y el análisis entero abajo, alineado
-     con el nombre. Las celdas siguen siendo celdas de la tabla; los rótulos de columna quedan para los
-     lectores de pantalla. */
+  /* La fila se apila: a la izquierda el alumno; a la derecha «Ver» y, debajo, la duración; y el análisis
+     entero abajo, alineado con el nombre. Con la duración al lado del nombre, una duración larga («197 h
+     21 min») dejaba al alumno sin lugar y la marca de captura se salía de su celda. Las celdas siguen siendo
+     celdas de la tabla; los rótulos de columna quedan para los lectores de pantalla. */
   .tabla,
   .tabla tbody {
     display: block;
@@ -165,17 +180,26 @@
 
   .tabla tbody tr {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
-      "alumno tiempo eventos"
-      "analisis analisis analisis";
+      "alumno eventos"
+      "alumno tiempo"
+      "analisis analisis";
     align-items: center;
     column-gap: var(--e2);
     padding-block: var(--e2);
   }
 
-  /* Sin `display`: como hijas de la grilla, las celdas ya se dibujan como bloques, y la hora de comienzo
-     sigue oculta por la regla de arriba. */
+  /* El alumno y «Ver» arriba, a la altura del nombre, y la duración pegada debajo de «Ver»: con la marca de
+     captura o el intento, centradas en la fila alta quedaban sueltas. */
+  .tabla td:first-child,
+  .tabla td.tabla__eventos,
+  .tabla td.tabla__duracion {
+    align-self: start;
+  }
+
+  /* Sin `display`: como hijas de la grilla, las celdas ya se dibujan como bloques. La hora de comienzo queda
+     fuera de la grilla por la regla de arriba. */
   .tabla td,
   .tabla td:not(:first-child) {
     width: auto;
@@ -202,6 +226,16 @@
     white-space: normal;
   }
 
+  /* El ícono a la altura del nombre, no en el medio de la celda: con la marca y el intento debajo, centrado
+     quedaba suelto entre los renglones. */
+  .alumno {
+    align-items: flex-start;
+  }
+
+  .alumno svg {
+    margin-top: 1px;
+  }
+
   /* Un nombre largo baja de renglón antes que empujar la tabla de costado. */
   .alumno__nombre {
     overflow-wrap: anywhere;
@@ -209,5 +243,22 @@
 
   .lista__marco {
     max-height: none;
+  }
+}
+
+/* A 320 px (1280 al 400 %, WCAG 1.4.10) ni así entraba: la celda del alumno quedaba más angosta que el nombre
+   y la marca de captura, que se montaban sobre la duración. Ahí la duración baja a su propio renglón,
+   alineada con el nombre, y el alumno se queda con todo el ancho menos «Ver». */
+@media (max-width: 360px) {
+  .tabla tbody tr {
+    grid-template-areas:
+      "alumno eventos"
+      "tiempo tiempo"
+      "analisis analisis";
+  }
+
+  .tabla td.tabla__duracion {
+    padding-left: calc(var(--e3) + 18px + var(--e3));
+    text-align: left;
   }
 }

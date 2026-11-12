@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tramosDeRiesgo } from "./evolucion";
+import { historialEnOrden, tramosDeRiesgo } from "./evolucion";
 import type { AlertaDeSesion, EntradaDelHistorial } from "./services/sesionesService";
 import { alerta as alertaVigente, entradaDelHistorial } from "./test/fabricas";
 
@@ -15,10 +15,10 @@ describe("tramosDeRiesgo (pendiente 10, HU05_T02)", () => {
     }
   });
 
-  it("con alertas y sin historial, el tramo es «sin registro» y no el estado, y cada origen va aparte", () => {
+  it("con alertas y sin historial no hay escalera: cada origen va aparte, sin repetir «sin registro» (H17)", () => {
     for (const estado of ["analyzed", "insufficient_evidence", "unavailable"] as const) {
       expect(tramosDeRiesgo([], [alerta("model", "high")], estado)).toEqual({
-        tramos: [{ tipo: "sin-registro" }],
+        tramos: [],
         sinRegistro: [{ origen: "model", nivel: "high" }],
       });
     }
@@ -91,5 +91,29 @@ describe("tramosDeRiesgo (pendiente 10, HU05_T02)", () => {
     const { tramos, sinRegistro } = tramosDeRiesgo([entrada("model", "low", 5)], [alerta("model", "low"), alerta("event", "medium")], "analyzed");
     expect(sinRegistro).toEqual([{ origen: "event", nivel: "medium" }]);
     expect(tramos).toHaveLength(2);
+  });
+});
+
+describe("historialEnOrden (V3)", () => {
+  const en = (origin: EntradaDelHistorial["origin"], level: EntradaDelHistorial["level"], iso: string) =>
+    entradaDelHistorial({ origin, level, recorded_at: iso });
+
+  it("en el mismo minuto, entre orígenes distintos, va primero el nivel más alto, como las tarjetas", () => {
+    const medio = en("model", "medium", "2026-11-04T03:53:02.627Z");
+    const alto = en("event", "high", "2026-11-04T03:53:02.678Z");
+    expect(historialEnOrden([medio, alto])).toEqual([alto, medio]);
+  });
+
+  it("a igual nivel y mismo minuto, primero el de toda la sesión", () => {
+    const evento = en("event", "low", "2026-11-04T03:53:02.100Z");
+    const modelo = en("model", "low", "2026-11-04T03:53:02.200Z");
+    expect(historialEnOrden([evento, modelo])).toEqual([modelo, evento]);
+  });
+
+  it("entre minutos distintos no cambia el orden cronológico, y un mismo origen tampoco se reordena", () => {
+    const a = en("model", "high", "2026-11-04T03:50:00Z");
+    const b = en("event", "low", "2026-11-04T03:53:00Z");
+    const c = en("event", "medium", "2026-11-04T03:53:10Z");
+    expect(historialEnOrden([a, b, c])).toEqual([a, b, c]);
   });
 });

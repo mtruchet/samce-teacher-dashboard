@@ -1,10 +1,5 @@
-import {
-  NIVELES_DE_RIESGO,
-  type AlertaDeSesion,
-  type EstadoDelAnalisis,
-  type NivelDeRiesgo,
-  type Sesion,
-} from "./services/sesionesService";
+import { NIVELES_DE_RIESGO, type NivelDeRiesgo } from "./niveles";
+import type { AlertaDeSesion, EstadoDelAnalisis, Sesion } from "./services/sesionesService";
 
 /**
  * El orden de las alertas de una sesión (TT_S4_02).
@@ -69,11 +64,9 @@ export function ordenarAlertas(alertas: AlertaDeSesion[]): AlertaDeSesion[] {
  * El nivel de cada alerta, con los nombres del criterio de HU06 (riesgo bajo, medio o alto). «Riesgo» y no
  * «Nivel»: «Nivel bajo» solo se leía como el nivel del alumno. El medidor de al lado dice lo mismo en dibujo.
  */
-export const NIVELES: Record<NivelDeRiesgo, string> = {
-  low: "Riesgo bajo",
-  medium: "Riesgo medio",
-  high: "Riesgo alto",
-};
+export const NIVELES = Object.fromEntries(
+  NIVELES_DE_RIESGO.map((nivel) => [nivel, `Riesgo ${PALABRA_DEL_NIVEL[nivel]}`])
+) as Record<NivelDeRiesgo, string>;
 
 /**
  * De dónde sale la alerta, escrito. Se elige por `origin`, nunca por el texto. Sin ícono: el de capas

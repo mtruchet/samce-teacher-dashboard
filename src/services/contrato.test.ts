@@ -10,6 +10,11 @@
  * Cuando exista `testdata/contrato/` en el backend (las respuestas que genera su `contract_test.go` con el router
  * real), los archivos de `src/test/contrato/` se reemplazan por esa copia, sin tocar esta prueba.
  *
+ * Son tres: la lista (`sesiones_con_resumen.json`, con la forma real de `capture`: `last_event_at` cuando llegó
+ * algún evento, y `gap_minutes` con el corte), el análisis de una sesión cerrada con una métrica nula
+ * (`analisis_cerrado.json`) y el de una que no se pudo analizar, con motivo y `metrics: null`
+ * (`analisis_sin_evidencia.json`), que es como el backend real manda las abiertas y las no analizadas.
+ *
  * Hasta entonces, el pendiente 16 queda resuelto a medias: estos JSON están escritos a mano en el panel (con la
  * cabecera X-Total-Count en una clave «_headers» armada acá), así que un campo renombrado en Go no hace fallar
  * esta prueba. Para que la copia funcione sin tocarla, el `contract_test.go` del backend tiene que escribir la
@@ -32,6 +37,7 @@ import { esperar } from "../test/fabricas";
 import { expectLenguajeLlano } from "../test/lenguaje";
 import crudoDeLaLista from "../test/contrato/sesiones_con_resumen.json?raw";
 import crudoDelAnalisis from "../test/contrato/analisis_cerrado.json?raw";
+import crudoSinEvidencia from "../test/contrato/analisis_sin_evidencia.json?raw";
 
 type Objeto = Record<string, unknown>;
 
@@ -83,6 +89,28 @@ function revisarCampos(donde: string, objeto: unknown, obligatorios: readonly st
   return [...faltan, ...sobran];
 }
 
+const ESTADOS_DE_CAPTURA = ["ok", "none", "gap", "js_disabled", "no_start"];
+const esFecha = (v: unknown) => typeof v === "string" && !Number.isNaN(Date.parse(v));
+
+/**
+ * `capture` como la arma el backend (capture/state.go): `last_event_at` si llegó algún evento, y con el corte
+ * («gap») siempre `gap_minutes` y `last_event_at`, que son los que el aviso del detalle usa para decir el rango.
+ */
+function problemasDeLaCaptura(donde: string, captura: unknown): string[] {
+  const problemas = revisarCampos(donde, captura, ["state"], ["gap_minutes", "last_event_at"]);
+  if (problemas.length > 0) return problemas;
+  const c = captura as Objeto;
+  if (!ESTADOS_DE_CAPTURA.includes(c.state as string)) problemas.push(`${donde}.state: valor raro`);
+  if ("last_event_at" in c && !esFecha(c.last_event_at)) problemas.push(`${donde}.last_event_at: no es una fecha`);
+  if (c.state === "gap") {
+    if (!Number.isInteger(c.gap_minutes) || (c.gap_minutes as number) < 1) problemas.push(`${donde}: «gap» sin gap_minutes`);
+    if (!("last_event_at" in c)) problemas.push(`${donde}: «gap» sin last_event_at`);
+  } else if ("gap_minutes" in c) {
+    problemas.push(`${donde}: gap_minutes fuera de un corte`);
+  }
+  return problemas;
+}
+
 /** Todos los problemas de la respuesta de la lista: campos y valores. */
 function problemasDeLaLista(lista: { _headers: Objeto; body: Objeto }): string[] {
   const problemas: string[] = [];
@@ -98,7 +126,7 @@ function problemasDeLaLista(lista: { _headers: Objeto; body: Objeto }): string[]
   sesiones.forEach((s, i) => {
     const donde = `sessions[${i}]`;
     problemas.push(...revisarCampos(donde, s, SESION_OBLIGATORIOS, SESION_OPCIONALES));
-    problemas.push(...revisarCampos(`${donde}.capture`, s.capture, ["state"], ["gap_minutes", "last_event_at"]));
+    problemas.push(...problemasDeLaCaptura(`${donde}.capture`, s.capture));
     if (!ESTADOS.includes(s.analysis_state as EstadoDelAnalisis)) problemas.push(`${donde}.analysis_state: valor raro`);
     if (s.risk_level !== null && !(NIVELES_DE_RIESGO as readonly unknown[]).includes(s.risk_level)) {
       problemas.push(`${donde}.risk_level: valor raro`);
@@ -118,7 +146,18 @@ function problemasDelAnalisis(a: Objeto): string[] {
   const problemas = revisarCampos("analysis", a, ANALISIS);
   (a.alerts as unknown[] | undefined)?.forEach((x, i) => problemas.push(...revisarCampos(`alerts[${i}]`, x, ALERTA)));
   (a.alert_history as unknown[] | undefined)?.forEach((x, i) => problemas.push(...revisarCampos(`alert_history[${i}]`, x, ENTRADA)));
-  problemas.push(...revisarCampos("metrics", a.metrics, METRICAS));
+  // El backend manda `metrics: null` con la sesión abierta y cuando no se pudo analizar; si vienen, cada una es
+  // un número o null (una métrica que no se pudo calcular).
+  if (a.metrics !== null) {
+    problemas.push(...revisarCampos("metrics", a.metrics, METRICAS));
+    if (typeof a.metrics === "object" && a.metrics !== null) {
+      for (const [clave, valor] of Object.entries(a.metrics)) {
+        if (valor !== null && typeof valor !== "number") problemas.push(`metrics.${clave}: no es un número ni null`);
+      }
+    }
+  }
+  if (a.reason !== null && typeof a.reason !== "string") problemas.push("analysis.reason: no es un texto ni null");
+  if (!ESTADOS.includes(a.state as EstadoDelAnalisis)) problemas.push("analysis.state: valor raro");
   return problemas;
 }
 
@@ -139,6 +178,7 @@ function renombrar<T>(datos: T, de: string, a: string): T {
 
 const leerLista = () => JSON.parse(crudoDeLaLista) as { _headers: Objeto; body: Objeto };
 const leerAnalisis = () => JSON.parse(crudoDelAnalisis) as Objeto;
+const leerSinEvidencia = () => JSON.parse(crudoSinEvidencia) as Objeto;
 
 /** Un `fetch` que contesta como el backend: la lista con su cabecera, o el análisis. */
 function simularBackend(lista = leerLista(), analisis = leerAnalisis()) {
@@ -189,9 +229,31 @@ describe("El contrato con el backend (pendiente 16)", () => {
     expect(LISTAS_COMPLETAS.every(Boolean)).toBe(true);
   });
 
-  it("las dos respuestas guardadas traen exactamente los campos del contrato", () => {
+  it("las tres respuestas guardadas traen exactamente los campos del contrato", () => {
     expect(problemasDeLaLista(leerLista())).toEqual([]);
     expect(problemasDelAnalisis(leerAnalisis())).toEqual([]);
+    expect(problemasDelAnalisis(leerSinEvidencia())).toEqual([]);
+  });
+
+  it("los JSON cubren lo que el backend real manda: métricas nulas, motivo con texto y la captura completa (INT-03, H01)", () => {
+    const cerrado = leerAnalisis();
+    expect(Object.values(cerrado.metrics as Objeto)).toContain(null);
+    const sinEvidencia = leerSinEvidencia();
+    expect(sinEvidencia.metrics).toBeNull();
+    expect(typeof sinEvidencia.reason).toBe("string");
+    const capturas = (leerLista().body.sessions as Objeto[]).map((s) => s.capture as Objeto);
+    expect(capturas.some((c) => c.state === "gap" && Number.isInteger(c.gap_minutes) && "last_event_at" in c)).toBe(true);
+    expect(capturas.some((c) => c.state === "ok" && "last_event_at" in c)).toBe(true);
+  });
+
+  it("la revisión de la captura atrapa un corte sin sus datos y un campo renombrado (H01)", () => {
+    const lista = leerLista();
+    const corte = (lista.body.sessions as Objeto[]).findIndex((s) => (s.capture as Objeto).state === "gap");
+    const sinMinutos = structuredClone(lista);
+    delete ((sinMinutos.body.sessions as Objeto[])[corte].capture as Objeto).gap_minutes;
+    expect(problemasDeLaLista(sinMinutos)).toContain(`sessions[${corte}].capture: «gap» sin gap_minutes`);
+    expect(problemasDeLaLista(renombrar(lista, "gap_minutes", "gapMinutes"))).not.toEqual([]);
+    expect(problemasDeLaLista(renombrar(lista, "last_event_at", "lastEventAt"))).not.toEqual([]);
   });
 
   it("un campo renombrado en cualquier lugar del JSON hace fallar la revisión", () => {
@@ -200,6 +262,10 @@ describe("El contrato con el backend (pendiente 16)", () => {
     const camposDeLaLista = [...SESION_OBLIGATORIOS, ...RESUMEN, "sessions", "summary", "state"];
     for (const campo of camposDeLaLista) {
       expect(problemasDeLaLista(renombrar(lista, campo, `${campo}_v2`)), campo).not.toEqual([]);
+    }
+    const sinEvidencia = leerSinEvidencia();
+    for (const campo of ANALISIS) {
+      expect(problemasDelAnalisis(renombrar(sinEvidencia, campo, `${campo}_v2`)), campo).not.toEqual([]);
     }
     const analisis = leerAnalisis();
     for (const campo of [...ANALISIS, ...ALERTA, ...ENTRADA, ...METRICAS]) {
@@ -261,6 +327,19 @@ describe("El contrato con el backend (pendiente 16)", () => {
     expect(container.textContent).toContain("intento 2 de 2");
     // La marca de captura queda afuera: sus textos son del Sprint 3 y no entran en esta revisión.
     expectLenguajeLlano(container, { excluir: ".alumno__captura" });
+  });
+
+  it("el detalle de una sesión que no se pudo analizar muestra el motivo y no dibuja métricas", async () => {
+    vi.useFakeTimers();
+    simularBackend(leerLista(), leerSinEvidencia());
+    const { sesiones } = await traerSesiones(3, 50, {});
+    const sesion = numerar(sesiones.find((s) => s.analysis_state === "insufficient_evidence")!);
+    const { container } = render(createElement(AnalisisSesion, { sesion, onVencida: () => {} }));
+    await esperar();
+
+    expect(container.textContent).toContain("Esta sesión no se pudo analizar.");
+    expect(container.textContent).toContain(leerSinEvidencia().reason as string);
+    expect(container.querySelectorAll(".metricas__metrica")).toHaveLength(0);
   });
 
   it("el detalle de una sesión cerrada dibuja la evolución, el historial y seis métricas, sin las proporciones", async () => {

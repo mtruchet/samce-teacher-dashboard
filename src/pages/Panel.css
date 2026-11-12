@@ -153,17 +153,10 @@ body:has(.panel) {
   }
 }
 
+/* El botón es el secundario compartido (.boton-secundario, base.css); acá solo su lugar, centrado debajo. */
 .panel__ver-mas {
   display: block;
-  margin: 1.5rem auto 0;
-  padding: 0.6rem 1.4rem;
-  font: inherit;
-  font-weight: 600;
-  color: inherit;
-  background: transparent;
-  border: 1px solid currentColor;
-  border-radius: 6px;
-  cursor: pointer;
+  margin: var(--e6) auto 0;
 }
 
 /* El aviso de que la lista llegó al tope del servidor. Mismo tono que el aviso

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { eventosCriticos } from "../eventos";
+import { describirEvento, eventosCriticos } from "../eventos";
 import { METRICAS } from "../metricas";
 import type { AlertaDeSesion, EntradaDelHistorial } from "../services/sesionesService";
 import { alerta as alertaVigente, entradaDelHistorial, evento, metricasDelCierre } from "../test/fabricas";
@@ -164,7 +164,76 @@ describe("HU05_T02 (pendiente 10): Historial de alertas", () => {
   });
 });
 
+describe("La hora del análisis cuando es de otro día que el examen (V1, L1, M1, INT-02)", () => {
+  // En hora local, para que la prueba no dependa de la zona del equipo.
+  const local = (dia: number, h: number, m: number) => new Date(2026, 10, dia, h, m).toISOString();
+  const INICIO = local(3, 4, 32);
+
+  it("el mismo día queda «Análisis de las HH:MM»; otro día, «Análisis del D/M a las HH:MM», en la escalera y en el historial", () => {
+    const historial = [
+      entrada({ recorded_at: local(3, 4, 40) }),
+      entrada({ origin: "event", level: "high", recorded_at: local(4, 0, 53), carried_over: true }),
+    ];
+    const { container } = render(
+      <>
+        <EvolucionRiesgo historial={historial} alertas={[]} estado="analyzed" inicio={INICIO} />
+        <HistorialAlertas historial={historial} alertas={[]} inicio={INICIO} />
+      </>
+    );
+    expect([...container.querySelectorAll(".historial__hora")].map((e) => e.textContent)).toEqual([
+      "Análisis de las 04:40",
+      "Análisis del 4/11 a las 00:53",
+    ]);
+    expect([...container.querySelectorAll(".paso__hora")].map((e) => e.textContent)).toContain("Análisis del 4/11 a las 00:53");
+    expectLenguajeLlano(container);
+  });
+
+  it("sin la hora de inicio, la forma de siempre", () => {
+    const { container } = render(<HistorialAlertas historial={[entrada({ recorded_at: local(4, 0, 53) })]} alertas={[]} />);
+    expect(container.querySelector(".historial__hora")).toHaveTextContent(/^Análisis de las 00:53$/);
+  });
+});
+
+describe("Historial: orden y nombres accesibles (V3, A7, H15)", () => {
+  it("en el mismo análisis, el historial sigue el orden de las tarjetas: primero el nivel más alto", () => {
+    const { container } = render(
+      <HistorialAlertas
+        historial={[
+          entrada({ level: "medium", recorded_at: "2026-11-04T03:53:02.627Z" }),
+          entrada({ origin: "event", level: "high", recorded_at: "2026-11-04T03:53:02.678Z" }),
+        ]}
+        alertas={[]}
+      />
+    );
+    expect([...container.querySelectorAll<HTMLElement>(".historial__entrada")].map((e) => e.dataset.nivel)).toEqual([
+      "high",
+      "medium",
+    ]);
+  });
+
+  it("cada «Ver la explicación» se describe con la hora de su análisis", () => {
+    render(
+      <HistorialAlertas
+        historial={[entrada(), entrada({ origin: "event", recorded_at: "2026-11-10T13:20:00Z" })]}
+        alertas={[alerta(), alerta({ origin: "event" })]}
+      />
+    );
+    const resumenes = screen.getAllByText("Ver la explicación");
+    expect(resumenes).toHaveLength(2);
+    const descripciones = resumenes.map((r) => document.getElementById(r.getAttribute("aria-describedby") ?? "")?.textContent);
+    expect(descripciones).toEqual([expect.stringMatching(/^Análisis de las \d{2}:\d{2}$/), expect.stringMatching(/^Análisis de las \d{2}:\d{2}$/)]);
+    expect(descripciones[0]).not.toBe(descripciones[1]);
+  });
+});
+
 describe("HU05_T02 (pendiente 10): Cómo cambió el riesgo", () => {
+  it("con alertas y sin ninguna entrada, no dibuja la escalera: el renglón del origen ya dice que no quedó registro (H17)", () => {
+    const { container } = render(<EvolucionRiesgo historial={[]} alertas={[alerta({ level: "high" })]} estado="analyzed" />);
+    expect(container.querySelector(".pasos")).toBeNull();
+    expect(screen.getAllByText(/sin registro/)).toHaveLength(1);
+    expect(screen.getByText("En toda la sesión: riesgo alto, sin registro de cuándo llegó a ese nivel.")).toBeInTheDocument();
+  });
+
   it("una escalera en niveles, desde el inicio, con la hora de cada análisis arriba del rótulo", () => {
     const { container } = render(
       <EvolucionRiesgo
@@ -255,7 +324,7 @@ describe("HU05_T02 (pendiente 10): Momentos para revisar", () => {
       <CronologiaSesion eventos={[evento(3, "clipboard", { action: "paste" })]} alcance="completo" onIrAlEvento={onIrAlEvento} />
     );
     expect(screen.getByRole("heading", { level: 3, name: "Momentos para revisar" })).toBeInTheDocument();
-    const boton = screen.getByRole("button", { name: /^Ver en el registro: Pegó un texto, a las \d{2}:\d{2}$/ });
+    const boton = screen.getByRole("button", { name: /^Ver en el registro: Pegó un texto, a las \d{2}:\d{2}:\d{2}$/ });
     expect(boton).toHaveClass("boton-texto");
     expect(boton).toHaveTextContent("Ver en el registro");
     fireEvent.click(boton);
@@ -263,6 +332,19 @@ describe("HU05_T02 (pendiente 10): Momentos para revisar", () => {
     // El mismo ícono que la fila del registro, oculto para los lectores.
     expect(container.querySelector(".momentos__que svg")).toHaveAttribute("aria-hidden", "true");
     expectLenguajeLlano(container);
+  });
+
+  it("dos momentos del mismo tipo en el mismo minuto tienen nombres distintos (L6), y el ícono es el de su fila (H11)", () => {
+    const eventos = [
+      evento(1, "focus_lost", {}, { received_at: "2026-11-04T08:08:05.000Z" }),
+      evento(2, "focus_gained", {}, { received_at: "2026-11-04T08:08:10.000Z" }),
+      evento(3, "focus_lost", {}, { received_at: "2026-11-04T08:08:40.000Z" }),
+    ];
+    render(<CronologiaSesion eventos={eventos} alcance="completo" onIrAlEvento={() => {}} />);
+    const nombres = screen.getAllByRole("button", { name: /^Ver en el registro: Pasó a otra ventana/ }).map((b) => b.getAttribute("aria-label"));
+    expect(nombres).toHaveLength(2);
+    expect(new Set(nombres).size).toBe(2);
+    for (const c of eventosCriticos(eventos)) expect(c.icono).toBe(describirEvento(c.evento).icono);
   });
 
   it("un pegado que no es texto se nombra como en su fila del registro", () => {

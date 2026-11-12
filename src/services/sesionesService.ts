@@ -1,6 +1,6 @@
 import { API_CONFIG } from "../config/api.config";
 import { getStoredSession } from "./authService";
-import { NIVELES_DE_RIESGO, type NivelDeRiesgo } from "../niveles";
+import { NIVELES_DE_RIESGO, type AnalisisDelFiltro, type EstadoDelFiltro, type NivelDeRiesgo } from "../niveles";
 
 /**
  * Los exámenes monitoreados del docente y sus sesiones.
@@ -38,8 +38,8 @@ export { NIVELES_DE_RIESGO, type NivelDeRiesgo };
  */
 export interface PedidoDeSesiones {
   nivel?: NivelDeRiesgo;
-  estado?: "open" | "finished";
-  analisis?: "no_alerts" | "not_analyzed" | "insufficient_evidence" | "unavailable";
+  estado?: EstadoDelFiltro;
+  analisis?: AnalisisDelFiltro;
   q?: string;
   orden?: "risk_level";
 }

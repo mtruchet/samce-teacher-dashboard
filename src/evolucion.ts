@@ -14,7 +14,7 @@ type Nivel = NivelDeRiesgo;
 export type Tramo =
   /** Desde el inicio, sin alertas todavía: el estado del análisis si nunca hubo alertas. */
   | { tipo: "inicio"; estado: EstadoDelAnalisis }
-  /** Desde el inicio hasta la última entrada copiada (o toda la sesión, si tiene alertas y ningún historial). */
+  /** Desde el inicio hasta la última entrada copiada. */
   | { tipo: "sin-registro" }
   /** Desde la hora del análisis que registró el cambio. */
   | { tipo: "nivel"; nivel: Nivel; desde: string };
@@ -46,7 +46,9 @@ export function tramosDeRiesgo(
     // El tramo con el estado es solo para la sesión sin alertas. Con alertas y sin historial (una entrada que
     // se perdió), decir «sin alertas» contradecía la tarjeta de arriba: no hay registro de cómo se llegó, y
     // cada origen se dice aparte, en `sinRegistro`.
-    return { tramos: [alertas.length > 0 ? { tipo: "sin-registro" } : { tipo: "inicio", estado }], sinRegistro };
+    // Con alertas y sin historial no hay escalera: el renglón de cada origen (`sinRegistro`) ya dice que no quedó
+    // registro, y un paso «sin registro» arriba repetía lo mismo.
+    return { tramos: alertas.length > 0 ? [] : [{ tipo: "inicio", estado }], sinRegistro };
   }
 
   // Hasta la última entrada copiada no se sabe nada de antes: cada copia solo dice desde cuándo su
@@ -81,4 +83,29 @@ function subidas(entradas: EntradaDelHistorial[], tramos: Tramo[], desde: Nivel 
     }
   }
   return tramos;
+}
+
+/**
+ * El historial en el orden en que se muestra. Es el del backend (hora del análisis e id), salvo entre orígenes
+ * distintos registrados en el mismo minuto: ahí, como las tarjetas de arriba, primero el nivel más alto y, a igual
+ * nivel, el de toda la sesión. En la práctica los dos orígenes se registran en el mismo análisis, separados por
+ * milisegundos, y el historial los listaba al revés que las tarjetas. Las entradas de un mismo origen no cambian
+ * de orden entre sí.
+ */
+export function historialEnOrden(historial: EntradaDelHistorial[]): EntradaDelHistorial[] {
+  const minuto = (e: EntradaDelHistorial) => Math.floor(Date.parse(e.recorded_at) / 60_000);
+  const resultado: EntradaDelHistorial[] = [];
+  let i = 0;
+  while (i < historial.length) {
+    let fin = i + 1;
+    while (fin < historial.length && minuto(historial[fin]) === minuto(historial[i])) fin++;
+    const grupo = historial.slice(i, fin);
+    const origenes = [...new Set(grupo.map((e) => e.origin))];
+    const peso = (o: EntradaDelHistorial["origin"]) =>
+      Math.max(...grupo.filter((e) => e.origin === o).map((e) => PESO_DEL_NIVEL[e.level]));
+    origenes.sort((a, b) => peso(b) - peso(a) || Number(a !== "model") - Number(b !== "model"));
+    for (const o of origenes) resultado.push(...grupo.filter((e) => e.origin === o));
+    i = fin;
+  }
+  return resultado;
 }

@@ -17,7 +17,8 @@ import { BarraPanel } from "../components/BarraPanel";
 import { DetalleSesion } from "../components/DetalleSesion";
 import { Fichas, type Ficha } from "../components/Fichas";
 import { AvisoAlertas } from "../components/AvisoAlertas";
-import { AnuncioVivo, useAnuncio } from "../components/AnuncioVivo";
+import { AnuncioVivo } from "../components/AnuncioVivo";
+import { useAnuncio } from "../components/useAnuncio";
 import { FiltrosSesiones, type ControlBusqueda } from "../components/FiltrosSesiones";
 import { GruposDeSesiones } from "../components/GruposDeSesiones";
 import { ResultadoDelFiltro } from "../components/ResultadoDelFiltro";
@@ -55,6 +56,9 @@ import "./Panel.css";
  * de integridad. Una alerta nueva se anuncia a los lectores de pantalla con una
  * frase corta (`AvisoAlertas`), sin releer la lista.
  */
+
+/** El título del documento fuera de una vista con nombre, el mismo de index.html. */
+const TITULO_DEL_PANEL = "SAMCE — Panel Docente";
 
 /**
  * Numera los intentos de cada alumno dentro de un examen, por orden de
@@ -129,11 +133,11 @@ export function Panel() {
   // descartaba y se rehacía enseguida.
   // Un cambio de filtro también vuelve a la primera página.
   const vistaDeLista = `${examenElegido}|${claveFiltros}`;
-  const [paginasDe, setPaginasDe] = useState({ examen: vistaDeLista, n: 1 });
-  if (paginasDe.examen !== vistaDeLista) setPaginasDe({ examen: vistaDeLista, n: 1 });
-  const paginas = paginasDe.examen === vistaDeLista ? paginasDe.n : 1;
+  const [paginasDe, setPaginasDe] = useState({ vista: vistaDeLista, n: 1 });
+  if (paginasDe.vista !== vistaDeLista) setPaginasDe({ vista: vistaDeLista, n: 1 });
+  const paginas = paginasDe.vista === vistaDeLista ? paginasDe.n : 1;
   const pedirOtraPagina = useCallback(
-    () => setPaginasDe({ examen: vistaDeLista, n: paginas + 1 }),
+    () => setPaginasDe({ vista: vistaDeLista, n: paginas + 1 }),
     [vistaDeLista, paginas]
   );
   // Cómo está el registro que se está mirando: si se sigue pidiendo y si la
@@ -265,10 +269,15 @@ export function Panel() {
   // tres números son del mismo momento. Los recuentos de la ficha del examen quedan para un backend sin resumen.
   const totalDeLaEvaluacion = cargadas?.resumen?.total ?? totalDelExamen;
   // «N de M sesiones» se ve siempre al día, pero se anuncia una sola vez por vista y solo cuando la vista
-  // vino de una acción del docente (la barra, una tarjeta): abrir un enlace que ya trae un filtro, volver con
-  // Atrás o del detalle, o el refresco cambian el número en silencio. Cada anuncio va en un nodo nuevo, así
-  // volver a un filtro con la misma cifra también se lee. Va en un efecto, no en el render.
-  const [anuncioFiltro, anunciarFiltro] = useAnuncio();
+  // vino de una acción del docente (la barra, una tarjeta). Dos referencias, cada una con su caso:
+  // - `porAccion` se prende con la acción y se apaga al anunciar: abrir un enlace que ya trae un filtro, o
+  //   volver con Atrás o del detalle, llegan sin acción y no se anuncian.
+  // - `vistaAnunciada` es la vista de la última respuesta atendida: el refresco de la misma vista (aunque
+  //   cambie la cifra) no se vuelve a atender, ni para anunciar ni para vaciar.
+  // Una vista nueva sin acción, o la lista sin filtro, vacían la región: si conservara la frase de antes, quien
+  // recorre la página con el lector encontraría una cifra que ya no es la de la pantalla. Cada anuncio va en
+  // un nodo nuevo, así volver a un filtro con la misma cifra también se lee. Va en un efecto, no en el render.
+  const [anuncioFiltro, anunciarFiltro, silenciarFiltro] = useAnuncio();
   const porAccion = useRef(false);
   const vistaAnunciada = useRef("");
   const cuantasDelFiltro = respuestaDelFiltro ? cargadas.total! : null;
@@ -276,14 +285,18 @@ export function Panel() {
     if (!conFiltro) {
       vistaAnunciada.current = "";
       porAccion.current = false;
+      silenciarFiltro();
       return;
     }
     if (cuantasDelFiltro === null || vistaAnunciada.current === vistaDeLista) return;
     vistaAnunciada.current = vistaDeLista;
-    if (!porAccion.current) return;
+    if (!porAccion.current) {
+      silenciarFiltro();
+      return;
+    }
     porAccion.current = false;
     anunciarFiltro(textoDelResultado(cuantasDelFiltro, totalDeLaEvaluacion));
-  }, [conFiltro, cuantasDelFiltro, vistaDeLista, totalDeLaEvaluacion, anunciarFiltro]);
+  }, [conFiltro, cuantasDelFiltro, vistaDeLista, totalDeLaEvaluacion, anunciarFiltro, silenciarFiltro]);
 
   /** Un cambio de filtro del docente: si la dirección cambió, la vista que viene se anuncia. */
   const filtrar = useCallback(
@@ -412,6 +425,36 @@ export function Panel() {
           ? nombreDelAlumno
           : nombreExamenActual;
 
+  // El título del documento dice la vista, como el h1: con uno solo para todo el panel, el lector de
+  // pantalla no anunciaba el paso de la lista al detalle, y las pestañas no se distinguían.
+  useEffect(() => {
+    document.title = titulo ? `${titulo} — SAMCE` : TITULO_DEL_PANEL;
+  }, [titulo]);
+  useEffect(() => () => void (document.title = TITULO_DEL_PANEL), []);
+
+  // El foco acompaña el cambio de vista entre la lista y el detalle (WCAG 2.4.3). Al abrir una sesión va al
+  // h1 con el nombre del alumno, así el lector lo anuncia y el teclado sigue desde ahí; al volver a la lista
+  // (Atrás, la miga), al «Ver» de la sesión de la que salió, para no perder el lugar en una lista larga. Sin
+  // ese botón (un filtro la dejó afuera), al h1. Solo en el cambio, nunca en la primera carga ni con el
+  // refresco.
+  const titular = useRef<HTMLHeadingElement>(null);
+  const anterior = useRef<{ nivel: string; sesion: string | null } | null>(null);
+  const listo = !(cargando || esperandoSesiones) && recibido;
+  useEffect(() => {
+    if (!listo) return;
+    const antes = anterior.current;
+    anterior.current = { nivel, sesion: sesionElegida };
+    if (!antes) return;
+    if (nivel === "eventos" && (antes.nivel !== "eventos" || antes.sesion !== sesionElegida)) {
+      titular.current?.focus();
+    } else if (nivel === "sesiones" && antes.nivel === "eventos") {
+      const ver = antes.sesion
+        ? document.querySelector<HTMLButtonElement>(`button[data-sesion="${CSS.escape(antes.sesion)}"]`)
+        : null;
+      (ver ?? titular.current)?.focus();
+    }
+  }, [listo, nivel, sesionElegida]);
+
   // Sin sesión no hay nada que supervisar: se explica y se lo devuelve al
   // campus, igual que a quien llega de un favorito viejo.
   if (vencida) return <SinSesion motivo="vencida" />;
@@ -477,7 +520,8 @@ export function Panel() {
                 {/* El salto a todos sus cursos vive en el encabezado de la
                     barra, que es donde se lo busca y donde está en los dos
                     modos. Acá abajo repetía lo mismo dos veces en pantalla. */}
-                <h1 className="panel__curso">{titulo}</h1>
+                {/* tabIndex -1: recibe el foco al abrir una sesión, sin ser una parada del tabulador. */}
+                <h1 className="panel__curso" ref={titular} tabIndex={-1}>{titulo}</h1>
                 {/* Qué estado muestra y en qué orden se decide está junto a
                     `estadoPulso`, arriba. */}
                 <PulsoEnlace estado={estadoPulso} marca={marca} />
@@ -552,7 +596,7 @@ export function Panel() {
                   <FiltrosSesiones filtros={filtros} onCambio={filtrar} nivelRef={selectorDeNivel} controlRef={busqueda} />
                   {conFiltro ? (
                     <ResultadoDelFiltro
-                      cuantas={respuestaDelFiltro ? cargadas.total : null}
+                      cuantas={cuantasDelFiltro}
                       deCuantas={totalDeLaEvaluacion}
                       onQuitar={quitar}
                     />
@@ -561,11 +605,12 @@ export function Panel() {
                 </section>
 
                 {/* El vacío del filtro va en una lámina, como el «En curso» vacío: ningún texto de la lista
-                    queda fuera de una superficie. */}
+                    queda fuera de una superficie. Sin nombre de región: «Resultado del filtro» es el de la
+                    región viva, y dos regiones con el mismo nombre no se distinguen. */}
                 {respuestaDelFiltro && cargadas.total === 0 ? (
-                  <section className="lamina lista" aria-label="Resultado del filtro">
+                  <div className="lamina lista">
                     <p className="grupos__vacio">Ninguna sesión coincide con el filtro.</p>
-                  </section>
+                  </div>
                 ) : (
                   <GruposDeSesiones
                     enCurso={enCurso}
@@ -585,7 +630,7 @@ export function Panel() {
                 {delExamen.length < totalDeLaVista && paginas * SESIONES_POR_PAGINA < SESIONES_TOPE ? (
                   <button
                     type="button"
-                    className="panel__ver-mas"
+                    className="boton-secundario panel__ver-mas"
                     onClick={pedirOtraPagina}
                   >
                     Ver más sesiones

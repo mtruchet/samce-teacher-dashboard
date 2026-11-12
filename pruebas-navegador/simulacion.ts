@@ -25,7 +25,7 @@ interface SesionFalsa {
   status: "open" | "closed" | "abandoned";
   started_at: string;
   closed_at?: string;
-  capture: { state: "ok" };
+  capture: { state: string; gap_minutes?: number; last_event_at?: string };
   risk_level: Nivel | null;
   alerts_count: number;
   alert_origins: Origen[];

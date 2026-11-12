@@ -1,7 +1,8 @@
 import { ESTADOS_SIN_ALERTAS, NIVELES } from "../lenguajeAlerta";
 import { cuantasSesiones, enCifras } from "../cifras";
 import { NIVELES_FILTRO, SIN_FILTROS, type FiltrosSesiones } from "../filtrosDeLaDireccion";
-import type { NivelDeRiesgo, ResumenDeEvaluacion } from "../services/sesionesService";
+import type { NivelDeRiesgo } from "../niveles";
+import type { ResumenDeEvaluacion } from "../services/sesionesService";
 import { RotuloNivel } from "./RotuloNivel";
 import "./ResumenEvaluacion.css";
 
@@ -52,7 +53,9 @@ interface Props {
  */
 export function ResumenEvaluacion({ resumen, filtros, onFiltrar }: Props) {
   return (
-    <section className="resumen" aria-labelledby="resumen-titulo">
+    // Un div y no otra región: va adentro de la región «Resumen y filtros de la evaluación», y dos puntos de
+    // referencia casi iguales, uno dentro del otro, solo suman ruido. El h2 ya sirve para llegar por encabezados.
+    <div className="resumen">
       <h2 id="resumen-titulo" className="lamina__titulo">
         Resumen de la evaluación
       </h2>
@@ -64,7 +67,7 @@ export function ResumenEvaluacion({ resumen, filtros, onFiltrar }: Props) {
             <button
               key={nivel}
               type="button"
-              className="resumen__tarjeta"
+              className={n === 0 ? "resumen__tarjeta resumen__tarjeta--cero" : "resumen__tarjeta"}
               data-nivel={nivel}
               aria-pressed={elegida}
               aria-label={`${NIVELES[nivel]}: ${cuantasSesiones(n)}`}
@@ -95,6 +98,6 @@ export function ResumenEvaluacion({ resumen, filtros, onFiltrar }: Props) {
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }

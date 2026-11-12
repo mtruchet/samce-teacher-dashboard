@@ -10,6 +10,8 @@ import { abrir, simularBackend, VISTAS } from "./simulacion";
 
 /** El celeste del anillo de foco (--celeste en tokens.css). */
 const CELESTE = "rgb(0, 140, 178)";
+/** La capa de afuera del anillo sobre las superficies oscuras (--anillo-foco-oscuro: --tinta-clara). */
+const BLANCO = "rgb(255, 255, 255)";
 
 const ANCHOS = [390, 1280] as const;
 const ALTO = 844;
@@ -26,7 +28,7 @@ interface Parada {
 
 /** Cómo se ve lo enfocado ahora: si cumple :focus-visible y si lleva el anillo (celeste o contorno sólido). */
 function paradaActual(page: Page): Promise<Parada> {
-  return page.evaluate((celeste) => {
+  return page.evaluate(([celeste, blanco]) => {
     const el = document.activeElement as HTMLElement | null;
     if (!el || el === document.body) return { descripcion: "body", visible: false, anillo: false };
     const estilo = getComputedStyle(el);
@@ -39,9 +41,10 @@ function paradaActual(page: Page): Promise<Parada> {
     return {
       descripcion: `${el.tagName.toLowerCase()}.${el.className} «${texto}»`,
       visible: el.matches(":focus-visible"),
-      anillo: estilo.boxShadow.includes(celeste) || contorno,
+      // En la barra y el pie, que son oscuros, la capa de afuera es blanca (A1).
+      anillo: estilo.boxShadow.includes(el.closest(".barra, .pie") ? blanco : celeste) || contorno,
     };
-  }, CELESTE);
+  }, [CELESTE, BLANCO]);
 }
 
 for (const ancho of ANCHOS) {
@@ -135,7 +138,7 @@ test.describe("B2: con colores forzados", () => {
     for (const b of bordes) expect(b).not.toBe("none");
 
     await abrir(page, VISTAS.detalleAlto);
-    const botones = page.locator(".eventos__boton");
+    const botones = page.locator(".boton-secundario");
     await expect(botones.first()).toBeVisible();
     for (const b of await botones.all()) {
       expect(await b.evaluate((e) => getComputedStyle(e).borderTopStyle)).not.toBe("none");
@@ -244,19 +247,45 @@ for (const ancho of ANCHOS) {
   });
 }
 
-test("B5: a 390 px, la tabla apilada sigue siendo una tabla para los lectores de pantalla", async ({ page }) => {
+/**
+ * Los roles del árbol de accesibilidad real de Chromium (por CDP), no los que calcula Playwright desde el DOM:
+ * un `display: grid` puede hacer que el navegador descarte la semántica de tabla, y `ariaSnapshot()` no lo ve.
+ */
+async function rolesDelArbol(page: Page): Promise<Record<string, number>> {
+  const cdp = await page.context().newCDPSession(page);
+  const { nodes } = (await cdp.send("Accessibility.getFullAXTree")) as {
+    nodes: Array<{ ignored?: boolean; role?: { value?: string } }>;
+  };
+  await cdp.detach();
+  const cuenta: Record<string, number> = {};
+  for (const n of nodes) {
+    if (n.ignored) continue;
+    const rol = n.role?.value ?? "";
+    cuenta[rol] = (cuenta[rol] ?? 0) + 1;
+  }
+  return cuenta;
+}
+
+test("B5: a 390 px, la tabla apilada sigue siendo una tabla para los lectores de pantalla (H09, A5)", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: ALTO });
   await abrir(page, VISTAS.lista);
-  const lista = await page.locator(".lista table").first().ariaSnapshot();
-  expect(lista).toContain("columnheader");
-  expect(lista).toContain("row");
-  expect(lista).toContain("cell");
+  const angosta = await rolesDelArbol(page);
+  expect(angosta.table).toBeGreaterThanOrEqual(2);
+  expect(angosta.row).toBeGreaterThan(2);
+  expect(angosta.cell).toBeGreaterThan(2);
+  // La hora de comienzo se va de la vista, no del árbol: los encabezados son los mismos que a 1280 px, y el
+  // título de la tabla, que la nombra, sigue siendo cierto (A5).
+  await page.setViewportSize({ width: 1280, height: ALTO });
+  const ancha = await rolesDelArbol(page);
+  expect(angosta.columnheader).toBe(ancha.columnheader);
+  expect(angosta.cell).toBe(ancha.cell);
 
+  await page.setViewportSize({ width: 390, height: ALTO });
   await abrir(page, VISTAS.detalleAlto);
-  const registro = await page.locator("table.eventos").first().ariaSnapshot();
-  expect(registro).toContain("columnheader");
-  expect(registro).toContain("row");
-  expect(registro).toContain("cell");
+  const registro = await rolesDelArbol(page);
+  expect(registro.table).toBeGreaterThanOrEqual(1);
+  expect(registro.columnheader).toBeGreaterThanOrEqual(3);
+  expect(registro.cell).toBeGreaterThan(3);
 });
 
 test("a 1280 px, la columna «Análisis» empieza en el mismo lugar en «En curso» y en «Finalizadas»", async ({ page }) => {
@@ -370,7 +399,9 @@ for (const [nombre, vista] of [
     const textos = await page.evaluate(() => {
       const espacios = (t: string) => t.replace(/\s+/g, " ").trim();
       const todos: string[] = [];
-      for (const el of document.querySelectorAll("main *")) {
+      // Toda la página, no solo `main`: la barra y el pie también los lee el docente (L11).
+      for (const el of document.querySelectorAll("body *")) {
+        if (el.closest("script, style, noscript")) continue;
         if (el.closest(".explicacion, .alumno__captura, .detalle__captura")) continue;
         const propio = espacios(
           [...el.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE).map((n) => n.textContent ?? "").join(" ")

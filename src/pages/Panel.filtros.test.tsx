@@ -136,6 +136,8 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
 
     traer.mockResolvedValue(pagina(cincuenta, 80));
     await esperar(CADENCIA);
+    // El mismo botón secundario que «Mostrar 50 más» del registro (V5).
+    expect(screen.getByRole("button", { name: "Ver más sesiones" })).toHaveClass("boton-secundario");
     fireEvent.click(screen.getByRole("button", { name: "Ver más sesiones" }));
     await esperar();
     expect(traer).toHaveBeenLastCalledWith(1, 100, expect.objectContaining({ estado: "finished" }));
@@ -386,6 +388,67 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     await esperar();
     const finalizadas = screen.getByRole("heading", { name: "Finalizadas" }).closest("section")!;
     expect(finalizadas.querySelector(".lamina__cuenta")).toHaveTextContent("1");
+  });
+
+  it("después de «Quitar filtros», la región viva ya no dice la cifra del filtro (A4)", async () => {
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1));
+    montar("/panel?examen=1");
+    await esperar();
+    fireEvent.change(screen.getByLabelText("Nivel de riesgo"), { target: { value: "high" } });
+    await esperar();
+    expect(viva()).toHaveTextContent("1 de 2 sesiones");
+
+    fireEvent.click(screen.getByRole("button", { name: "Quitar filtros" }));
+    await esperar();
+    expect(resultado()).toBeNull();
+    expect(viva().textContent).toBe("");
+  });
+
+  it("al volver con Atrás a otra vista filtrada, la región viva no conserva la cifra de la anterior (M3)", async () => {
+    vi.spyOn(sesionesService, "traerSesiones").mockImplementation(async (_e, _l, filtros) =>
+      filtros?.nivel === "medium" ? pagina([], 0) : pagina([rindiendo], 1)
+    );
+    montar("/panel?examen=1&nivel=high");
+    await esperar();
+    fireEvent.change(screen.getByLabelText("Nivel de riesgo"), { target: { value: "medium" } });
+    await esperar();
+    expect(viva()).toHaveTextContent("0 de 2 sesiones");
+
+    fireEvent.click(screen.getByRole("button", { name: "Atrás del navegador" }));
+    await esperar();
+    expect(resultado()).toHaveTextContent("1 de 2 sesiones");
+    expect(viva().textContent).toBe("");
+  });
+
+  it("con un filtro sin resultados hay una sola región «Resultado del filtro», la viva (L7, H14)", async () => {
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([], 0));
+    montar("/panel?examen=1&nivel=high");
+    await esperar();
+    expect(document.querySelectorAll('[aria-label="Resultado del filtro"]')).toHaveLength(1);
+    expect(screen.queryByRole("region", { name: "Resumen de la evaluación" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Resumen y filtros de la evaluación" })).toBeInTheDocument();
+  });
+
+  it("una respuesta tardía de otro examen no pisa la lista del examen elegido (H06)", async () => {
+    let contestarTarde: (p: sesionesService.PaginaDeSesiones) => void = () => undefined;
+    vi.spyOn(sesionesService, "traerSesiones").mockImplementation((examen) =>
+      examen === 1
+        ? new Promise((listo) => {
+            contestarTarde = listo;
+          })
+        : Promise.resolve(pagina([{ ...rindiendo, id: 20, student_name: "Del Segundo" }], 1))
+    );
+    montar("/panel?examen=1", ["/panel?examen=2"]);
+    await esperar();
+
+    fireEvent.click(screen.getByRole("button", { name: "Atrás del navegador" }));
+    await esperar();
+    expect(screen.getByText("Del Segundo")).toBeInTheDocument();
+
+    contestarTarde(pagina([{ ...rindiendo, id: 10, student_name: "Del Primero" }], 1));
+    await esperar();
+    expect(screen.queryByText("Del Primero")).toBeNull();
+    expect(screen.getByText("Del Segundo")).toBeInTheDocument();
   });
 
   it("el vacío del filtro va dentro de una lámina", async () => {

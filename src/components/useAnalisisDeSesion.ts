@@ -9,7 +9,7 @@ import {
   type Analisis,
   type SesionNumerada,
 } from "../services/sesionesService";
-import { useAnuncio, type Anuncio } from "./AnuncioVivo";
+import { useAnuncio, type Anuncio } from "./useAnuncio";
 
 /**
  * Lo nuevo de una consulta, para el lector de pantalla: la alerta que apareció o subió de nivel. Solo eso, y

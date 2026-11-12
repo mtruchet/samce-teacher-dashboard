@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { NIVELES } from "../lenguajeAlerta";
-import type { NivelDeRiesgo } from "../services/sesionesService";
+import type { NivelDeRiesgo } from "../niveles";
 import { MedidorNivel } from "./MedidorNivel";
 import "./RotuloNivel.css";
 

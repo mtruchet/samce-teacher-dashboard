@@ -250,6 +250,10 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
   const ultimoEvento = eventos[eventos.length - 1];
   const rotulo = estado(sesion.status);
   const aviso = avisoDeCaptura(sesion.capture);
+  // Un evento «Se perdió parte del registro» dice lo mismo que el aviso de captura, pero desde la página del
+  // examen: la captura puede figurar como completa y faltar igual una parte. Con eso, «Momentos para revisar» no
+  // puede afirmar sin salvedad que no pegó ni salió.
+  const sePerdioParte = eventos.some((e) => e.type === "events_dropped");
 
   return (
     <div className="detalle">
@@ -319,17 +323,23 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
       <section className="lamina lamina--apoyo detalle__registro" aria-labelledby="registro-de-eventos-titulo">
         <header className="lamina__encabezado detalle__encabezado">
           <h2 className="lamina__titulo" id="registro-de-eventos-titulo">Registro de eventos</h2>
-          {recibido ? <span className="lamina__cuenta cifra">{cuentaDeEventos(eventos.length)}</span> : null}
-          {/* Los dos extremos son las marcas temporales de las filas de las
-              puntas, no una medida de la sesión: dicen hasta dónde llega el
-              registro, que es lo que hace falta para saber si lo que se está
-              mirando está completo. Sin segundos: las filas los tienen. */}
-          {primerEvento ? (
-            <span className="detalle__extremos cifra">
-              <span className="detalle__punto" aria-hidden="true">, </span>
-              {eventos.length === 1
-                ? `a las ${horaCorta(primerEvento.received_at)}`
-                : `de ${horaCorta(primerEvento.received_at)} a ${horaCorta(ultimoEvento.received_at)}`}
+          {/* La cuenta y sus extremos van juntos, como una sola frase: en un teléfono bajan enteros a su
+              propio renglón, y no partidos a la mitad. */}
+          {recibido ? (
+            <span className="detalle__cuenta">
+              <span className="lamina__cuenta cifra">{cuentaDeEventos(eventos.length)}</span>
+              {/* Los dos extremos son las marcas temporales de las filas de las
+                  puntas, no una medida de la sesión: dicen hasta dónde llega el
+                  registro, que es lo que hace falta para saber si lo que se está
+                  mirando está completo. Sin segundos: las filas los tienen. */}
+              {primerEvento ? (
+                <span className="detalle__extremos cifra">
+                  <span className="detalle__punto" aria-hidden="true">, </span>
+                  {eventos.length === 1
+                    ? `a las ${horaCorta(primerEvento.received_at)}`
+                    : `de ${horaCorta(primerEvento.received_at)} a ${horaCorta(ultimoEvento.received_at)}`}
+                </span>
+              ) : null}
             </span>
           ) : null}
         </header>
@@ -341,7 +351,9 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
         {recibido && eventos.length > 0 ? (
           <CronologiaSesion
             eventos={eventos}
-            alcance={incompleto || aviso ? "parcial" : abierta ? "abierta" : "completo"}
+            alcance={
+              incompleto || aviso || sePerdioParte ? "parcial" : abierta ? "abierta" : "completo"
+            }
             onIrAlEvento={(id) => setDestacado((d) => ({ id, vez: (d?.vez ?? 0) + 1 }))}
           />
         ) : null}

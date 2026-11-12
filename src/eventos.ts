@@ -651,15 +651,18 @@ export function describirEvento(evento: Pick<Evento, "type" | "data">, contexto:
 
 // ---- Momentos para revisar (HU05, criterio 3) -----------------------------------------------
 
-/** Un evento crítico de la sesión: el evento al que lleva (su fila en el registro) y cómo se nombra. */
+/** Un evento crítico de la sesión: el evento al que lleva (su fila en el registro), cómo se nombra y su ícono. */
 export interface EventoCritico {
   evento: Evento;
   titulo: string;
+  icono: Descripcion["icono"];
 }
 
-/** Un momento lleva el título de su fila: el mismo hecho se nombra igual en los dos lugares. */
+/** Un momento lleva el título y el ícono de su fila, de una sola descripción: el mismo hecho se nombra y se
+ *  dibuja igual en los dos lugares. */
 function momento(evento: Evento): EventoCritico {
-  return { evento, titulo: describirEvento(evento).titulo };
+  const { titulo, icono } = describirEvento(evento);
+  return { evento, titulo, icono };
 }
 
 /**

@@ -133,6 +133,19 @@ describe("contraste del texto atenuado y de los trazos del análisis", () => {
     expect(medio).toBeLessThan(alto);
   });
 
+  // Las superficies oscuras (la barra y el pie, en --pizarra): el texto chico del pie en --tinta-clara-suave
+  // (blanco con transparencia) y la capa de afuera del anillo de foco de esas superficies (A1, A8).
+  it("sobre la pizarra, el texto chico del pie llega a 4,5:1 y el anillo de foco a 3:1", () => {
+    const pizarra = resolver(mapa, "--pizarra");
+    const suave = /^rgb\(255 255 255 \/ (\d+)%\)$/.exec(mapa.get("--tinta-clara-suave") ?? "");
+    expect(suave).not.toBeNull();
+    expect(contraste(mezclar("#ffffff", pizarra, Number(suave![1]) / 100), pizarra)).toBeGreaterThanOrEqual(4.5);
+
+    const anillo = /0 0 0 2px var\(--sup-5\), 0 0 0 4px var\((--[\w-]+)\)/.exec(mapa.get("--anillo-foco-oscuro") ?? "");
+    expect(anillo).not.toBeNull();
+    expect(contraste(resolver(mapa, anillo![1]), pizarra)).toBeGreaterThanOrEqual(3);
+  });
+
   it("la fórmula da 21:1 para negro sobre blanco y 1:1 para el mismo color", () => {
     expect(contraste("#000000", "#ffffff")).toBeCloseTo(21, 5);
     expect(contraste("#114c5e", "#114c5e")).toBeCloseTo(1, 5);

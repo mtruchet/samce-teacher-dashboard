@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { evento } from "../test/fabricas";
+import { expectLenguajeLlano } from "../test/lenguaje";
 import { ListaEventos, TANDA } from "./ListaEventos";
 
 /** `n` eventos de mouse seguidos, cinco segundos uno del otro, sin silencios entre medio. */
@@ -79,6 +80,23 @@ describe("ListaEventos", () => {
 
     const marco = container.querySelector(".eventos__marco") as HTMLElement;
     expect(marco.style.maxHeight).toBe("");
+  });
+
+  it("si la tabla entra en su marco, el marco no es una parada del tabulador ni repite el nombre del registro (A6)", () => {
+    const { container } = render(<ListaEventos eventos={eventos(3)} />);
+    const marco = container.querySelector(".eventos__marco") as HTMLElement;
+    expect(marco).not.toHaveAttribute("tabindex");
+    expect(marco).not.toHaveAttribute("role");
+    expect(screen.queryByRole("group", { name: "Registro de eventos" })).toBeNull();
+  });
+
+  it("si la tabla no entra, el marco se puede enfocar para desplazarlo con el teclado (A6)", () => {
+    const ancho = vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(900);
+    const visible = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(300);
+    const { container } = render(<ListaEventos eventos={eventos(3)} />);
+    expect(container.querySelector(".eventos__marco")).toHaveAttribute("tabindex", "0");
+    ancho.mockRestore();
+    visible.mockRestore();
   });
 
   it("lleva a una fila que no estaba entre las visibles: la muestra, le da el foco y la resalta", () => {
@@ -170,9 +188,19 @@ describe("ListaEventos", () => {
       // El texto visible ya no es una región viva.
       expect(screen.getByText(`Se ven los ${TANDA} eventos más recientes de 195.`)).not.toHaveAttribute("role");
 
+      expect(screen.getByRole("button", { name: `Mostrar ${TANDA} más` })).toHaveClass("boton-secundario");
       fireEvent.click(screen.getByRole("button", { name: `Mostrar ${TANDA} más` }));
       expect(region.firstChild).not.toBe(antes);
       expect(region).toHaveTextContent(`Se ven los ${2 * TANDA} eventos más recientes de 195.`);
+    });
+
+    it("«Mostrar todos» anuncia «Se ven los M eventos.», en lenguaje llano (H04; texto a confirmar por Facundo)", () => {
+      const { container } = render(<ListaEventos eventos={eventos(1240)} />);
+      fireEvent.click(screen.getByRole("button", { name: "Mostrar todos" }));
+      const region = screen.getByRole("status", { name: "Eventos a la vista" });
+      expect(region.textContent).toBe("Se ven los 1.240 eventos.");
+      expectLenguajeLlano(region);
+      expect(container).toBeTruthy();
     });
   });
 });
