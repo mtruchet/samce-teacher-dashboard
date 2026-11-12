@@ -269,6 +269,45 @@ test("a 1280 px, la columna «Análisis» empieza en el mismo lugar en «En curs
   expect(new Set(izquierdas).size).toBe(1);
 });
 
+for (const ancho of [1280, 390]) {
+  test(`a ${ancho} px, los cuatro apartados del detalle dejan el mismo aire entre su título y su contenido`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: ALTO });
+    await abrir(page, VISTAS.detalleAlto);
+    const aires = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>(".apartado__titulo")].map((titulo) => {
+        const siguiente = titulo.nextElementSibling as HTMLElement;
+        return {
+          titulo: (titulo.textContent ?? "").trim(),
+          aire: Math.round(siguiente.getBoundingClientRect().top - titulo.getBoundingClientRect().bottom),
+        };
+      })
+    );
+    expect(aires.map((a) => a.titulo).sort()).toEqual(
+      ["Cómo cambió el riesgo", "Historial de alertas", "Métricas de la sesión", "Momentos para revisar"].sort()
+    );
+    expect(new Set(aires.map((a) => a.aire)).size, JSON.stringify(aires)).toBe(1);
+  });
+}
+
+test("a 390 px, en el registro apilado la hora y el título del evento quedan a la misma altura", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: ALTO });
+  await abrir(page, VISTAS.detalleAlto);
+  // Se mide el texto y no la celda: lo que se veía corrido era la hora respecto del título.
+  const corrimientos = await page.evaluate(() => {
+    const arribaDelTexto = (e: Element) => {
+      const rango = document.createRange();
+      rango.selectNodeContents(e);
+      return rango.getBoundingClientRect().top;
+    };
+    return [...document.querySelectorAll(".eventos tbody tr")]
+      .map((fila) => [fila.querySelector(".eventos__hora"), fila.querySelector(".eventos__titulo")] as const)
+      .filter(([hora, titulo]) => hora && titulo)
+      .map(([hora, titulo]) => Math.abs(Math.round(arribaDelTexto(hora!) - arribaDelTexto(titulo!))));
+  });
+  expect(corrimientos.length).toBeGreaterThan(0);
+  expect(Math.max(...corrimientos)).toBeLessThanOrEqual(1);
+});
+
 test("«Ver en el registro» lleva a una fila con el mismo nombre, y el foco se ve en sus cuatro lados", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: ALTO });
   await abrir(page, VISTAS.detalleAlto);

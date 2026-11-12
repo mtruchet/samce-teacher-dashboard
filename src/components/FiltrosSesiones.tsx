@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type Ref } from "react";
+import { useEffect, useId, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { LARGO_MAXIMO_BUSQUEDA, NIVELES_FILTRO, type FiltrosSesiones as Filtros } from "../filtrosDeLaDireccion";
 import { NIVELES } from "../lenguajeAlerta";
 import "./FiltrosSesiones.css";
@@ -6,12 +6,24 @@ import "./FiltrosSesiones.css";
 /** Cuánto se espera después de la última tecla antes de buscar: no se pide en cada letra. */
 export const ESPERA_BUSQUEDA_MS = 300;
 
+/** Lo que la barra deja hacer desde afuera. */
+export interface ControlBusqueda {
+  /**
+   * Descarta la búsqueda que se estaba esperando escribir y vacía el campo. Lo llama quien borra la búsqueda
+   * antes de que llegue a la dirección (una tarjeta del resumen, «Quitar filtros»): sin esto, la espera
+   * vencía después y sumaba una búsqueda que el docente ya había descartado.
+   */
+  cancelarBusqueda: () => void;
+}
+
 interface Props {
   filtros: Filtros;
   /** Recibe solo lo que cambió; quien lo monta lo escribe en la dirección de la página. */
   onCambio: (parciales: Partial<Filtros>) => void;
   /** El selector de nivel, el primer control de la barra: adonde vuelve el foco después de «Quitar filtros». */
   nivelRef?: Ref<HTMLSelectElement>;
+  /** Para cancelar desde afuera una búsqueda que todavía no llegó a la dirección. */
+  controlRef?: Ref<ControlBusqueda>;
 }
 
 /**
@@ -31,7 +43,7 @@ interface Props {
  * Va dentro de la lámina de control, sin lámina propia. «N de M sesiones» y «Quitar filtros» no son de la
  * barra: van en el renglón de resultado (`ResultadoDelFiltro`), debajo.
  */
-export function FiltrosSesiones({ filtros, onCambio, nivelRef }: Props) {
+export function FiltrosSesiones({ filtros, onCambio, nivelRef, controlRef }: Props) {
   const id = useId();
   const [texto, setTexto] = useState(filtros.q ?? "");
   const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,6 +85,19 @@ export function FiltrosSesiones({ filtros, onCambio, nivelRef }: Props) {
   useEffect(() => () => {
     if (espera.current) clearTimeout(espera.current);
   }, []);
+
+  useImperativeHandle(
+    controlRef,
+    () => ({
+      cancelarBusqueda() {
+        if (espera.current) clearTimeout(espera.current);
+        espera.current = null;
+        enviada.current = "";
+        setTexto("");
+      },
+    }),
+    []
+  );
 
   function escribir(valor: string) {
     setTexto(valor);

@@ -95,6 +95,31 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     expect(direccion().toString()).toBe("examen=1&nivel=high&orden=risk_level");
   });
 
+  it("tocar una tarjeta mientras la búsqueda espera la descarta: el pedido no lleva la búsqueda y la cifra sigue la tarjeta", async () => {
+    const traer = vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1, RESUMEN));
+    montar("/panel?examen=1");
+    await esperar();
+    fireEvent.change(screen.getByLabelText("Buscar alumno"), { target: { value: "lu" } });
+    await esperar(100);
+    fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" }));
+    await esperar(400);
+    expect(direccion().toString()).toBe("examen=1&nivel=high");
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "high", q: undefined }));
+    expect(screen.getByLabelText("Buscar alumno")).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("destildar una tarjeta mientras la búsqueda espera no la descarta: solo se borra la dimensión de la tarjeta", async () => {
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1, RESUMEN));
+    montar("/panel?examen=1&nivel=high");
+    await esperar();
+    fireEvent.change(screen.getByLabelText("Buscar alumno"), { target: { value: "lu" } });
+    await esperar(100);
+    fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" }));
+    await esperar(400);
+    expect(direccion().toString()).toBe("examen=1&q=lu");
+  });
+
   it("tocar la tarjeta marcada borra solo su filtro", async () => {
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1, RESUMEN));
     montar("/panel?examen=1&nivel=high&q=bru&orden=risk_level");

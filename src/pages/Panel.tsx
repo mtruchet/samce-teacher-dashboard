@@ -18,7 +18,7 @@ import { DetalleSesion } from "../components/DetalleSesion";
 import { Fichas, type Ficha } from "../components/Fichas";
 import { AvisoAlertas } from "../components/AvisoAlertas";
 import { AnuncioVivo, useAnuncio } from "../components/AnuncioVivo";
-import { FiltrosSesiones } from "../components/FiltrosSesiones";
+import { FiltrosSesiones, type ControlBusqueda } from "../components/FiltrosSesiones";
 import { GruposDeSesiones } from "../components/GruposDeSesiones";
 import { ResultadoDelFiltro } from "../components/ResultadoDelFiltro";
 import { textoDelResultado } from "../components/textoDelResultado";
@@ -296,7 +296,19 @@ export function Panel() {
   // «Quitar filtros» desaparece con el renglón de resultado, y el foco quedaba en el cuerpo de la página: se
   // lleva al primer control de la barra, que siempre existe (WCAG 2.4.3).
   const selectorDeNivel = useRef<HTMLSelectElement>(null);
+  // Una tarjeta o «Quitar filtros» borran la búsqueda, pero la que el docente estaba tecleando todavía no
+  // llegó a la dirección: hay que descartarla, o la espera la suma después y el resultado deja de coincidir
+  // con el número de la tarjeta.
+  const busqueda = useRef<ControlBusqueda>(null);
+  const filtrarDesdeElResumen = useCallback(
+    (parciales: Parameters<typeof aplicarFiltros>[0]) => {
+      if ("q" in parciales) busqueda.current?.cancelarBusqueda();
+      filtrar(parciales);
+    },
+    [filtrar]
+  );
   const quitar = useCallback(() => {
+    busqueda.current?.cancelarBusqueda();
     porAccion.current = false;
     quitarFiltros();
     selectorDeNivel.current?.focus();
@@ -535,9 +547,9 @@ export function Panel() {
                     función que la barra. */}
                 <section className="lamina control" aria-label="Resumen y filtros de la evaluación">
                   {cargadas?.resumen ? (
-                    <ResumenEvaluacion resumen={cargadas.resumen} filtros={filtros} onFiltrar={filtrar} />
+                    <ResumenEvaluacion resumen={cargadas.resumen} filtros={filtros} onFiltrar={filtrarDesdeElResumen} />
                   ) : null}
-                  <FiltrosSesiones filtros={filtros} onCambio={filtrar} nivelRef={selectorDeNivel} />
+                  <FiltrosSesiones filtros={filtros} onCambio={filtrar} nivelRef={selectorDeNivel} controlRef={busqueda} />
                   {conFiltro ? (
                     <ResultadoDelFiltro
                       cuantas={respuestaDelFiltro ? cargadas.total : null}

@@ -81,6 +81,13 @@ ol {
   list-style: none;
 }
 
+/* Las listas de definición también arrancan sin el margen del navegador: si no, la grilla de métricas
+   quedaba 19 px más abajo de su título que el contenido de los otros apartados. */
+dl,
+dd {
+  margin: 0;
+}
+
 img {
   max-width: 100%;
   height: auto;

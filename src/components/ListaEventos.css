@@ -239,7 +239,9 @@ th.eventos__que {
     grid-template-areas:
       "hora que"
       ". detalle";
-    align-items: baseline;
+    /* Por arriba y no por la línea base: la celda «Qué pasó» es una caja flex con el ícono, y su línea base
+       es la del ícono, que bajaba la hora 5 px. Las dos celdas tienen renglones de 20 px. */
+    align-items: start;
     column-gap: var(--e3);
     padding-block: var(--e2);
   }
