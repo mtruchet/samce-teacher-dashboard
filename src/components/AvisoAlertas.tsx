@@ -1,11 +1,7 @@
 import { useEffect, useRef } from "react";
-import { nombreDeAlumno, type Sesion } from "../services/sesionesService";
+import { PALABRA_DEL_NIVEL, subio } from "../lenguajeAlerta";
+import { nombreDeAlumno, type NivelDeRiesgo, type Sesion } from "../services/sesionesService";
 import { AnuncioVivo, useAnuncio } from "./AnuncioVivo";
-
-type Nivel = NonNullable<Sesion["risk_level"]>;
-
-const PESO: Record<Nivel, number> = { low: 1, medium: 2, high: 3 };
-const PALABRA: Record<Nivel, string> = { low: "bajo", medium: "medio", high: "alto" };
 
 /**
  * El anuncio accesible de una alerta nueva en la lista de sesiones (HU03).
@@ -31,15 +27,15 @@ export function AvisoAlertas({ sesiones, clave }: { sesiones: Sesion[]; clave: s
     memoria.current = { clave, niveles };
     if (!anterior || anterior.clave !== clave) return;
 
-    const nuevas: Array<{ sesion: Sesion; nivel: Nivel }> = [];
+    const nuevas: Array<{ sesion: Sesion; nivel: NivelDeRiesgo }> = [];
     for (const s of sesiones) {
       if (!anterior.niveles.has(s.id) || !s.risk_level) continue;
       const antes = anterior.niveles.get(s.id);
-      if (!antes || PESO[s.risk_level] > PESO[antes]) nuevas.push({ sesion: s, nivel: s.risk_level });
+      if (!antes || subio(antes, s.risk_level)) nuevas.push({ sesion: s, nivel: s.risk_level });
     }
     if (nuevas.length === 1) {
       const { sesion, nivel } = nuevas[0];
-      anunciar(`Nueva alerta en la sesión de ${nombreDeAlumno(sesion)}: riesgo ${PALABRA[nivel]}.`);
+      anunciar(`Nueva alerta en la sesión de ${nombreDeAlumno(sesion)}: riesgo ${PALABRA_DEL_NIVEL[nivel]}.`);
     } else if (nuevas.length > 1) {
       anunciar(`Nuevas alertas en ${nuevas.length} sesiones.`);
     }

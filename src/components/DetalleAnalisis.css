@@ -39,25 +39,11 @@
   color: var(--tinta);
 }
 
+/* El tono lo pone `data-nivel` (styles/nivel.css); el tramo sin nivel queda con la guía. */
 .detalle-analisis__tramo,
 .detalle-analisis__entrada {
   padding-left: var(--e3);
-  border-left: 3px solid var(--tono, var(--guia));
-}
-
-.detalle-analisis__tramo--low,
-.detalle-analisis__entrada--low {
-  --tono: var(--alerta-tono-low);
-}
-
-.detalle-analisis__tramo--medium,
-.detalle-analisis__entrada--medium {
-  --tono: var(--alerta-tono-medium);
-}
-
-.detalle-analisis__tramo--high,
-.detalle-analisis__entrada--high {
-  --tono: var(--alerta-tono-high);
+  border-left: var(--marca-renglon) solid var(--tono, var(--guia));
 }
 
 .detalle-analisis__cabeza {

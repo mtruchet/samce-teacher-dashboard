@@ -1,5 +1,5 @@
-/* El medidor: tres segmentos, llenos según el nivel. Pinta con `--tono`, que define quien lo
-   monta: la tarjeta de la alerta en el detalle y la celda «Análisis» de la lista. */
+/* El medidor: tres segmentos, llenos según el nivel. Pinta con `--tono`, que pone el `data-nivel` de
+   quien lo monta (styles/nivel.css): RotuloNivel, las tarjetas del resumen y el historial. */
 .medidor {
   display: inline-flex;
   gap: 3px;
@@ -19,4 +19,18 @@
 .medidor__segmento--lleno {
   background: var(--tono);
   box-shadow: inset 0 0 0 1px var(--tono);
+}
+
+/* Con colores forzados (Windows) los rellenos y las sombras desaparecen y los tres niveles se verían
+   iguales: cada segmento lleva un borde del color del texto y el lleno, además, el relleno. */
+@media (forced-colors: active) {
+  .medidor__segmento {
+    border: 1px solid CanvasText;
+    box-shadow: none;
+  }
+
+  .medidor__segmento--lleno {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
 }

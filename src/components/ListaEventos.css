@@ -237,7 +237,7 @@ th.eventos__que {
 /* La fila a la que se llegó desde «Momentos para revisar», resaltada un momento. */
 .eventos tbody tr.eventos__fila--destacada {
   background: var(--sup-2);
-  box-shadow: inset 3px 0 0 var(--tinta-media);
+  box-shadow: inset var(--marca-renglon) 0 0 var(--tinta-media);
 }
 
 /* La fila destacada recibe el foco, y su sombra pisaba la del anillo de base.css: acá van las dos juntas,
@@ -246,13 +246,13 @@ th.eventos__que {
   outline: 2px solid transparent;
   outline-offset: 2px;
   box-shadow:
-    inset 3px 0 0 var(--tinta-media),
+    inset var(--marca-renglon) 0 0 var(--tinta-media),
     0 0 0 2px var(--sup-1),
     0 0 0 4px var(--celeste);
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .eventos tbody tr {
-    transition: background-color 0.4s ease;
+    transition: background-color var(--mov-entrada) var(--curva);
   }
 }

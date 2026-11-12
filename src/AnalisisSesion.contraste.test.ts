@@ -46,6 +46,20 @@ function contraste(a: string, b: string): number {
   return (claro + 0.05) / (oscuro + 0.05);
 }
 
+/**
+ * `color-mix(in srgb, a t, b)`: cada canal, `a` en la proporción `t` y `b` en el resto, redondeado a un entero
+ * como lo pinta el navegador.
+ */
+function mezclar(a: string, b: string, t: number): string {
+  const canal = (hex: string, desde: number) => parseInt(hex.slice(desde, desde + 2), 16);
+  return (
+    "#" +
+    [1, 3, 5]
+      .map((i) => Math.round(canal(a, i) * t + canal(b, i) * (1 - t)).toString(16).padStart(2, "0"))
+      .join("")
+  );
+}
+
 describe("contraste del texto atenuado y de los trazos del análisis", () => {
   const mapa = declaraciones();
   // Texto: la tinta atenuada sobre la lámina (--sup-1), sobre las tarjetas de las alertas y la lámina del registro
@@ -80,15 +94,36 @@ describe("contraste del texto atenuado y de los trazos del análisis", () => {
     ["--alerta-tono-low", "--sup-1"],
     ["--alerta-tono-medium", "--sup-1"],
     ["--alerta-tono-high", "--sup-1"],
-    // El semáforo de las tarjetas del resumen de la evaluación, sobre su fondo.
-    ["--semaforo-rojo", "--sup-1"],
-    ["--semaforo-amarillo", "--sup-1"],
-    ["--semaforo-verde", "--sup-1"],
   ];
 
   it.each(graficos)("el trazo %s sobre %s tiene al menos 3:1", (trazo, fondo) => {
     expect(contraste(resolver(mapa, trazo), resolver(mapa, fondo))).toBeGreaterThanOrEqual(3);
   });
+
+  // Las tarjetas de nivel del resumen de la evaluación (D1): los mismos tonos, sobre su fondo teñido, que es el tono
+  // al 8 % sobre --sup-1 (`color-mix`), y no sobre --sup-1. El borde contra ese fondo; el segmento lleno del medidor
+  // contra el vacío, que es el tono al 14 % sobre el mismo fondo; y el número y la palabra, en --tinta.
+  const TARJETAS_DEL_RESUMEN: Array<[string, string, number, number]> = [
+    ["bajo", "--alerta-tono-low", 3.55, 3.05],
+    ["medio", "--alerta-tono-medium", 4.1, 3.49],
+    ["alto", "--alerta-tono-high", 4.45, 3.73],
+  ];
+
+  it.each(TARJETAS_DEL_RESUMEN)(
+    "la tarjeta de riesgo %s del resumen (%s): borde a %s:1 y medidor a %s:1 sobre su fondo teñido",
+    (_nombre, token, borde, medidor) => {
+      const tono = resolver(mapa, token);
+      const fondo = mezclar(tono, resolver(mapa, "--sup-1"), 0.08);
+      const vacio = mezclar(tono, fondo, 0.14);
+
+      expect(contraste(tono, fondo)).toBeGreaterThanOrEqual(3);
+      expect(contraste(tono, vacio)).toBeGreaterThanOrEqual(3);
+      expect(contraste(resolver(mapa, "--tinta"), fondo)).toBeGreaterThanOrEqual(4.5);
+      // Los valores medidos, con dos decimales: si un tono cambia, la prueba lo dice.
+      expect(Math.abs(contraste(tono, fondo) - borde)).toBeLessThan(0.01);
+      expect(Math.abs(contraste(tono, vacio) - medidor)).toBeLessThan(0.01);
+    }
+  );
 
   it("los tres tonos del nivel van de apagado a intenso: más nivel, más contraste", () => {
     const [bajo, medio, alto] = ["--alerta-tono-low", "--alerta-tono-medium", "--alerta-tono-high"].map((t) =>

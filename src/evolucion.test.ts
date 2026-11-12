@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { tramosDeRiesgo } from "./evolucion";
 import type { AlertaDeSesion, EntradaDelHistorial } from "./services/sesionesService";
+import { alerta as alertaVigente, entradaDelHistorial } from "./test/fabricas";
 
-const entrada = (origin: EntradaDelHistorial["origin"], level: EntradaDelHistorial["level"], minuto: number, carried_over = false): EntradaDelHistorial => ({
-  origin, level, explanation: "x", recorded_at: `2026-11-10T10:${String(minuto).padStart(2, "0")}:00Z`, carried_over,
-});
-const alerta = (origin: AlertaDeSesion["origin"], level: AlertaDeSesion["level"]): AlertaDeSesion => ({
-  origin, level, explanation: "x", level_since: "2026-11-10T10:00:00Z", created_at: "2026-11-10T10:00:00Z", updated_at: "2026-11-10T10:00:00Z",
-});
+/** Una entrada del historial a los `minuto` minutos de las 10. */
+const entrada = (origin: EntradaDelHistorial["origin"], level: EntradaDelHistorial["level"], minuto: number, carried_over = false) =>
+  entradaDelHistorial({ origin, level, recorded_at: `2026-11-10T10:${String(minuto).padStart(2, "0")}:00Z`, carried_over });
+const alerta = (origin: AlertaDeSesion["origin"], level: AlertaDeSesion["level"]) => alertaVigente({ origin, level });
 
 describe("tramosDeRiesgo", () => {
   it("sin alertas, un solo tramo con el estado del último análisis", () => {

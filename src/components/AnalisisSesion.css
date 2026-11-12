@@ -128,7 +128,8 @@
   list-style: none;
 }
 
-/* El nivel se lee en la palabra, en el medidor y en el borde izquierdo. El tono sube en calidez con el
+/* El nivel se lee en la palabra, en el medidor y en el borde izquierdo (el tono lo pone `data-nivel`, en
+   styles/nivel.css; el rótulo es RotuloNivel). El tono sube en calidez con el
    nivel (azul petróleo, ocre, ámbar), y el alto se distingue por los tres segmentos llenos. Todas tienen
    el mismo fondo y el mismo borde: el fondo tibio de la alta se leía como una condena (ronda 2), y el
    terracota con el borde más grueso, también (ronda 3). La palabra va siempre escrita al lado, en
@@ -137,22 +138,10 @@
   display: grid;
   gap: var(--e4);
   padding: var(--e6);
-  border-left: 4px solid var(--tono);
+  border-left: var(--marca-tarjeta) solid var(--tono);
   border-radius: var(--radio-ficha);
   background: var(--fondo, var(--sup-2));
   color: var(--tinta);
-}
-
-.analisis__alerta--low {
-  --tono: var(--alerta-tono-low);
-}
-
-.analisis__alerta--medium {
-  --tono: var(--alerta-tono-medium);
-}
-
-.analisis__alerta--high {
-  --tono: var(--alerta-tono-high);
 }
 
 .analisis__cuerpo {
@@ -169,29 +158,6 @@
   min-height: 32px;
   font-size: var(--panel-fila);
   color: var(--tinta-media);
-}
-
-.analisis__rotulo {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--e1) var(--e2);
-}
-
-.analisis__nivel {
-  font-weight: 600;
-  color: var(--tinta);
-}
-
-/* Una línea vertical fina entre el nivel y el origen, sin ningún carácter en el texto. */
-.analisis__separador {
-  display: inline-block;
-  width: 1px;
-  height: 1.1em;
-  margin: 0 var(--e2);
-  vertical-align: -0.2em;
-  background: var(--tinta-suave);
-  opacity: 0.5;
 }
 
 /* El hecho es lo primero que se lee de la tarjeta: pesa más que todo lo demás. */

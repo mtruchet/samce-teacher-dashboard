@@ -150,7 +150,7 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
                     </td>
                     <td className="tabla__der tabla__eventos">
                       <button
-                        className="tabla__accion"
+                        className="boton-texto"
                         type="button"
                         onClick={() => onVerEventos(s)}
                         aria-label={`Ver los eventos de ${nombreDeAlumno(s)}${

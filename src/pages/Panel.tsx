@@ -4,6 +4,7 @@ import { Broadcast, Examen, Materia } from "../iconos";
 import { clearSession, esPanelGeneral, getStoredSession } from "../services/authService";
 import {
   CADENCIA_MS,
+  NIVELES_DE_RIESGO,
   SESIONES_POR_PAGINA,
   SESIONES_TOPE,
   SesionVencida,
@@ -62,7 +63,6 @@ const PARAMETRO_DE: Record<keyof FiltrosDeLista, string> = {
 };
 const PARAMETROS_DE_FILTRO = Object.values(PARAMETRO_DE);
 
-const NIVELES_VALIDOS = ["high", "medium", "low"] as const;
 const ESTADOS_VALIDOS = ["open", "finished"] as const;
 const ANALISIS_VALIDOS = ["no_alerts", "not_analyzed", "insufficient_evidence", "unavailable"] as const;
 
@@ -73,7 +73,7 @@ function uno<T extends string>(valor: string | null, validos: readonly T[]): T |
 /** Los filtros que dice la dirección. Un valor que no se conoce (escrito a mano) se ignora. */
 function leerFiltros(parametros: URLSearchParams): FiltrosDeLista {
   return {
-    nivel: uno(parametros.get("nivel"), NIVELES_VALIDOS),
+    nivel: uno(parametros.get("nivel"), NIVELES_DE_RIESGO),
     estado: uno(parametros.get("estado"), ESTADOS_VALIDOS),
     analisis: uno(parametros.get("analisis"), ANALISIS_VALIDOS),
     q: parametros.get("q")?.trim().slice(0, 100) || undefined,

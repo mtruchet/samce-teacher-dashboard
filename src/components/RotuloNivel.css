@@ -1,0 +1,38 @@
+/* La marca del nivel: el medidor, la palabra y, si hay, el complemento. La palabra va en --tinta y sin cortar
+   («Riesgo medio» nunca queda partido en dos renglones); el complemento, en --tinta-media. */
+.rotulo-nivel {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--e1);
+  min-width: 0;
+}
+
+.rotulo-nivel__nivel {
+  font-weight: 600;
+  color: var(--tinta);
+  white-space: nowrap;
+}
+
+/* Una línea vertical fina entre el nivel y el complemento, sin ningún carácter en el texto. */
+.rotulo-nivel__separador {
+  display: inline-block;
+  width: 1px;
+  height: 1.1em;
+  margin: 0 var(--e2);
+  background: var(--tinta-suave);
+  opacity: 0.5;
+}
+
+.rotulo-nivel__complemento {
+  color: var(--tinta-media);
+}
+
+/* Con colores forzados la línea toma el color del texto del sistema. */
+@media (forced-colors: active) {
+  .rotulo-nivel__separador {
+    background: CanvasText;
+    opacity: 1;
+    forced-color-adjust: none;
+  }
+}

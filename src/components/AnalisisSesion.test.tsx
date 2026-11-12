@@ -2,45 +2,24 @@ import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as sesionesService from "../services/sesionesService";
 import type { AlertaDeSesion, Analisis } from "../services/sesionesService";
-import { esperar, sesionNumerada } from "../test/fabricas";
+import { CALCULO, alerta, analisis, esperar, sesionNumerada } from "../test/fabricas";
 import { EVENTO_453, MODELO_453, MODELO_454, NO_DISPONIBLE, SIN_EVIDENCIA_457 } from "../test/explicaciones";
+import {
+  MARCADOS_EN_LA_RONDA_1,
+  MARCADOS_EN_LA_RONDA_2,
+  MARCADOS_EN_LA_RONDA_3,
+  RECHAZADOS,
+  TECNICAS,
+  expectLenguajeLlano,
+} from "../test/lenguaje";
 import { horaCorta } from "../eventos";
 import { NoSePudo } from "../iconos";
 import { AnalisisSesion } from "./AnalisisSesion";
 
 const nada = () => undefined;
-const CALCULO = "2026-10-23T14:30:05.123Z";
 /** Una entrega de hace una hora: el apartado ya no vuelve a preguntar. */
 const HACE_RATO = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 const CERRADA = { status: "closed" as const, closed_at: HACE_RATO };
-
-/** Lo que Facundo rechazó del primer rediseño: no puede volver a aparecer. */
-const RECHAZADOS =
-  /Por cómo se desarrolló|Una alerta señala|no atribuye intención|la revisión es del docente|Las cifras son las del momento|Una sesión habitual|Esta sesión\n/;
-/**
- * Lo que los docentes de la ronda 1 marcaron: «lo común» (se dice siempre «lo habitual»), el rótulo
- * «llamó la atención», «por última vez», «Apareció a las», «Esta sesión se rindió», las salidas
- * «del examen» y las «aplicaciones de la computadora», y las cifras sueltas como «1 vez».
- */
-const MARCADOS_EN_LA_RONDA_1 =
-  /lo común|llamó la atención|por última vez|Apareció a las|sesión se rindió|aplicaciones|salida más larga|fuera del examen|\b1 vez|\b1 minuto|cuando lo común/i;
-/**
- * Lo que marcaron en la ronda 2: «habitual» sin decir contra qué (y repetido tres veces en la tarjeta), la viñeta que
- * remitía a «la otra alerta» (sonaba a nota interna del sistema), «una sola vez» en el pegado, «en cada pregunta», los números en letras al
- * lado de los números en cifras, la hora del análisis («Se detectó a las») y la bajada que repetía el título de la 452.
- */
-const MARCADOS_EN_LA_RONDA_2 =
-  /habitual|otra alerta|alerta de (abajo|arriba)|Pegó texto una sola vez|en cada pregunta|\b(dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez) (minutos|segundos|veces)\b|Se detectó|no surgió ninguna alerta/i;
-/**
- * Lo que marcaron en la ronda 3: «se rindió de una forma» y «la mayoría de los exámenes» en el titular, «tardó más»
- * (sonaba a castigo), «Nivel bajo» y «Nivel alto» solos (se leían como el nivel del alumno o un «nivel de trampa») y
- * la segunda frase de la 457, que giraba sobre sí misma.
- */
-const MARCADOS_EN_LA_RONDA_3 =
-  /se rindió de una forma|la mayoría de los exámenes|tardó más|Nivel (bajo|medio|alto)|Que no se haya podido analizar|lo que sí se registró/i;
-/** Palabras técnicas que el docente no tiene por qué conocer. */
-const TECNICAS =
-  /caracteres|sesiones habituales|sesiones esperadas|99 de cada 100|%|modelo|variable|cálculo|índice|proporción|mediana|percentil|severidad|puntaje|captura|complemento|Moodle|backend/i;
 
 /** El veredicto de arriba del apartado. */
 function veredicto(): HTMLElement {
@@ -50,22 +29,6 @@ function veredicto(): HTMLElement {
 /** Las tarjetas de las alertas, en el orden en que se muestran. */
 function tarjetasDeAlerta(): HTMLElement[] {
   return Array.from(document.querySelectorAll<HTMLElement>(".analisis__alerta"));
-}
-
-function analisis(cambios: Partial<Analisis> = {}): Analisis {
-  return { state: "analyzed", reason: null, calculated_at: CALCULO, alerts: [], ...cambios };
-}
-
-function alerta(cambios: Partial<AlertaDeSesion> = {}): AlertaDeSesion {
-  return {
-    origin: "model",
-    level: "medium",
-    explanation: MODELO_453,
-    level_since: "2026-10-23T14:10:00.000Z",
-    created_at: "2026-10-23T14:00:00.000Z",
-    updated_at: CALCULO,
-    ...cambios,
-  };
 }
 
 async function mostrar(a: Analisis, cambios: Parameters<typeof sesionNumerada>[0] = {}) {
@@ -137,7 +100,8 @@ describe("AnalisisSesion", () => {
     // Con el examen terminado, la hora del análisis no le sirve al docente: una sesión de la mañana
     // analizada de nuevo a la tarde decía «Analizada por última vez a las 16:55».
     expect(container.querySelector(".analisis__ultima")).toBeNull();
-    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    // Ninguna tarjeta de alerta (el apartado «Cómo cambió el riesgo» sí es una lista, con su tramo único).
+    expect(document.querySelector(".analisis__alertas")).toBeNull();
   });
 
   it("analizada y rindiendo: «Analizada a las», sin segundos y sin «por última vez»", async () => {
@@ -292,8 +256,8 @@ describe("AnalisisSesion", () => {
 
     const [modelo, evento] = tarjetasDeAlerta();
     // El nivel dicho como lo que le pide al docente, no «Nivel bajo» (ronda 3).
-    expect(modelo.querySelector(".analisis__rotulo")).toHaveTextContent("Riesgo bajo En toda la sesión");
-    expect(evento.querySelector(".analisis__rotulo")).toHaveTextContent("Riesgo bajo En un momento de la sesión");
+    expect(modelo.querySelector(".rotulo-nivel")).toHaveTextContent("Riesgo bajo En toda la sesión");
+    expect(evento.querySelector(".rotulo-nivel")).toHaveTextContent("Riesgo bajo En un momento de la sesión");
 
     expect(modelo.querySelector(".analisis__hecho")).toHaveTextContent(MODELO_453.split("\n")[0]);
     expect(within(modelo).getByRole("heading", { name: "Lo que más se notó" })).toBeInTheDocument();
@@ -328,7 +292,7 @@ describe("AnalisisSesion", () => {
     expect(tarjeta.querySelector(".analisis__hecho")).toHaveTextContent(
       "Este examen se desarrolló de una forma muy distinta a lo que suele verse en una evaluación."
     );
-    expect(tarjeta.querySelector(".analisis__rotulo")).toHaveTextContent("Riesgo alto En toda la sesión");
+    expect(tarjeta.querySelector(".rotulo-nivel")).toHaveTextContent("Riesgo alto En toda la sesión");
     // Las salidas, con las palabras del registro y con su número, sin suponer que se fue, de lo general a lo
     // particular y con todos los números en cifras.
     const viñetas = Array.from(tarjeta.querySelectorAll(".analisis__lista li")).map((li) => li.textContent);
@@ -363,8 +327,8 @@ describe("AnalisisSesion", () => {
     const [modelo, evento] = tarjetasDeAlerta();
     expect(modelo).toHaveAttribute("data-origen", "model");
     expect(evento).toHaveAttribute("data-origen", "event");
-    expect(modelo.querySelector(".analisis__origen")).toHaveTextContent("En toda la sesión");
-    expect(evento.querySelector(".analisis__origen")).toHaveTextContent("En un momento de la sesión");
+    expect(modelo.querySelector(".rotulo-nivel__complemento")).toHaveTextContent("En toda la sesión");
+    expect(evento.querySelector(".rotulo-nivel__complemento")).toHaveTextContent("En un momento de la sesión");
     // Los íconos de capas y de ubicación no se entendían sin una leyenda.
     expect(document.querySelector(".analisis__origen-icono")).toBeNull();
   });
@@ -459,6 +423,8 @@ describe("AnalisisSesion", () => {
     expect(container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_2);
     expect(container.textContent).not.toMatch(MARCADOS_EN_LA_RONDA_3);
     expect(container.querySelector(".comparacion, .resumen__nota, .resumen__motivos, .analisis__aclaracion")).toBeNull();
+    // Y elemento por elemento, con los nombres accesibles.
+    expectLenguajeLlano(container);
   });
 
   it("la 453 y la 457 tampoco muestran palabras técnicas ni lo rechazado", async () => {

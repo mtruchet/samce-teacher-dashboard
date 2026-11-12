@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as sesionesService from "../services/sesionesService";
-import { esperar, evento, pagina, simularSesiones } from "../test/fabricas";
+import { esperar, evento, pagina, resumen, sesion, simularSesiones } from "../test/fabricas";
 import { Panel } from "./Panel";
 
 /**
@@ -42,25 +42,21 @@ const SIN_CONEXION = "No se pudo actualizar esta pantalla. Reintentando.";
 
 /** Una sesión que se entregó hace una hora: el registro se pide una vez y listo. */
 function entregadaHaceRato(): sesionesService.Sesion {
-  return {
+  return sesion({
     id: 5,
-    moodle_attempt_id: 7001,
-    moodle_user_id: 41,
-    student_name: "Ana Gómez",
     status: "closed",
     started_at: "2026-08-26T14:02:00Z",
     closed_at: new Date(Date.now() - 60 * 60_000).toISOString(),
-  };
+  });
 }
 
-const rindiendo: sesionesService.Sesion = {
+const rindiendo = sesion({
   id: 6,
   moodle_attempt_id: 7002,
   moodle_user_id: 42,
   student_name: "Bruno Pérez",
-  status: "open",
   started_at: "2026-08-26T14:03:00Z",
-};
+});
 
 /** El botón «Atrás» del navegador, para las pruebas que recorren el historial. */
 function Atras() {
@@ -396,10 +392,10 @@ describe("El resumen de la evaluación en el panel", () => {
     vi.restoreAllMocks();
   });
 
-  const RESUMEN = { total: 2, risk_high: 1, risk_medium: 0, risk_low: 0, no_alerts: 1, not_analyzed: 0, insufficient_evidence: 0, unavailable: 0 };
+  const RESUMEN = resumen({ risk_high: 1, no_alerts: 1 });
 
   it("se dibuja arriba de la lista y una tarjeta filtra la lista", async () => {
-    const traer = vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue({ sesiones: [rindiendo], total: 2, resumen: RESUMEN });
+    const traer = vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 2, RESUMEN));
     montar("/panel?examen=1");
     await esperar();
     fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" }));

@@ -43,7 +43,11 @@ export function EvolucionRiesgo({ historial, alertas, estado }: Props) {
       <h3 className="detalle-analisis__subtitulo">Cómo cambió el riesgo</h3>
       <ol className="detalle-analisis__lista">
         {tramos.map((tramo, i) => (
-          <li key={i} className={tramo.tipo === "nivel" ? `detalle-analisis__tramo detalle-analisis__tramo--${tramo.nivel}` : "detalle-analisis__tramo"}>
+          <li
+            key={i}
+            className={tramo.tipo === "nivel" ? `detalle-analisis__tramo detalle-analisis__tramo--${tramo.nivel}` : "detalle-analisis__tramo"}
+            data-nivel={tramo.tipo === "nivel" ? tramo.nivel : undefined}
+          >
             <TextoDelTramo tramo={tramo} />
           </li>
         ))}

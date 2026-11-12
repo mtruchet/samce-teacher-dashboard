@@ -10,6 +10,7 @@ import "@fontsource/ibm-plex-sans/600.css";
 
 import "./styles/tokens.css";
 import "./styles/base.css";
+import "./styles/nivel.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

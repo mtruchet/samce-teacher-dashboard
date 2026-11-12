@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { eventosCriticos } from "../eventos";
 import { METRICAS, letras, minutosYSegundos, porSegundo } from "../metricas";
-import type { AlertaDeSesion, EntradaDelHistorial, Metricas } from "../services/sesionesService";
-import { evento } from "../test/fabricas";
+import type { AlertaDeSesion, EntradaDelHistorial } from "../services/sesionesService";
+import { alerta as alertaVigente, entradaDelHistorial, evento, metricasDelCierre } from "../test/fabricas";
 import { CronologiaSesion } from "./CronologiaSesion";
 import { EvolucionRiesgo } from "./EvolucionRiesgo";
 import { HistorialAlertas } from "./HistorialAlertas";
@@ -12,18 +12,13 @@ import { MetricasSesion } from "./MetricasSesion";
 /** Las palabras que las rondas con los docentes sacaron de los textos del panel. */
 const PROHIBIDAS = /%|proporci|caracteres|habitual|fuera del examen|salida más larga|portapapeles|captura|índice|integridad|esperad|promedio/i;
 
-const METRICAS_CIERRE: Metricas = {
-  outside_time_ratio: 0.12, outside_longest_s: 95, typing_rate_median_per_s: 4.2, largest_paste_chars: 1240,
-  pasted_chars_ratio: 0.4, mouse_idle_longest_s: 300, question_time_median_s: 120, silence_longest_s: null,
-};
+const METRICAS_CIERRE = metricasDelCierre({ silence_longest_s: null });
 
-const entrada = (cambios: Partial<EntradaDelHistorial> = {}): EntradaDelHistorial => ({
-  origin: "model", level: "low", explanation: "Primero.", recorded_at: "2026-11-10T13:05:00Z", carried_over: false, ...cambios,
-});
-const alerta = (cambios: Partial<AlertaDeSesion> = {}): AlertaDeSesion => ({
-  origin: "model", level: "low", explanation: "Primero.", level_since: "2026-11-10T13:05:00Z",
-  created_at: "2026-11-10T13:05:00Z", updated_at: "2026-11-10T13:05:00Z", ...cambios,
-});
+/** Una entrada y una alerta de toda la sesión en riesgo bajo, con un texto corto; cada caso pisa lo suyo. */
+const PRIMERO = { level: "low", explanation: "Primero.", recorded_at: "2026-11-10T13:05:00Z" } as const;
+const entrada = (cambios: Partial<EntradaDelHistorial> = {}) => entradaDelHistorial({ ...PRIMERO, ...cambios });
+const alerta = (cambios: Partial<AlertaDeSesion> = {}) =>
+  alertaVigente({ level: PRIMERO.level, explanation: PRIMERO.explanation, level_since: PRIMERO.recorded_at, ...cambios });
 
 describe("Métricas de la sesión", () => {
   it("con la sesión finalizada y analizada: una por dimensión, con su valor y sin las proporciones", () => {

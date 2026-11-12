@@ -27,6 +27,13 @@ export interface ExamenMonitoreado {
   abandoned_sessions: number;
 }
 
+/**
+ * Los niveles de riesgo, de menor a mayor. Es el único lugar donde está el orden: el peso de cada nivel, sus
+ * palabras y el tipo salen de acá (ver `lenguajeAlerta.ts`).
+ */
+export const NIVELES_DE_RIESGO = ["low", "medium", "high"] as const;
+export type NivelDeRiesgo = (typeof NIVELES_DE_RIESGO)[number];
+
 export interface Sesion {
   id: number;
   moodle_attempt_id: number;
@@ -47,7 +54,7 @@ export interface Sesion {
    * El nivel de riesgo de la sesión: el más alto entre los de sus alertas. Nulo si no tiene
    * alertas, que no es lo mismo que riesgo bajo. Sin el campo (un backend viejo) no se marca nada.
    */
-  risk_level?: "low" | "medium" | "high" | null;
+  risk_level?: NivelDeRiesgo | null;
   /** Cuántas alertas tiene: a lo sumo una por origen. */
   alerts_count?: number;
   /** De dónde salió cada alerta, la de toda la sesión primero. */
@@ -244,7 +251,7 @@ export async function traerSesiones(
  * lista de siempre. `analisis` solo lo escriben las tarjetas del resumen de la evaluación.
  */
 export interface FiltrosSesiones {
-  nivel?: "high" | "medium" | "low";
+  nivel?: NivelDeRiesgo;
   estado?: "open" | "finished";
   analisis?: "no_alerts" | "not_analyzed" | "insufficient_evidence" | "unavailable";
   q?: string;
@@ -312,7 +319,7 @@ export type EstadoDelAnalisis = "not_analyzed" | "analyzed" | "insufficient_evid
 export interface AlertaDeSesion {
   /** model: el índice de integridad bajó del umbral. event: un solo evento, el pegado de un bloque largo. */
   origin: "model" | "event";
-  level: "low" | "medium" | "high";
+  level: NivelDeRiesgo;
   explanation: string;
   /** Desde cuándo la alerta está en su nivel actual (sube cuando el nivel sube). */
   level_since: string;
@@ -323,7 +330,7 @@ export interface AlertaDeSesion {
 /** Una aparición o subida de nivel de una alerta, en el historial de la sesión (HU05). */
 export interface EntradaDelHistorial {
   origin: "model" | "event";
-  level: "low" | "medium" | "high";
+  level: NivelDeRiesgo;
   explanation: string;
   /** Hora del análisis que la registró, no la del hecho. */
   recorded_at: string;

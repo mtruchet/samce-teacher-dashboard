@@ -1,7 +1,7 @@
 import { act, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as sesionesService from "../services/sesionesService";
-import { esperar, evento, sesionNumerada } from "../test/fabricas";
+import { alerta, analisis, esperar, evento, sesionNumerada } from "../test/fabricas";
 import { horaCorta, horaExacta } from "../eventos";
 import { DetalleSesion } from "./DetalleSesion";
 
@@ -12,9 +12,7 @@ describe("DetalleSesion", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     // El apartado «Análisis de la sesión» hace su propia consulta; acá solo importa el registro.
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue({
-      state: "not_analyzed", reason: null, calculated_at: null, alerts: [],
-    });
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis({ state: "not_analyzed", calculated_at: null }));
   });
 
   afterEach(() => {
@@ -46,26 +44,20 @@ describe("DetalleSesion", () => {
 
   it("el análisis de la sesión va en su apartado, aparte del registro de eventos", async () => {
     vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "focus_lost")]);
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue({
-      state: "analyzed",
-      reason: null,
-      calculated_at: "2026-10-23T14:30:05.123Z",
-      alerts: [{
-        origin: "event", level: "high", explanation: "Se pegó un bloque de 4.370 caracteres.",
-        level_since: "2026-10-23T14:10:00.000Z", created_at: "2026-10-23T14:00:00.000Z", updated_at: "2026-10-23T14:30:05.123Z",
-      }],
-    });
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
+      analisis({ alerts: [alerta({ origin: "event", level: "high", explanation: "Se pegó un bloque de 4.370 caracteres." })] })
+    );
 
     render(<DetalleSesion sesion={SESION} onVencida={nada} />);
     await esperar();
 
-    const analisis = screen.getByRole("region", { name: "Análisis de la sesión" });
-    expect(analisis).toHaveTextContent("Riesgo alto");
-    expect(analisis).toHaveTextContent("Se pegó un bloque de 4.370 caracteres.");
+    const apartado = screen.getByRole("region", { name: "Análisis de la sesión" });
+    expect(apartado).toHaveTextContent("Riesgo alto");
+    expect(apartado).toHaveTextContent("Se pegó un bloque de 4.370 caracteres.");
     // El registro sigue siendo solo lo que pasó: la alerta no entra en su tabla.
     const registro = screen.getByRole("heading", { name: "Registro de eventos" }).closest("section");
     expect(registro).not.toBeNull();
-    expect(registro).not.toContainElement(analisis);
+    expect(registro).not.toContainElement(apartado);
     expect(registro).not.toHaveTextContent("Se pegó un bloque de 4.370 caracteres.");
     expect(sesionesService.traerAnalisis).toHaveBeenCalledWith(3, 7);
   });

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { horaCorta } from "../eventos";
 import { ordenarExplicacion } from "../explicacion";
 import { Check, Info, Ojo, Reloj, type Icon } from "../iconos";
-import { NIVELES, ORIGENES, ordenarAlertas } from "../lenguajeAlerta";
+import { ORIGENES, PALABRA_DEL_NIVEL, ordenarAlertas, subio } from "../lenguajeAlerta";
 import { recienCerrada } from "../seguimiento";
 import {
   CADENCIA_MS,
@@ -15,8 +15,8 @@ import {
 import { AnuncioVivo, useAnuncio } from "./AnuncioVivo";
 import { EvolucionRiesgo } from "./EvolucionRiesgo";
 import { HistorialAlertas } from "./HistorialAlertas";
-import { MedidorNivel } from "./MedidorNivel";
 import { MetricasSesion } from "./MetricasSesion";
+import { RotuloNivel } from "./RotuloNivel";
 import "./AnalisisSesion.css";
 import "./DetalleAnalisis.css";
 
@@ -66,15 +66,14 @@ function Alerta({ alerta }: { alerta: AlertaDeSesion }) {
   const notasAntes =
     e.encabezadoDeLista !== null && e.viñetas.length === 0 ? [...e.notasAntes, `${e.encabezadoDeLista}:`] : e.notasAntes;
   return (
-    <li className={`analisis__alerta analisis__alerta--${alerta.level}`} data-origen={alerta.origin}>
+    <li
+      className={`analisis__alerta analisis__alerta--${alerta.level}`}
+      data-nivel={alerta.level}
+      data-origen={alerta.origin}
+    >
       <div className="analisis__cuerpo">
         <div className="analisis__cabeza">
-          <span className="analisis__rotulo">
-            <MedidorNivel nivel={alerta.level} />
-            <span className="analisis__nivel">{NIVELES[alerta.level]}</span>{" "}
-            <span className="analisis__separador" aria-hidden="true" />{" "}
-            <span className="analisis__origen">{ORIGENES[alerta.origin]}</span>
-          </span>
+          <RotuloNivel nivel={alerta.level} complemento={ORIGENES[alerta.origin]} />
           {/* Sin hora en la cabecera: la que da la API es la del análisis y no la del hecho, y no coincidía con
               el registro (ver `lenguajeAlerta.ts`). Cuándo y dónde fue lo dice el texto del motor, con la hora de
               la fila del registro: «A las 09:35, en la pregunta 3, …». */}
@@ -193,9 +192,6 @@ function Veredicto({ analisis, alertas, abierta }: { analisis: Analisis; alertas
   );
 }
 
-const PALABRA_DEL_NIVEL: Record<AlertaDeSesion["level"], string> = { low: "bajo", medium: "medio", high: "alto" };
-const PESO_DEL_NIVEL: Record<AlertaDeSesion["level"], number> = { low: 1, medium: 2, high: 3 };
-
 /**
  * Lo nuevo de una consulta, para el lector de pantalla: la alerta que apareció o subió de nivel. Solo eso, y
  * no todo el apartado: la región viva contiene solo esta frase.
@@ -206,7 +202,7 @@ function novedades(antes: AlertaDeSesion[], ahora: AlertaDeSesion[]): string {
     const previa = antes.find((b) => b.origin === a.origin);
     const donde = ORIGENES[a.origin].toLowerCase();
     if (!previa) frases.push(`Nueva alerta ${donde}: riesgo ${PALABRA_DEL_NIVEL[a.level]}.`);
-    else if (PESO_DEL_NIVEL[a.level] > PESO_DEL_NIVEL[previa.level]) {
+    else if (subio(previa.level, a.level)) {
       frases.push(`La alerta ${donde} subió a riesgo ${PALABRA_DEL_NIVEL[a.level]}.`);
     }
   }

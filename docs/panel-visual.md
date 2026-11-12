@@ -98,11 +98,10 @@ analizar, no se pudo analizar y análisis no disponible. Suman el total.
 - **Cada tarjeta es un filtro:** al tocarla, la lista queda con las sesiones que
   cuenta (deja solo su filtro y conserva el orden elegido); al tocarla de nuevo,
   vuelve a la evaluación completa. La elegida lleva `aria-pressed` y un anillo.
-- **Semáforo:** los tres niveles van en rojo, amarillo y verde
-  (`--semaforo-*`), con el número, el rótulo y el medidor al lado, para que no
-  dependan solo del color. Es la única excepción a «la ausencia de semáforo»,
-  pedida por el equipo para ver de un vistazo cómo está el examen, y queda a
-  confirmar. La lista y el detalle siguen con los tonos de intensidad.
+- **Tonos:** los de las alertas (`--alerta-tono-*`), como en la lista y el
+  detalle, con el número, el rótulo y el medidor al lado, para que no dependan
+  solo del color. El tono lo pone `data-nivel` desde `src/styles/nivel.css`, el
+  único lugar que asigna `--tono`.
 - **No es una región viva:** los números cambian en silencio en cada
   actualización. Lo que se anuncia al elegir una tarjeta es «N de M sesiones».
 - No hay tarjetas de en curso ni de finalizadas: ya están en la cabecera de cada

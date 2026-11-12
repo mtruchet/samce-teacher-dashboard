@@ -254,3 +254,110 @@ a {
   transform: translateX(3px);
 }
 
+
+/* ==== Las piezas compartidas del panel ================================= */
+
+/* Tres pesos de superficie, los mismos en la lista y en el detalle (docs/sistema-visual.md §5, «menos cajas
+   dentro de cajas»), y ninguno más:
+   - .lamina: la lámina principal (el bloque de control de la evaluación y cada grupo de sesiones);
+   - .lamina--lectura: la que manda en el detalle, lo primero que se lee («Análisis de la sesión»);
+   - .lamina--apoyo: el segundo plano, sin elevación (el registro de eventos). */
+.lamina {
+  padding: var(--e5) var(--e6);
+  border-radius: var(--radio-panel);
+  background: var(--sup-1);
+  box-shadow: var(--anillo), var(--elev-2);
+}
+
+.lamina--lectura {
+  border-radius: var(--radio-lamina);
+  box-shadow: var(--anillo), var(--elev-1);
+}
+
+.lamina--apoyo {
+  background: var(--sup-2);
+  box-shadow: var(--anillo);
+}
+
+@media (max-width: 760px) {
+  .lamina {
+    padding-inline: var(--e4);
+  }
+}
+
+.lamina__encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e1) var(--e3);
+}
+
+/* Una sola escala de títulos: el de la lámina, el del apartado y, adentro de una alerta, «Lo que más pesó». */
+.lamina__titulo {
+  margin: 0;
+  font-size: var(--panel-pieza);
+  font-weight: 600;
+  line-height: 25px;
+  letter-spacing: var(--track-titulo);
+  color: var(--tinta);
+}
+
+.lamina__cuenta {
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+}
+
+.apartado {
+  display: grid;
+  gap: var(--e3);
+  margin-top: var(--e3);
+}
+
+/* En minúscula inicial, como una frase: las mayúsculas espaciadas quedan solo para los encabezados de la
+   tabla de la lista y los rótulos de su barra de filtros. */
+.apartado__titulo {
+  margin: 0;
+  font-size: var(--panel-cuerpo);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--tinta);
+}
+
+/* La marca del nivel: un borde a la izquierda en el tono que pone `data-nivel` (styles/nivel.css). */
+.marca-nivel {
+  padding-left: var(--e3);
+  border-left: var(--marca-renglon) solid var(--tono);
+}
+
+.marca-nivel--tarjeta {
+  border-left-width: var(--marca-tarjeta);
+}
+
+/* Un solo botón de texto («Ver», «Ver en el registro», «Quitar filtros»). El docente ya está mirando una fila
+   o un renglón y lo único que hace falta es ir ahí: sin caja ni relleno, para que treinta filas no sean
+   treinta botones gritando. Lleva el subrayado del enlace y el anillo de foco de arriba, sin pisarlo. */
+.boton-texto {
+  padding: var(--e1) var(--e2);
+  border: 0;
+  border-radius: var(--radio-chip);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--panel-fila);
+  font-weight: 600;
+  color: var(--tinta);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--tinta-tenue);
+  cursor: pointer;
+  transition:
+    background-color var(--mov-estado) var(--curva),
+    text-decoration-color var(--mov-estado) var(--curva);
+}
+
+.boton-texto:hover,
+.boton-texto:focus-visible {
+  background: var(--sup-3);
+  text-decoration-color: currentcolor;
+}

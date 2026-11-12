@@ -54,7 +54,7 @@ export function HistorialAlertas({ historial, alertas }: Props) {
           const vigente = alertas.find((a) => a.origin === entrada.origin);
           const actualizada = ultimaDe.get(entrada.origin) === i && vigente && vigente.explanation !== entrada.explanation;
           return (
-            <li key={`${entrada.origin}-${entrada.level}`} className={`detalle-analisis__entrada detalle-analisis__entrada--${entrada.level}`}>
+            <li key={`${entrada.origin}-${entrada.level}`} className={`detalle-analisis__entrada detalle-analisis__entrada--${entrada.level}`} data-nivel={entrada.level}>
               <p className="detalle-analisis__cabeza">
                 <span className="detalle-analisis__hora">
                   Análisis de las{" "}

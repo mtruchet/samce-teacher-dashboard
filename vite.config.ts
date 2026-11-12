@@ -27,7 +27,8 @@ export default defineConfig({
     // Un `fetch` falso de una prueba no puede quedar vivo en la siguiente.
     unstubGlobals: true,
     // Vitest reemplaza los CSS por texto vacío, también con `?raw`. La prueba de contraste lee los tokens de
-    // color como texto, así que este archivo (y solo este) tiene que llegar tal cual.
-    css: { include: [/styles\/tokens\.css/] },
+    // color como texto, y la de las hojas (src/estilos.test.ts) lee todas con `?raw`: esas lecturas tienen que
+    // llegar tal cual. Los componentes importan su hoja sin `?raw`, y esa sigue vacía.
+    css: { include: [/styles\/tokens\.css/, /\.css\?raw$/] },
   },
 });

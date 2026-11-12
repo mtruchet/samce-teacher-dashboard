@@ -39,8 +39,8 @@ interface Props {
  * orden de las tarjetas es fijo. Cada tarjeta lleva a las sesiones que cuenta: al tocarla deja solo su
  * filtro (conserva el orden elegido), y al tocarla de nuevo vuelve a la evaluación completa.
  *
- * Los niveles van en colores de semáforo (rojo, amarillo y verde), siempre con la palabra, el número y
- * el medidor al lado, para que no dependan solo del color. No es una región viva: los números cambian
+ * Los niveles van con los tonos de las alertas, como en la lista y el detalle, siempre con la palabra, el
+ * número y el medidor al lado, para que no dependan solo del color. No es una región viva: los números cambian
  * en silencio con cada actualización.
  */
 export function ResumenEvaluacion({ resumen, filtros, onFiltrar }: Props) {
@@ -63,6 +63,7 @@ export function ResumenEvaluacion({ resumen, filtros, onFiltrar }: Props) {
               key={nivel}
               type="button"
               className={`resumen__tarjeta resumen__tarjeta--${nivel}`}
+              data-nivel={nivel}
               aria-pressed={elegida}
               aria-label={`${NIVELES[nivel]}: ${sesiones(resumen[campo])}`}
               onClick={() => onFiltrar(elegida ? limpio : { ...limpio, nivel })}

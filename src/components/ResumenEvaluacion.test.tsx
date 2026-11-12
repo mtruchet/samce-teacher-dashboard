@@ -1,11 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ResumenDeEvaluacion } from "../services/sesionesService";
+import { resumen } from "../test/fabricas";
+import { expectLenguajeLlano } from "../test/lenguaje";
 import { ResumenEvaluacion } from "./ResumenEvaluacion";
 
-const RESUMEN: ResumenDeEvaluacion = {
-  total: 20, risk_high: 3, risk_medium: 1, risk_low: 0, no_alerts: 12, not_analyzed: 2, insufficient_evidence: 1, unavailable: 1,
-};
+const RESUMEN = resumen({ risk_high: 3, risk_medium: 1, no_alerts: 12, not_analyzed: 2, insufficient_evidence: 1, unavailable: 1 });
 
 describe("ResumenEvaluacion", () => {
   it("muestra las siete tarjetas en orden fijo, con su número y su nombre accesible", () => {
@@ -23,12 +22,14 @@ describe("ResumenEvaluacion", () => {
     expect(screen.getByRole("heading", { name: "Resumen de la evaluación" })).toBeInTheDocument();
   });
 
-  it("los niveles llevan el color de semáforo, el medidor oculto y el rótulo; los estados, sin medidor", () => {
+  it("los niveles llevan el tono de las alertas, el medidor oculto y el rótulo; los estados, sin medidor", () => {
     const { container } = render(<ResumenEvaluacion resumen={RESUMEN} filtros={{}} onFiltrar={() => {}} />);
     for (const nivel of ["high", "medium", "low"]) {
       const tarjeta = container.querySelector(`.resumen__tarjeta--${nivel}`)!;
       expect(tarjeta.querySelector(".medidor")).toHaveAttribute("aria-hidden", "true");
+      expect(tarjeta).toHaveAttribute("data-nivel", nivel);
     }
+    expect(container.querySelectorAll(".resumen__tarjeta--estado[data-nivel]")).toHaveLength(0);
     expect(container.querySelectorAll(".resumen__tarjeta--estado .medidor")).toHaveLength(0);
   });
 
@@ -36,6 +37,7 @@ describe("ResumenEvaluacion", () => {
     const { container } = render(<ResumenEvaluacion resumen={RESUMEN} filtros={{}} onFiltrar={() => {}} />);
     expect(container.querySelector("[aria-live], [role='status']")).toBeNull();
     expect(container.textContent).not.toMatch(/índice|integridad|promedio|%/i);
+    expectLenguajeLlano(container);
   });
 
   it("una tarjeta de nivel deja solo su filtro y conserva el orden", () => {
