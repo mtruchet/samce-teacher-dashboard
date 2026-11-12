@@ -77,6 +77,16 @@
   white-space: nowrap;
 }
 
+/* La columna «Análisis» lleva un ancho propio y puede partir el renglón. Con `nowrap` crecía hasta su texto
+   más largo, y ese texto cambia de un grupo a otro: «En curso», «Finalizadas» y la lista filtrada dibujaban
+   la columna en lugares distintos, y el ojo la perdía al pasar de una tabla a la otra. Debajo de 760 px la
+   regla de la fila apilada la vuelve a soltar. */
+.tabla th.tabla__analisis,
+.tabla td.tabla__analisis {
+  width: 40%;
+  white-space: normal;
+}
+
 /* ==== Ver los eventos de una sesión ==================================== */
 
 /* «Ver» es el botón de texto compartido (.boton-texto, en base.css). */

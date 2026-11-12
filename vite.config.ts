@@ -24,6 +24,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: "./src/setupTests.ts",
+    // Solo las pruebas de jsdom. Las de navegador (pruebas-navegador/*.spec.ts) son de Playwright y corren
+    // con `npm run test:navegador`; Vitest no tiene que levantarlas.
+    include: ["src/**/*.test.{ts,tsx}"],
     // Un `fetch` falso de una prueba no puede quedar vivo en la siguiente.
     unstubGlobals: true,
     // Vitest reemplaza los CSS por texto vacío, también con `?raw`. La prueba de contraste lee los tokens de

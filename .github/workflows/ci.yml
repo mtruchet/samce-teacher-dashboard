@@ -16,7 +16,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
@@ -30,3 +30,19 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Las pruebas que solo se pueden hacer en un navegador (foco, colores forzados, 390 px). Construyen y
+      # sirven el panel en el puerto 4317 con el backend simulado: no hablan con ningún servidor real.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser tests
+        run: npm run test:navegador
+
+      - name: Browser test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-pruebas-navegador
+          path: playwright-report/
+          retention-days: 7

@@ -165,7 +165,15 @@ npm run dev      # servidor de desarrollo
 npm run test     # pruebas con Vitest
 npm run lint     # ESLint
 npm run build    # verifica tipos y compila
+npm run test:navegador  # foco, colores forzados y 390 px en Chromium (puerto 4317, backend simulado)
 ```
+
+Las pruebas de navegador viven en `pruebas-navegador/`. La primera vez hace falta
+`npx playwright install chromium`. Construyen el panel aparte (`dist-navegador`),
+lo sirven con `vite preview` en el 4317 y contestan la API con datos falsos: no
+hablan con ningún backend. Para revisar las pantallas a ojo:
+`CAPTURAS=carpeta npx playwright test capturas` deja la lista y tres detalles a
+1280 y a 390 px. Hace falta Node 22 (`.nvmrc`).
 
 ## Cómo está armado
 

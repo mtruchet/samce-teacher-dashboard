@@ -230,3 +230,5 @@ Lo que el panel tiene que cumplir en cada pantalla. Si un cambio rompe alguna, s
 - **R13.** Objetivos de 24×24 como mínimo.
 - **R14.** `aria-pressed` en las tarjetas, y «Quitar filtros» visible con un filtro activo.
 - **R15.** `prefers-reduced-motion` sin transiciones.
+
+R1, R4, R9, R10 y R13 solo se pueden comprobar en un navegador: las verifica `npm run test:navegador` (`pruebas-navegador/a11y.spec.ts`, Chromium a 390 y 1280 px, con el backend simulado), que también corre en la CI.
