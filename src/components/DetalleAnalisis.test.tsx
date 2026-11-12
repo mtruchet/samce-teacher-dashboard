@@ -220,11 +220,38 @@ describe("Historial: orden y nombres accesibles (V3, A7, H15)", () => {
     );
     const resumenes = screen.getAllByText("Ver la explicación");
     expect(resumenes).toHaveLength(2);
-    const descripciones = resumenes.map((r) => document.getElementById(r.getAttribute("aria-describedby") ?? "")?.textContent);
-    expect(descripciones).toEqual([expect.stringMatching(/^Análisis de las \d{2}:\d{2}$/), expect.stringMatching(/^Análisis de las \d{2}:\d{2}$/)]);
+    const descripciones = resumenes.map((r) => descripcion(r));
+    expect(descripciones).toEqual([expect.stringMatching(/^Análisis de las \d{2}:\d{2} /), expect.stringMatching(/^Análisis de las \d{2}:\d{2} /)]);
     expect(descripciones[0]).not.toBe(descripciones[1]);
   });
+
+  it("dos «Ver la explicación» del mismo minuto se distinguen por el nivel y el origen de su entrada (A11Y-R1-02)", () => {
+    const minuto = "2026-11-04T03:53:02.627Z";
+    render(
+      <HistorialAlertas
+        historial={[
+          entrada({ level: "medium", recorded_at: minuto }),
+          entrada({ origin: "event", level: "high", recorded_at: "2026-11-04T03:53:02.678Z" }),
+        ]}
+        alertas={[alerta({ level: "medium", level_since: minuto }), alerta({ origin: "event", level: "high" })]}
+      />
+    );
+    const resumenes = screen.getAllByText("Ver la explicación");
+    expect(resumenes).toHaveLength(2);
+    const [primera, segunda] = resumenes.map((r) => descripcion(r));
+    expect(primera).not.toBe(segunda);
+    expect(primera).toMatch(/^Análisis de las \d{2}:\d{2} Riesgo alto En un momento de la sesión$/);
+    expect(segunda).toMatch(/^Análisis de las \d{2}:\d{2} Riesgo medio En toda la sesión$/);
+  });
 });
+
+/** La descripción accesible de un elemento: los textos de los ids de aria-describedby, en orden. */
+function descripcion(el: Element): string {
+  return (el.getAttribute("aria-describedby") ?? "")
+    .split(/\s+/)
+    .map((id) => document.getElementById(id)?.textContent?.replace(/\s+/g, " ").trim() ?? "")
+    .join(" ");
+}
 
 describe("HU05_T02 (pendiente 10): Cómo cambió el riesgo", () => {
   it("con alertas y sin ninguna entrada, no dibuja la escalera: el renglón del origen ya dice que no quedó registro (H17)", () => {

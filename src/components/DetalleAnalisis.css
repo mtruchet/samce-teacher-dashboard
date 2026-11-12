@@ -209,7 +209,9 @@
   display: grid;
   grid-template-columns: auto auto auto;
   justify-content: start;
-  gap: var(--e1) var(--e4);
+  /* Entre renglones, el doble de lo que el botón sobresale de cada uno (ver .momentos__ir): con menos, los
+     «Ver en el registro» seguidos se pisaban y cada uno quedaba con menos de 24 px libres (WCAG 2.5.8). */
+  gap: calc(2 * var(--e1)) var(--e4);
   max-width: var(--medida);
 }
 
@@ -257,9 +259,13 @@
     row-gap: 2px;
   }
 
+  /* En su renglón, el texto del botón empieza donde el nombre del momento: el ancho del ícono, más su
+     separación, menos el relleno del botón. Pegado al borde de la columna quedaba en una línea propia, entre
+     el ícono y el nombre. */
   .momentos__ir {
     grid-column: 2;
     margin-block: 0;
+    margin-inline-start: calc(16px + var(--e2) - var(--e2));
   }
 }
 

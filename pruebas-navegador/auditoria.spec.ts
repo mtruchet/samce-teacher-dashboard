@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { abrir, simularBackend, VISTAS } from "./simulacion";
 
 /**
@@ -191,19 +191,212 @@ test("V7: la tabla con desplazamiento interno lleva la sombra que avisa que sigu
   expect(imagen.match(/linear-gradient/g)).toHaveLength(2);
 });
 
-test("V6: una tarjeta de nivel sin sesiones va sin el fondo teñido, con el fondo de la lámina", async ({ page }) => {
+test("V6, VR1-05: una tarjeta de nivel sin sesiones va sin el fondo teñido, con el fondo de los estados y el medidor apagado", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: ALTO });
   await abrir(page, VISTAS.lista);
   // Los datos simulados tienen sesiones en los tres niveles: se marca una como vacía, como lo hace el componente.
-  const { vacia, llena, lamina } = await page.evaluate(() => {
+  const { vacia, llena, estado, lamina, segmentoVacia, segmentoLlena } = await page.evaluate(() => {
     const [primera, segunda] = document.querySelectorAll<HTMLElement>(".resumen__tarjetas--niveles .resumen__tarjeta");
     primera.classList.add("resumen__tarjeta--cero");
+    const lleno = (t: Element) => getComputedStyle(t.querySelector(".medidor__segmento--lleno")!).backgroundColor;
     return {
       vacia: getComputedStyle(primera).backgroundColor,
       llena: getComputedStyle(segunda).backgroundColor,
+      estado: getComputedStyle(document.querySelector(".resumen__tarjeta--estado")!).backgroundColor,
       lamina: getComputedStyle(primera.closest(".lamina")!).backgroundColor,
+      segmentoVacia: lleno(primera),
+      segmentoLlena: lleno(segunda),
     };
   });
-  expect(vacia).toBe(lamina);
-  expect(llena).not.toBe(lamina);
+  expect(vacia).toBe(estado);
+  expect(vacia).not.toBe(lamina);
+  expect(llena).not.toBe(estado);
+  // El medidor de la vacía no lleva el tono: gris, como su borde.
+  expect(segmentoVacia).not.toBe(segmentoLlena);
+  const [r, g, b] = (segmentoVacia.match(/\d+/g) ?? []).map(Number);
+  expect(Math.max(r, g, b) - Math.min(r, g, b), segmentoVacia).toBeLessThan(40);
+});
+
+// ==== Auditoría en vivo 2 (12/11) ========================================================================
+
+/** Deja en la página `__texto(el)`: dónde empieza y termina el texto de un elemento (no su caja, que suma el relleno). */
+async function conMedidaDeTexto(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    // Solo el texto que se ve: lo que es solo para lectores de pantalla queda afuera de la pantalla.
+    (window as unknown as { __texto: (el: Element) => { izquierda: number; derecha: number } }).__texto = (el) => {
+      let izquierda = Infinity;
+      let derecha = -Infinity;
+      const recorrido = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let nodo = recorrido.nextNode(); nodo; nodo = recorrido.nextNode()) {
+        if (!nodo.textContent?.trim() || nodo.parentElement?.closest(".solo-lectores")) continue;
+        const rango = document.createRange();
+        rango.selectNodeContents(nodo);
+        const r = rango.getBoundingClientRect();
+        izquierda = Math.min(izquierda, r.left);
+        derecha = Math.max(derecha, r.right);
+      }
+      return { izquierda, derecha };
+    };
+  });
+}
+
+type ConTexto = { __texto: (el: Element) => { izquierda: number; derecha: number } };
+
+test("VR1-01: a 1280 px, el texto de «Ver» termina donde su rótulo «Eventos»", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: ALTO });
+  await abrir(page, VISTAS.lista);
+  await conMedidaDeTexto(page);
+  const medidas = await page.evaluate(() => {
+    const { __texto: de } = window as unknown as ConTexto;
+    const tabla = document.querySelectorAll(".lista table")[0];
+    return {
+      rotulo: de(tabla.querySelector("th.tabla__eventos")!).derecha,
+      ver: [...tabla.querySelectorAll("td.tabla__eventos .boton-texto")].map((b) => de(b).derecha),
+    };
+  });
+  expect(medidas.ver.length).toBeGreaterThan(0);
+  for (const ver of medidas.ver) expect(Math.abs(ver - medidas.rotulo), JSON.stringify(medidas)).toBeLessThanOrEqual(1);
+});
+
+test("VR1-01: a 390 px, «Ver» y la duración que va debajo terminan en el mismo borde, sin salirse de la fila", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: ALTO });
+  await abrir(page, VISTAS.lista);
+  await conMedidaDeTexto(page);
+  const filas = await page.evaluate(() => {
+    const { __texto: de } = window as unknown as ConTexto;
+    return [...document.querySelectorAll(".lista tbody tr")].map((tr) => ({
+      ver: de(tr.querySelector("td.tabla__eventos .boton-texto")!).derecha,
+      duracion: de(tr.querySelector("td.tabla__duracion")!).derecha,
+      boton: tr.querySelector("td.tabla__eventos .boton-texto")!.getBoundingClientRect().right,
+      fila: tr.getBoundingClientRect().right,
+    }));
+  });
+  expect(filas.length).toBeGreaterThan(0);
+  for (const f of filas) {
+    expect(Math.abs(f.ver - f.duracion), JSON.stringify(f)).toBeLessThanOrEqual(1);
+    expect(f.boton, JSON.stringify(f)).toBeLessThanOrEqual(f.fila + 0.5);
+  }
+});
+
+test("VR1-02: a 390 px, «Ver en el registro» empieza donde el nombre del momento", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: ALTO });
+  await abrir(page, VISTAS.detalleAlto);
+  await conMedidaDeTexto(page);
+  const momentos = await page.evaluate(() => {
+    const { __texto: de } = window as unknown as ConTexto;
+    return [...document.querySelectorAll(".momentos__momento")].map((m) => ({
+      titulo: de(m.querySelector(".momentos__titulo")!).izquierda,
+      ir: de(m.querySelector(".momentos__ir")!).izquierda,
+    }));
+  });
+  expect(momentos.length).toBeGreaterThan(1);
+  for (const m of momentos) expect(Math.abs(m.ir - m.titulo), JSON.stringify(m)).toBeLessThanOrEqual(1);
+});
+
+test("VR1-03: a 390 px, las tarjetas de estado caen sobre las columnas de los selectores de abajo", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: ALTO });
+  await abrir(page, VISTAS.lista);
+  const medidas = await page.evaluate(() => {
+    const caja = (e: Element) => {
+      const r = e.getBoundingClientRect();
+      return { x: Math.round(r.left), w: Math.round(r.width) };
+    };
+    return {
+      estados: [...document.querySelectorAll(".resumen__tarjetas--estados .resumen__tarjeta")].slice(0, 2).map(caja),
+      controles: [...document.querySelectorAll(".filtros__campo")].slice(0, 2).map(caja),
+    };
+  });
+  expect(medidas.estados).toHaveLength(2);
+  medidas.estados.forEach((e, i) => {
+    expect(Math.abs(e.x - medidas.controles[i].x), JSON.stringify(medidas)).toBeLessThanOrEqual(1);
+    expect(Math.abs(e.w - medidas.controles[i].w), JSON.stringify(medidas)).toBeLessThanOrEqual(1);
+  });
+});
+
+test("VR1-04: con el teclado, el h1 que recibe el foco al abrir una sesión no se dibuja como un botón", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: ALTO });
+  await abrir(page, VISTAS.lista);
+  await page.getByRole("button", { name: /^Ver la sesión de Lucía Ferreyra/ }).focus();
+  await page.keyboard.press("Enter");
+  const h1 = page.getByRole("heading", { level: 1, name: "Lucía Ferreyra" });
+  await expect(h1).toBeFocused();
+  const { visible, sombra } = await h1.evaluate((el) => ({
+    visible: el.matches(":focus-visible"),
+    sombra: getComputedStyle(el).boxShadow,
+  }));
+  expect(visible).toBe(true);
+  expect(sombra).toBe("none");
+});
+
+test("A11Y-R1-01: a 1280 px, los «Ver en el registro» seguidos no se pisan y cada uno mide al menos 24 px", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: ALTO });
+  await abrir(page, VISTAS.detalleAlto);
+  const cajas = await page.evaluate(() =>
+    [...document.querySelectorAll(".momentos__ir")].map((b) => {
+      const r = b.getBoundingClientRect();
+      return { arriba: r.top, abajo: r.bottom, alto: r.height };
+    })
+  );
+  expect(cajas.length).toBeGreaterThan(1);
+  for (const c of cajas) expect(c.alto).toBeGreaterThanOrEqual(24);
+  for (let i = 1; i < cajas.length; i++) {
+    expect(cajas[i].arriba, JSON.stringify(cajas)).toBeGreaterThanOrEqual(cajas[i - 1].abajo);
+  }
+});
+
+test("A11Y-R1-03: al avanzar con Tab por la lista desplazable, el anillo del «Ver» no queda cortado al pie", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 });
+  await abrir(page, VISTAS.lista);
+  const marco = page.locator(".lista__marco").last();
+  await marco.locator(".boton-texto").first().focus();
+  const total = await marco.locator(".boton-texto").count();
+  const cortados: string[] = [];
+  for (let i = 1; i < total; i++) {
+    await page.keyboard.press("Tab");
+    const medida = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement;
+      const m = el.closest(".lista__marco");
+      if (!m) return null;
+      return { nombre: el.getAttribute("aria-label"), abajo: el.getBoundingClientRect().bottom, pie: m.getBoundingClientRect().bottom };
+    });
+    if (medida && medida.abajo + 4 > medida.pie + 0.5) cortados.push(JSON.stringify(medida));
+  }
+  expect(cortados).toEqual([]);
+});
+
+test("A11Y-R1-04: al abrir una sesión desde la lista desplazada, el detalle empieza arriba, con las migas a la vista", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await abrir(page, VISTAS.lista);
+  const ver = page.locator(".lista__marco").last().locator(".boton-texto").last();
+  await ver.scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+  await ver.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { level: 1 })).toBeFocused();
+  await page.locator(".eventos tbody tr").first().waitFor();
+  const medidas = await page.evaluate(() => ({
+    y: window.scrollY,
+    migas: document.querySelector(".migas")!.getBoundingClientRect().top,
+    barra: document.querySelector(".barra")!.getBoundingClientRect().bottom,
+  }));
+  expect(medidas.y).toBe(0);
+  expect(medidas.migas, JSON.stringify(medidas)).toBeGreaterThanOrEqual(medidas.barra);
+});
+
+test("LV2-02: el lector de pantalla lee la cuenta del registro y sus extremos separados por la coma", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: ALTO });
+  await abrir(page, VISTAS.detalleAlto);
+  const arbol = await page.locator(".detalle__encabezado").ariaSnapshot();
+  expect(arbol).toMatch(/\d+ eventos, de \d{2}:\d{2} a \d{2}:\d{2}/);
+});
+
+test("QA2-01: la miga del curso y la ficha de un examen llevan el foco al h1 de la vista nueva", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: ALTO });
+  await abrir(page, VISTAS.lista);
+  await page.locator(".migas button").first().click();
+  await expect(page.getByRole("heading", { level: 1, name: "Álgebra y Geometría Analítica" })).toBeFocused();
+
+  await page.getByRole("main").getByRole("button", { name: /Primer parcial/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Primer parcial" })).toBeFocused();
 });

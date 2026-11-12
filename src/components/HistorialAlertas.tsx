@@ -61,13 +61,15 @@ export function HistorialAlertas({ historial: delBackend, alertas, inicio }: Pro
               data-nivel={entrada.level}
             >
               <HoraDelAnalisis iso={entrada.recorded_at} inicio={inicio} className="historial__hora" id={`${base}-${i}`} />
-              <RotuloNivel nivel={entrada.level} complemento={ORIGENES[entrada.origin]} />
+              <RotuloNivel nivel={entrada.level} complemento={ORIGENES[entrada.origin]} id={`${base}-${i}-rotulo`} />
               {actualizada ? <p className="historial__aviso">{EXPLICACION_REEMPLAZADA}</p> : null}
               {repetida ? (
                 <details className="historial__plegado">
                   {/* Varios «Ver la explicación» seguidos no se distinguen en la lista de controles del lector de
-                      pantalla: la hora del análisis de su entrada los diferencia, sin cambiar lo que se ve. */}
-                  <summary aria-describedby={`${base}-${i}`}>Ver la explicación</summary>
+                      pantalla: la hora del análisis de su entrada y su rótulo (nivel y origen) los diferencian,
+                      sin cambiar lo que se ve. La hora sola no alcanzaba: dos orígenes pueden tener una entrada
+                      en el mismo minuto. */}
+                  <summary aria-describedby={`${base}-${i} ${base}-${i}-rotulo`}>Ver la explicación</summary>
                   <ExplicacionDelMotor texto={entrada.explanation} variante="historial" />
                 </details>
               ) : (

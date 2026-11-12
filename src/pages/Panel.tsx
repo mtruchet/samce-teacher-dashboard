@@ -432,28 +432,39 @@ export function Panel() {
   }, [titulo]);
   useEffect(() => () => void (document.title = TITULO_DEL_PANEL), []);
 
-  // El foco acompaña el cambio de vista entre la lista y el detalle (WCAG 2.4.3). Al abrir una sesión va al
-  // h1 con el nombre del alumno, así el lector lo anuncia y el teclado sigue desde ahí; al volver a la lista
-  // (Atrás, la miga), al «Ver» de la sesión de la que salió, para no perder el lugar en una lista larga. Sin
-  // ese botón (un filtro la dejó afuera), al h1. Solo en el cambio, nunca en la primera carga ni con el
-  // refresco.
+  // El foco acompaña el cambio de vista (WCAG 2.4.3): toda vista nueva que viene de una acción del docente
+  // (abrir una sesión, tocar una miga, elegir un examen) empieza arriba, con el foco en el h1, así el lector la
+  // anuncia y el teclado sigue desde ahí; el botón que la abrió ya no existe y el foco quedaba en el cuerpo de
+  // la página. Al volver del detalle a la lista (Atrás, la miga), en cambio, va al «Ver» de la sesión de la
+  // que salió, para no perder el lugar en una lista larga; sin ese botón (un filtro la dejó afuera), al h1.
+  // Solo en el cambio, nunca en la primera carga ni con el refresco ni al filtrar.
+  //
+  // La página se sube antes de enfocar: si el docente había bajado por la lista, el primer dibujo del detalle es
+  // más corto y el navegador recortaba el desplazamiento en vez de llevarlo a cero; el h1 ya se veía, así que
+  // el foco no lo movía, y las migas quedaban debajo de la barra.
   const titular = useRef<HTMLHeadingElement>(null);
-  const anterior = useRef<{ nivel: string; sesion: string | null } | null>(null);
+  const anterior = useRef<{ clave: string; nivel: string; sesion: string | null } | null>(null);
   const listo = !(cargando || esperandoSesiones) && recibido;
+  // La sesión cuenta solo en el detalle: mientras se busca una sesión que no llegó, la vista sigue siendo la
+  // lista y no es una vista nueva.
+  const claveDeLaVista = [nivel, cursoElegido, examenElegido, nivel === "eventos" ? sesionElegida : ""].join("|");
   useEffect(() => {
     if (!listo) return;
     const antes = anterior.current;
-    anterior.current = { nivel, sesion: sesionElegida };
-    if (!antes) return;
-    if (nivel === "eventos" && (antes.nivel !== "eventos" || antes.sesion !== sesionElegida)) {
-      titular.current?.focus();
-    } else if (nivel === "sesiones" && antes.nivel === "eventos") {
+    anterior.current = { clave: claveDeLaVista, nivel, sesion: sesionElegida };
+    if (!antes || antes.clave === claveDeLaVista) return;
+    if (nivel === "sesiones" && antes.nivel === "eventos") {
       const ver = antes.sesion
         ? document.querySelector<HTMLButtonElement>(`button[data-sesion="${CSS.escape(antes.sesion)}"]`)
         : null;
-      (ver ?? titular.current)?.focus();
+      if (ver) {
+        ver.focus();
+        return;
+      }
     }
-  }, [listo, nivel, sesionElegida]);
+    window.scrollTo({ top: 0, behavior: "instant" });
+    titular.current?.focus({ preventScroll: true });
+  }, [listo, claveDeLaVista, nivel, sesionElegida]);
 
   // Sin sesión no hay nada que supervisar: se explica y se lo devuelve al
   // campus, igual que a quien llega de un favorito viejo.

@@ -13,9 +13,18 @@ import "./RotuloNivel.css";
  * complemento (ver RotuloNivel.css): si no entra en el renglón, baja con su línea y nunca la deja colgando. El tono lo da
  * `data-nivel` (ver `styles/nivel.css`), así el rótulo se pinta igual donde sea que se monte.
  */
-export function RotuloNivel({ nivel, complemento }: { nivel: NivelDeRiesgo; complemento?: ReactNode }) {
+export function RotuloNivel({
+  nivel,
+  complemento,
+  id,
+}: {
+  nivel: NivelDeRiesgo;
+  complemento?: ReactNode;
+  /** Para que otro elemento lo use de descripción (aria-describedby). */
+  id?: string;
+}) {
   return (
-    <span className="rotulo-nivel" data-nivel={nivel}>
+    <span className="rotulo-nivel" data-nivel={nivel} id={id}>
       <MedidorNivel nivel={nivel} />
       <span className="rotulo-nivel__nivel">{NIVELES[nivel]}</span>
       {complemento ? (

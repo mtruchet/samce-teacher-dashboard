@@ -13,6 +13,9 @@
   overscroll-behavior: contain;
   /* Al volver con Mayús+Tab, el encabezado fijo de la tabla (25 px) tapaba el «Ver» de la fila de arriba. */
   scroll-padding-top: var(--e10);
+  /* Y al avanzar con Tab, el «Ver» de la fila de abajo quedaba al ras del pie: el marco le cortaba el borde
+     inferior del anillo de foco, justo debajo de la sombra. */
+  scroll-padding-bottom: var(--e4);
   /* Una sombra al pie mientras quedan filas abajo: la fila cortada a la mitad (y un trozo suelto de su marca
      de nivel) no decía que la tabla seguía. La primera capa se mueve con el contenido y tapa la sombra al
      llegar al final; la segunda queda fija al pie del marco. Las dos van detrás de las filas. */
@@ -95,7 +98,13 @@
 
 /* ==== Ver una sesión ================================================== */
 
-/* «Ver» es el botón de texto compartido (.boton-texto, en base.css). */
+/* «Ver» es el botón de texto compartido (.boton-texto, en base.css). Su relleno lo dejaba 8 px adentro del
+   borde de la columna, y la palabra no terminaba donde su rótulo «Eventos» ni donde la duración: el botón se
+   corre sobre el relleno de la celda lo mismo que su propio relleno, así el texto cae en la línea de la
+   columna sin achicar el área que se toca. */
+.tabla td.tabla__eventos .boton-texto {
+  margin-inline-end: calc(-1 * var(--e2));
+}
 
 /* ==== El alumno ======================================================== */
 
@@ -217,6 +226,17 @@
 
   .tabla td.tabla__eventos {
     grid-area: eventos;
+  }
+
+  /* Acá la celda tiene un relleno menor que el del botón: correrlo lo sacaría de la fila (y su anillo de foco,
+     del marco). En cambio la duración se aparta del borde lo mismo que la palabra «Ver», y las dos terminan en
+     la misma línea. */
+  .tabla td.tabla__eventos .boton-texto {
+    margin-inline-end: 0;
+  }
+
+  .tabla td.tabla__duracion {
+    padding-right: calc(var(--e1) + var(--e2));
   }
 
   /* El margen de la celda, el ícono (18 px) y su separación: el análisis empieza donde el nombre. */

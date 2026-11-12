@@ -108,6 +108,13 @@ a {
   border-radius: var(--radio-chip);
 }
 
+/* Un título que recibe el foco por programa (el h1 al cambiar de vista, con tabIndex -1) no es un control: con
+   el anillo parecía un botón, y el anillo casi tocaba las letras. El lector lo anuncia igual. El contorno
+   transparente de arriba queda, como en todo el panel, para colores forzados. */
+:is(h1, h2, h3)[tabindex="-1"]:focus-visible {
+  box-shadow: none;
+}
+
 /* Sobre las superficies oscuras (la barra, el pie y el bloque de decisiones de
    la portada) el anillo separa con el mismo fondo oscuro, no con el claro, y
    la capa de afuera es clara: el celeste no se distinguía de la pizarra. */

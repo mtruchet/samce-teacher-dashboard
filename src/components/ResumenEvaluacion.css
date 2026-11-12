@@ -49,12 +49,23 @@
   box-shadow: var(--anillo);
 }
 
-/* Un nivel sin sesiones pesa menos: sin el fondo teñido y con el borde apagado, para que los tonos más
-   llamativos no marquen cifras vacías y la tarjeta que sí tiene sesiones se distinga. Conserva el medidor, la
+/* Un nivel sin sesiones pesa menos, para que los tonos más llamativos no marquen cifras vacías y la tarjeta
+   que sí tiene sesiones se distinga: sin el fondo teñido (lleva el de las tarjetas de estado; con el de la
+   lámina quedaba un hueco blanco, más claro que las tarjetas con sesiones), con el borde apagado y con el
+   medidor en gris (lleno en el tono, seguía siendo lo más llamativo de la tarjeta). Conserva el medidor, la
    palabra y el número, y sigue siendo un botón. */
 .resumen__tarjeta--cero[data-nivel] {
   border-left-color: var(--sup-4);
-  background: var(--sup-1);
+  background: var(--sup-2);
+}
+
+.resumen__tarjeta--cero .medidor__segmento {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--sup-4);
+}
+
+.resumen__tarjeta--cero .medidor__segmento--lleno {
+  background: var(--sup-4);
 }
 
 .resumen__tarjeta--estado {
@@ -113,8 +124,11 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  /* Los estados, de a dos como los controles de la barra que tienen debajo, y con su mismo espacio entre
+     columnas: con uno más angosto, la segunda columna de tarjetas y la de selectores quedaban corridas. */
   .resumen__tarjetas--estados {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--e4);
   }
 
   .resumen__tarjeta {
@@ -146,6 +160,11 @@
 
   .resumen__tarjeta[data-nivel][aria-pressed="true"] {
     border-left-width: var(--marca-tarjeta);
+  }
+
+  /* El medidor apagado de una tarjeta en cero vuelve al del resto: el gris no existe en colores forzados. */
+  .resumen__tarjeta--cero .medidor__segmento--lleno {
+    background: CanvasText;
   }
 
   .resumen__tarjeta:focus-visible {

@@ -441,6 +441,9 @@ describe("DetalleSesion", () => {
       `, de ${horaCorta(primero)} a ${horaCorta(ultimo)}`
     );
     expect(encabezado.textContent).not.toMatch(/\d{2}:\d{2}:\d{2}/);
+    // La coma se lee también con lector de pantalla: oculta, la cuenta y los extremos quedaban pegados
+    // («3 eventosde …») en el árbol accesible (LV2-02).
+    expect(encabezado.querySelector(".detalle__punto")?.closest("[aria-hidden]")).toBeNull();
     // Y el orden se dice a la vista, no solo para los lectores de pantalla.
     expect(screen.getByText("Lo más reciente va arriba.")).toBeInTheDocument();
   });
@@ -670,5 +673,21 @@ describe("DetalleSesion", () => {
     expect(
       screen.getByText("Hasta ahora no pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa.")
     ).toBeInTheDocument();
+  });
+
+  it("HU05_T02, momentos (LV2-01): con la sesión abierta y un corte de la captura, gana «en lo que quedó registrado»", async () => {
+    // Las cinco sesiones abiertas de la réplica llegan así. Queda fijado cuál de las dos salvedades sale; si
+    // Facundo elige una variante que diga las dos, esta prueba es la que cambia.
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "keystroke", { count: 1 })]);
+    const abiertaConCorte = sesionNumerada({ status: "open", closed_at: undefined, capture: { state: "gap", gap_minutes: 3 } });
+    render(<DetalleSesion sesion={abiertaConCorte} onVencida={nada} />);
+    await esperar();
+
+    expect(
+      screen.getByText(
+        "En lo que quedó registrado, no pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^Hasta ahora/)).toBeNull();
   });
 });
