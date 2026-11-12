@@ -337,6 +337,53 @@ test("a 390 px, en el registro apilado la hora y el título del evento quedan a 
   expect(Math.max(...corrimientos)).toBeLessThanOrEqual(1);
 });
 
+test("a 390 px, en el registro apilado el detalle empieza debajo del título y no del ícono", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: ALTO });
+  await abrir(page, VISTAS.detalleAlto);
+  // En la simulación, los eventos con detalle (los pegados) son los más viejos y quedan fuera de los 50 primeros.
+  await page.getByRole("button", { name: "Mostrar todos" }).click();
+  const diferencias = await page.evaluate(() =>
+    [...document.querySelectorAll(".eventos tbody tr")]
+      .map((fila) => [fila.querySelector(".eventos__titulo"), fila.querySelector<HTMLElement>(".eventos__detalle")] as const)
+      .filter(([titulo, detalle]) => titulo && detalle && (detalle.textContent ?? "").trim())
+      .map(([titulo, detalle]) => {
+        const rango = document.createRange();
+        rango.selectNodeContents(detalle!);
+        return Math.abs(Math.round(rango.getBoundingClientRect().left - titulo!.getBoundingClientRect().left));
+      })
+  );
+  expect(diferencias.length).toBeGreaterThan(0);
+  expect(Math.max(...diferencias)).toBeLessThanOrEqual(1);
+});
+
+test("a 390 px, las filas del registro sin detalle conservan sus tres celdas para los lectores de pantalla", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: ALTO });
+  await abrir(page, VISTAS.detalleAlto);
+  const ancha = await rolesDelArbol(page);
+  await page.setViewportSize({ width: 390, height: ALTO });
+  const angosta = await rolesDelArbol(page);
+  expect(angosta.cell).toBe(ancha.cell);
+});
+
+test("a 390 px, tabulando hacia adelante, el anillo de foco de lo que entra por el pie se ve entero", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: ALTO });
+  await abrir(page, VISTAS.lista);
+  const cortados: string[] = [];
+  for (let i = 0; i < 30; i++) {
+    await page.keyboard.press("Tab");
+    await desplazamientoQuieto(page);
+    const medida = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement;
+      if (!el || el === document.body || el.closest(".barra")) return null;
+      const r = el.getBoundingClientRect();
+      // El anillo son 4 px afuera del elemento (2 blancos y 2 celestes).
+      return { cortado: r.bottom + 4 > window.innerHeight, que: `${el.tagName.toLowerCase()} ${Math.round(r.bottom)} / ${window.innerHeight}` };
+    });
+    if (medida?.cortado) cortados.push(medida.que);
+  }
+  expect(cortados).toEqual([]);
+});
+
 test("«Ver en el registro» lleva a una fila con el mismo nombre, y el foco se ve en sus cuatro lados", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: ALTO });
   await abrir(page, VISTAS.detalleAlto);

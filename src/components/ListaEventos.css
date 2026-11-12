@@ -231,13 +231,17 @@ th.eventos__que {
     white-space: normal;
   }
 
+  /* El detalle arranca debajo del título y no del ícono: el ícono mide 16 px y lo separa var(--e2). */
   .eventos td.eventos__detalle {
     grid-area: detalle;
+    padding-inline-start: calc(var(--e2) + 16px + var(--e2));
     overflow-wrap: break-word;
   }
 
+  /* La celda vacía no ocupa lugar pero sigue en la tabla: con display: none salía del árbol accesible y la fila
+     quedaba con dos celdas bajo tres encabezados. */
   .eventos td.eventos__detalle:empty {
-    display: none;
+    padding: 0;
   }
 }
 

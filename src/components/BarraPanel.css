@@ -27,6 +27,8 @@
 /* La barra es fija: al tabular hacia atrás, lo enfocado quedaba debajo de ella a 390 px. */
 html:has(.barra) {
   scroll-padding-top: calc(var(--panel-barra) + var(--e2));
+  /* Y abajo, para que el anillo de foco de lo que entra por el pie no quede cortado a 390 px. */
+  scroll-padding-bottom: var(--e4);
 }
 
 /* El anillo es el de las superficies oscuras (base.css). El contorno queda transparente, para colores
