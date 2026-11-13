@@ -150,7 +150,7 @@
   /* ---- Radios: anidados, exterior = interior + padding ------------------- */
   /* Un rol, un radio (docs/sistema-visual.md, «Superficies»):
      - chip: controles (selectores, búsqueda, botones), etiquetas de estado y pasos de la escalera;
-     - ficha: tarjetas (de nivel, de estado, de alerta), avisos, el vacío de página y la ficha de la sesión;
+     - ficha: tarjetas (de nivel, de estado, de alerta), avisos y el vacío de página;
      - lámina: todas las láminas del panel, las tres de peso, las fichas de examen y la espera;
      - panel: solo la landing. En el panel una lámina pesa más o menos por la sombra y el fondo, no por el radio. */
   --radio-chip: 6px;

@@ -1,0 +1,55 @@
+/* La ficha de la sesión, como un renglón de la cabecera del detalle: debajo del nombre del alumno y al ras
+   de él, sin caja. Con caja era una lámina más arriba del análisis, y lo primero que se leía de la pantalla era
+   un recuadro con dos datos; ahora el análisis es la primera lámina. Va en la letra y el renglón de una fila
+   (13/20): son datos sueltos, como los de una fila de la lista, no una frase para leer. */
+.detalle__sesion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  /* Los datos se separan con aire y no con un carácter: un separador dibujado
+     compite con el texto y hay que leerlo para descartarlo. */
+  gap: var(--e1) var(--e6);
+  margin-top: var(--e2);
+  font-size: var(--panel-fila);
+  line-height: var(--panel-alto);
+  /* --tinta-media y no --tinta-suave: va directo sobre la página, sin lámina debajo. */
+  color: var(--tinta-media);
+}
+
+.detalle__dato {
+  white-space: nowrap;
+}
+
+/* El celeste en su rol de siempre, que es marcar estado activo, y nunca
+   decoración. Mientras el alumno rinde el estado es celeste, y cuando entregó
+   pasa a tinta: el cambio de color dice que algo cambió, no que algo esté mal.
+   En minúscula inicial y sin espaciado: se lee como una palabra, no como un
+   sello. */
+/* El estado, como una etiqueta (ronda 3): en negrita suelta, «Entregó» solo se leía como estado si uno ya
+   lo sabía. Es la receta de etiqueta de estado del panel (docs/sistema-visual.md). */
+.detalle__estado {
+  flex: none;
+  align-self: center;
+  padding: 2px var(--e3);
+  /* Transparente: con colores forzados la sombra desaparece y este borde es el que se pinta. */
+  border: 1px solid transparent;
+  border-radius: var(--radio-chip);
+  background: var(--sup-3);
+  box-shadow: inset 0 0 0 1px var(--sup-4);
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+.detalle__estado--vivo {
+  color: var(--celeste-hondo);
+}
+
+@media (max-width: 640px) {
+  /* En un teléfono la ficha se apila: el estado arriba y cada dato en su renglón. En grilla y no con el estado
+     al 100 % del flex: así «Entregó» conserva el ancho de su texto y no se estira como una barra de lado a lado. */
+  .detalle__sesion {
+    display: grid;
+    justify-items: start;
+    gap: var(--e1);
+  }
+}

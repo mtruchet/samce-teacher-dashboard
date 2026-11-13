@@ -16,6 +16,7 @@ import {
 import { Arranque } from "../components/Arranque";
 import { BarraPanel } from "../components/BarraPanel";
 import { DetalleSesion } from "../components/DetalleSesion";
+import { FichaSesion } from "../components/FichaSesion";
 import { Fichas, type Ficha } from "../components/Fichas";
 import { AvisoAlertas } from "../components/AvisoAlertas";
 import { AnuncioVivo } from "../components/AnuncioVivo";
@@ -696,8 +697,15 @@ export function Panel() {
                 {/* El salto a todos sus cursos vive en el encabezado de la
                     barra, que es donde se lo busca y donde está en los dos
                     modos. Acá abajo repetía lo mismo dos veces en pantalla. */}
-                {/* tabIndex -1: recibe el foco al abrir una sesión, sin ser una parada del tabulador. */}
-                <h1 className="panel__curso" ref={titular} tabIndex={-1}>{titulo}</h1>
+                {/* El título y, en el detalle, la ficha de la sesión, en una sola columna: la ficha va debajo del
+                    nombre y al ras de él, y el pulso queda a la derecha, a la altura del título. En un teléfono
+                    el pulso baja después de la ficha: el nombre y sus datos se leen juntos. */}
+                <div className="panel__titular">
+                  {/* tabIndex -1: recibe el foco al abrir una sesión, sin ser una parada del tabulador. */}
+                  <h1 className="panel__curso" ref={titular} tabIndex={-1}>{titulo}</h1>
+                  {/* Con la misma condición que el detalle de abajo: la ficha no aparece sin su registro. */}
+                  {recibido && nivel === "eventos" && sesionMostrada ? <FichaSesion sesion={sesionMostrada} /> : null}
+                </div>
                 {/* Qué estado muestra y en qué orden se decide está junto a
                     `estadoPulso`, arriba. */}
                 <PulsoEnlace estado={estadoPulso} marca={marca} />

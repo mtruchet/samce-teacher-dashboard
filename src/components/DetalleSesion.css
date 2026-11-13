@@ -1,5 +1,5 @@
-/* La pantalla de una sesión: la línea de datos, los avisos y el registro,
-   uno abajo del otro. */
+/* La pantalla de una sesión: el aviso de captura, el análisis y el registro, uno abajo del otro. La ficha de
+   la sesión ya no es parte de la pila: va en la cabecera, debajo del nombre (FichaSesion.css). */
 /* Entre lámina y lámina, var(--e6): el mismo paso que separa los grupos de la lista, para que las dos
    pantallas respiren igual. */
 .detalle {
@@ -24,30 +24,6 @@
   align-content: start;
 }
 
-/* La ficha de la sesión, arriba de la pila: una sola fila de datos en una
-   lámina liviana. No repite el nombre del alumno, que ya está en el título de
-   la pantalla y en las migas: lleva lo que allá no entra. El estado va primero
-   y con peso porque es lo que cambia solo mientras la pantalla está abierta. */
-.detalle__sesion {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  /* Los datos se separan con aire y no con un carácter: un separador dibujado
-     compite con el texto y hay que leerlo para descartarlo. */
-  gap: var(--e2) var(--e6);
-  padding: var(--e3) var(--e6);
-  border-radius: var(--radio-ficha);
-  background: var(--sup-1);
-  box-shadow: var(--anillo);
-  /* La letra de una fila: son datos sueltos, como los de una fila de la lista, no una frase para leer. */
-  font-size: var(--panel-fila);
-  color: var(--tinta-media);
-}
-
-.detalle__dato {
-  white-space: nowrap;
-}
-
 /* Hasta dónde llega el registro. Pesa como la cuenta de al lado: es una
    precisión sobre lo que se está mirando, no el asunto de la lámina. */
 /* La cuenta y sus extremos, pegados como una sola frase: el hueco del encabezado separa el título de lo que
@@ -65,30 +41,6 @@
 .detalle__extremos {
   font-size: var(--panel-nota);
   color: var(--tinta-media);
-}
-
-/* El celeste en su rol de siempre, que es marcar estado activo, y nunca
-   decoración. Mientras el alumno rinde el estado es celeste, y cuando entregó
-   pasa a tinta: el cambio de color dice que algo cambió, no que algo esté mal.
-   En minúscula inicial y sin espaciado: se lee como una palabra, no como un
-   sello. */
-/* El estado, como una etiqueta (ronda 3): en negrita suelta, «Entregó» solo se leía como estado si uno ya
-   lo sabía. */
-.detalle__estado {
-  flex: none;
-  align-self: center;
-  padding: 2px var(--e3);
-  /* Transparente: con colores forzados la sombra desaparece y este borde es el que se pinta. */
-  border: 1px solid transparent;
-  border-radius: var(--radio-chip);
-  background: var(--sup-3);
-  box-shadow: inset 0 0 0 1px var(--sup-4);
-  font-weight: 600;
-  color: var(--tinta);
-}
-
-.detalle__estado--vivo {
-  color: var(--celeste-hondo);
 }
 
 /* El registro, en segundo plano (`.lamina--apoyo`): un escalón más abajo que
@@ -129,7 +81,7 @@
   color: var(--nivel-1-tinta);
 }
 
-/* La explicación de una captura incompleta: suelta entre la ficha y el análisis, sin caja, con la marca de
+/* La explicación de una captura incompleta: suelta entre la cabecera y el análisis, sin caja, con la marca de
    renglón en --tinta-suave (4,78:1 contra la página). El texto arranca donde el de las láminas (la marca más su
    relleno suman var(--e6)), y el aire de arriba y de abajo es el de la pila, no un margen propio. */
 .detalle__captura {
@@ -147,26 +99,13 @@
 }
 
 @media (max-width: 760px) {
-  /* La ficha sigue al ras del contenido de la lámina, que acá se angosta. */
-  .detalle__sesion {
-    padding-inline: var(--e4);
-  }
-
-  /* El aviso de captura, también. */
+  /* El aviso de captura sigue al ras del contenido de la lámina, que acá se angosta. */
   .detalle__captura {
     padding-left: calc(var(--e4) - var(--marca-renglon));
   }
 }
 
 @media (max-width: 640px) {
-  /* La ficha se apila: el estado arriba y cada dato en su renglón. En grilla y no con el estado al 100 % del
-     flex: así «Entregó» conserva el ancho de su texto y no se estira como una barra de lado a lado. */
-  .detalle__sesion {
-    display: grid;
-    justify-items: start;
-    gap: var(--e1) var(--e4);
-  }
-
   /* En un teléfono la cuenta entera, con sus extremos, va en su propio renglón debajo del título. */
   .detalle__cuenta {
     flex-basis: 100%;

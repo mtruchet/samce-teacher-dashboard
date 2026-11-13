@@ -9,13 +9,12 @@ import {
   type Evento,
   type SesionNumerada,
 } from "../services/sesionesService";
-import { fechaCorta, horaCorta } from "../eventos";
+import { horaCorta } from "../eventos";
 import { seSigueConsultando } from "../seguimiento";
 
 import { AnalisisSesionVista } from "./AnalisisSesion";
 import { CronologiaSesion } from "./CronologiaSesion";
 import { ListaEventos } from "./ListaEventos";
-import { Transcurrido } from "./Transcurrido";
 import { useAnalisisDeSesion } from "./useAnalisisDeSesion";
 import "./DetalleSesion.css";
 
@@ -65,25 +64,6 @@ export const PLAZO_DEL_ANALISIS_MS = 8000;
 
 /** Tope de páginas por consulta, para que una sesión enorme no trabe el panel. */
 const PAGINAS_MAXIMAS = 20;
-
-/**
- * Cómo se llama en pantalla el estado de la sesión.
- *
- * Los tres que manda el backend, cada uno con su palabra. Son las mismas que
- * usa la lista de sesiones («sin entregar», «Rindiendo ahora», «Entregó»): dos
- * pantallas del mismo dato no pueden decir cosas distintas. Van con mayúscula
- * inicial porque encabezan la ficha. Un valor que este panel todavía no conozca
- * no dice nada, porque afirmar cualquiera de los polos es peor que no mostrar
- * el rótulo.
- */
-function estado(status: SesionNumerada["status"]): string {
-  const nombres: Record<string, string> = {
-    open: "Rindiendo ahora",
-    closed: "Entregó",
-    abandoned: "Sin entregar",
-  };
-  return nombres[status] ?? "";
-}
 
 interface Props {
   sesion: SesionNumerada;
@@ -258,7 +238,6 @@ function DetalleSesionSinMemo({ sesion, onVencida, onConsulta }: Props) {
 
   const primerEvento = eventos[0];
   const ultimoEvento = eventos[eventos.length - 1];
-  const rotulo = estado(sesion.status);
   const aviso = avisoDeCaptura(sesion.capture);
   // Un evento «Se perdió parte del registro» dice lo mismo que el aviso de captura, pero desde la página del
   // examen: la captura puede figurar como completa y faltar igual una parte. Con eso, «Momentos para revisar» no
@@ -274,38 +253,8 @@ function DetalleSesionSinMemo({ sesion, onVencida, onConsulta }: Props) {
       className={analisisResuelto && cargando ? "detalle detalle--llenando" : "detalle"}
       aria-busy={!analisisResuelto || undefined}
     >
-      {/* La ficha de la sesión. Quién es el alumno ya lo dicen el título de la
-          pantalla y las migas; acá va lo que allá no entra, en una sola fila:
-          si entregó, qué intento es, cuándo empezó y cuánto duró. El número
-          del aula virtual no está: en la tabla de sesiones se lee porque
-          cuelga del nombre, y acá quedaba suelto debajo del título. La
-          duración no es un dato nuevo: es la misma que muestra la lista, con
-          el mismo componente. Un intento sin entregar no la lleva, por lo
-          mismo que en la lista: su cierre es cuando Moodle procesó el
-          abandono, no cuando el alumno dejó de rendir. */}
-      <div className="detalle__sesion">
-        {rotulo ? (
-          <span className={abierta ? "detalle__estado detalle__estado--vivo" : "detalle__estado"}>
-            {rotulo}
-          </span>
-        ) : null}
-        {sesion.intentos > 1 ? (
-          <span className="detalle__dato cifra">Intento {sesion.intento} de {sesion.intentos}</span>
-        ) : null}
-        {/* Con la fecha (ronda 3): con varios parciales, «Empezó a las 09:11» no decía qué día. */}
-        <span className="detalle__dato">
-          Empezó el{" "}
-          <time className="cifra" dateTime={sesion.started_at}>
-            {fechaCorta(sesion.started_at)} a las {horaCorta(sesion.started_at)}
-          </time>
-        </span>
-        {sesion.status === "closed" && sesion.closed_at ? (
-          <span className="detalle__dato">
-            Duró <Transcurrido inicio={sesion.started_at} cierre={sesion.closed_at} />
-          </span>
-        ) : null}
-      </div>
-
+      {/* La ficha de la sesión (estado, intento, inicio y duración) no va acá: es un renglón de la cabecera,
+          debajo del nombre del alumno, y la dibuja el panel (`FichaSesion`). */}
       {aviso ? (
         <p className="detalle__captura" role="note">
           <strong>{aviso.corto}.</strong> {aviso.detalle}

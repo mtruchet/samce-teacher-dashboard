@@ -416,15 +416,14 @@ a {
 
 /* Con colores forzados las sombras desaparecen:
    - el botón lleva un borde del sistema;
-   - las láminas y la ficha de la sesión, que se recortan del fondo solo por el anillo y la sombra, llevan un
+   - las láminas, que se recortan del fondo solo por el anillo y la sombra, llevan un
      contorno hacia adentro (no ocupa lugar, así nada se corre respecto de los colores normales). */
 @media (forced-colors: active) {
   .boton-secundario {
     border: 1px solid ButtonText;
   }
 
-  .lamina,
-  .detalle__sesion {
+  .lamina {
     outline: 1px solid CanvasText;
     outline-offset: -1px;
   }

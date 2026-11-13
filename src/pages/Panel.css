@@ -63,9 +63,16 @@ body:has(.panel) {
   color: var(--tinta);
   /* Un nombre de materia largo baja de renglón antes que empujar al pulso. Con 26ch, un título de 36
      caracteres («Segundo Parcial (réplica del campus)») se partía en dos con más de media lámina libre: el
-     tope es ahora 40ch, y nunca más que lo que deja el lugar del pulso (16rem). */
-  max-width: min(40ch, 100% - 16rem);
+     tope es ahora 40ch, y nunca más que lo que deja el lugar del pulso (16rem, en .panel__titular). */
+  max-width: min(40ch, 100%);
   text-wrap: balance;
+}
+
+/* El título y la ficha de la sesión, en una columna. El lugar del pulso se reserva acá y no en el título: la
+   ficha tampoco puede meterse debajo del pulso. */
+.panel__titular {
+  min-width: 0;
+  max-width: calc(100% - 16rem);
 }
 
 /* Con la letra en su mínimo (24 px), un renglón de 35 deja un título partido en dos demasiado separado. */
@@ -181,7 +188,8 @@ body:has(.panel) {
     align-items: flex-start;
   }
 
-  .panel__curso {
+  .panel__curso,
+  .panel__titular {
     max-width: none;
   }
 

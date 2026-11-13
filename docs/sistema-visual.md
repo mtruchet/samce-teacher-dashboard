@@ -182,7 +182,7 @@ El título de la vista le saca siempre 4 px a la cifra, a cualquier ancho. Los r
 
 ### Ritmo
 
-- Del encabezado al primer bloque: 32 px.
+- Del encabezado al primer bloque: 32 px. En el detalle, la ficha de la sesión es parte del encabezado: va a `--e2` del nombre, y el análisis es la primera lámina.
 - Entre láminas: `--e6` (24 px), en la lista y en el detalle.
 - Del título de una lámina a su contenido: `--e4` (16 px). Del título de un apartado a su contenido: `--e3` (12 px); entre apartados, 32 px.
 - Relleno de lámina: `--e5`/`--e6` en escritorio; a los costados nunca menos de `--e4`. Margen de página en el teléfono: `--e4`.
@@ -200,7 +200,7 @@ Un rol, un radio. El peso de una lámina lo dan la sombra y el fondo, nunca el r
 | Lámina (control, grupos, fichas de examen, espera) | `--sup-1` | `--anillo` | `--elev-2` | `--radio-lamina` 16 |
 | Lámina de lectura | `--sup-1` | `--anillo` | `--elev-1` | 16 |
 | Lámina de apoyo | `--sup-2` | `--anillo` | — | 16 |
-| Ficha de datos (la de la sesión) | `--sup-1` | `--anillo` | — | `--radio-ficha` 12 |
+| Ficha de la sesión | ninguno: es un renglón de la cabecera, debajo del nombre y al ras de él | — | — | — |
 | Tarjeta (de nivel, de estado, de alerta) | tinte al 8 % o `--sup-2` | `--anillo`, más `--marca-tarjeta` si hay nivel | `--elev-1` al pasar el mouse | 12 |
 | Aviso y vacío de página | `--nivel-1-fondo`, o `--sup-1` en el vacío | 1 px adentro | — | 12 |
 | Control (selector, búsqueda, `.boton-secundario`) | `--sup-1` | 1 px adentro en `--borde-control` (3,5:1) | — | `--radio-chip` 6 |
