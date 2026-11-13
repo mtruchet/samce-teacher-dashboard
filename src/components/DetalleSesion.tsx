@@ -304,26 +304,6 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
         </p>
       ) : null}
 
-      {incompleto ? (
-        <p className="detalle__aviso" role="status">
-          Esta sesión tiene más eventos de los que el panel puede mostrar de una vez. Se ven
-          los {enCifras(eventos.length)} primeros, desde el comienzo del examen;
-          todavía falta lo más reciente.
-        </p>
-      ) : null}
-
-      {/* Cuando el ciclo ya no pregunta más, prometer que se sigue intentando
-          sería afirmar algo que el código no hace. Salir de la sesión y volver
-          a entrar sí dispara una consulta nueva, porque el efecto depende de
-          `sesionId`. */}
-      {sinConexion ? (
-        <p className="detalle__aviso" role="status">
-          {consultando
-            ? "No se pudo actualizar el registro. Se sigue intentando, y lo que se ve es lo último que llegó."
-            : "No se pudo actualizar el registro. Lo que se ve es lo último que llegó. Volvé a entrar a la sesión para pedirlo de nuevo."}
-        </p>
-      ) : null}
-
       <AnalisisSesionVista sesion={sesion} estado={estadoAnalisis} />
 
       {/* El registro va en una lámina más liviana que la del análisis: el ojo
@@ -360,6 +340,29 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
               </span>
             ) : null}
           </header>
+
+          {/* Los avisos del registro van adentro de su lámina, debajo del encabezado: hablan solo del registro,
+              y arriba del análisis cada corte de la conexión lo bajaba y lo volvía a subir. El de la captura
+              sigue arriba, porque habla de toda la sesión. */}
+          {incompleto ? (
+            <p className="detalle__aviso" role="status">
+              Esta sesión tiene más eventos de los que el panel puede mostrar de una vez. Se ven
+              los {enCifras(eventos.length)} primeros, desde el comienzo del examen;
+              todavía falta lo más reciente.
+            </p>
+          ) : null}
+
+          {/* Cuando el ciclo ya no pregunta más, prometer que se sigue intentando
+              sería afirmar algo que el código no hace. Salir de la sesión y volver
+              a entrar sí dispara una consulta nueva, porque el efecto depende de
+              `sesionId`. */}
+          {sinConexion ? (
+            <p className="detalle__aviso" role="status">
+              {consultando
+                ? "No se pudo actualizar el registro. Se sigue intentando, y lo que se ve es lo último que llegó."
+                : "No se pudo actualizar el registro. Lo que se ve es lo último que llegó. Volvé a entrar a la sesión para pedirlo de nuevo."}
+            </p>
+          ) : null}
 
           {/* Los momentos para revisar son el índice del registro: van adentro de su lámina, entre el encabezado y
               la tabla, armados con los eventos que el detalle ya tiene, en el orden del registro (de lo más viejo a

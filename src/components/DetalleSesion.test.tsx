@@ -223,6 +223,20 @@ describe("DetalleSesion", () => {
     expect(onConsulta).toHaveBeenLastCalledWith(true, false);
   });
 
+  it("el aviso de que el registro no se pudo actualizar va dentro del registro, no arriba del análisis", async () => {
+    // Arriba del análisis, cada corte de la conexión lo bajaba y lo volvía a subir.
+    vi.spyOn(sesionesService, "traerEventos")
+      .mockResolvedValueOnce([evento(1, "focus_lost")])
+      .mockRejectedValueOnce(new Error("sin red"))
+      .mockResolvedValue([]);
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+    await esperar(5000);
+
+    const registro = screen.getByText(/No se pudo actualizar el registro/).closest("section");
+    expect(registro).toHaveAttribute("aria-labelledby", "registro-de-eventos-titulo");
+  });
+
   it("sin eventos lo dice, sin tabla vacía, y aclara que aparecen al abrirse la página", async () => {
     vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
 

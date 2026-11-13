@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as sesionesService from "../services/sesionesService";
-import { esperar, evento, sesionNumerada } from "../test/fabricas";
+import { analisis, esperar, evento, sesionNumerada } from "../test/fabricas";
 import { DetalleSesion } from "./DetalleSesion";
 
 /**
@@ -15,6 +15,9 @@ vi.mock("../services/sesionesService", async (original) => ({
   ...(await original<typeof import("../services/sesionesService")>()),
   EVENTOS_POR_PAGINA: 3,
   traerEventos: vi.fn(),
+  // El registro se dibuja recién cuando llegó el análisis (ver `DetalleSesion`): sin contestarlo, salía a
+  // buscarlo al backend de verdad y el registro esperaba el plazo.
+  traerAnalisis: vi.fn(),
 }));
 
 const POR_PAGINA = 3;
@@ -23,7 +26,10 @@ const pagina = (desde: number, cuantos = POR_PAGINA) =>
   Array.from({ length: cuantos }, (_, i) => evento(desde + i, "mouse_enter"));
 
 describe("DetalleSesion, la paginación del registro", () => {
-  beforeEach(() => vi.useFakeTimers());
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.mocked(sesionesService.traerAnalisis).mockResolvedValue(analisis({ state: "not_analyzed", calculated_at: null }));
+  });
   afterEach(() => {
     vi.useRealTimers();
     traer.mockReset();

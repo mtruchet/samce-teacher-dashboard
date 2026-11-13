@@ -109,3 +109,26 @@ test("a 390 px, la cabecera de una sesión cerrada hace rato no cambia de alto m
   expect(new Set(altos).size).toBe(1);
   await expect(page.getByText(/En vivo/)).toHaveCount(0);
 });
+
+test("a 1280 px, el aviso de que el registro no se pudo actualizar no mueve el análisis", async ({ page }) => {
+  // El aviso iba arriba del análisis: cada corte de la conexión lo bajaba y lo volvía a subir 82 px.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await simularBackend(page);
+  let pedidos = 0;
+  await page.route(/\/api\/monitored-quizzes\/\d+\/sessions\/\d+\/events/, async (route) => {
+    pedidos += 1;
+    if (pedidos > 1) return route.abort();
+    return route.fallback();
+  });
+
+  await page.goto(VISTAS.detalleEnCurso);
+  await page.locator(".eventos tbody tr").first().waitFor();
+  await page.evaluate(() => document.fonts.ready);
+  const antes = await page.locator(".analisis").evaluate((n) => n.getBoundingClientRect().top + window.scrollY);
+
+  const aviso = page.getByText(/No se pudo actualizar el registro/);
+  await aviso.waitFor();
+  const despues = await page.locator(".analisis").evaluate((n) => n.getBoundingClientRect().top + window.scrollY);
+  expect(despues).toBe(antes);
+  await expect(page.locator("section.detalle__registro").getByText(/No se pudo actualizar el registro/)).toBeVisible();
+});
