@@ -179,6 +179,8 @@ Siete pasos, dos pesos (400 y 600) y un interlineado múltiplo de 5. El 500 qued
 | Nota | 12 / 400 en tinta-media / 20 | horas, cuentas, encabezados del registro y etiquetas (estos dos en 600) |
 | Rótulo de columna | 11 / 600 / mayúsculas con `--track-rotulo` | solo los encabezados de la tabla de la lista (los rótulos de los filtros van en nota, 12 / 600, minúscula inicial) |
 
+**Excepción: el pie.** El pie es el de la landing y el panel lo comparte entero (`Pie.tsx`), así que conserva sus mayúsculas: los títulos de columna («El proyecto») y los rótulos («Autor 1», «Se registra solo») van en mayúsculas con `--track-rotulo`. No hay una variante del panel: cuando el pie estuvo escrito dos veces, ya se había despegado. Sus tintas siguen un solo criterio: blanco solo para el nombre del sistema; `--tinta-clara-media` para los títulos de columna y todo lo que se lee (nombres, frases, enlaces, la dirección); `--tinta-clara-suave` (4,72:1 sobre la pizarra) para los rótulos y la bajada. Cada renglón, en un múltiplo de 5: 25 para los enlaces, 20 para los renglones chicos y los títulos, 15 para los rótulos.
+
 El título de la vista le saca siempre 4 px a la cifra, a cualquier ancho. Los renglones de esos dos roles van en rem, como su letra (35 y 30 px con la letra predeterminada): si la persona agranda la letra del navegador, el renglón crece con ella y un título de dos renglones no se pisa. `.panel` declara la letra y el renglón de base (14/20): nada dentro del panel hereda los 19/30 de la landing.
 
 ### Ritmo
