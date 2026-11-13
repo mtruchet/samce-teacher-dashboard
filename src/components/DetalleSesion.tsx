@@ -6,12 +6,11 @@ import {
   EVENTOS_POR_PAGINA,
   SesionVencida,
   traerEventos,
-  type Captura,
   type Evento,
   type SesionNumerada,
 } from "../services/sesionesService";
 import { horaCorta } from "../eventos";
-import { recienCerrada } from "../seguimiento";
+import { seSigueConsultando } from "../seguimiento";
 
 import { AnalisisSesionVista } from "./AnalisisSesion";
 import { CronologiaSesion } from "./CronologiaSesion";
@@ -29,7 +28,7 @@ import "./DetalleSesion.css";
  * cierra sigue preguntando unos minutos más, porque parte de lo último llega
  * después de la entrega, y ahí deja de preguntar. La excepción es una sesión
  * marcada con una página sin captura cuyo aviso todavía no está en el
- * registro: ahí se sigue preguntando hasta que llegue (ver `esperaElAviso`).
+ * registro: ahí se sigue preguntando hasta que llegue (ver `esperaElAviso`, en `seguimiento.ts`).
  *
  * El registro solo muestra lo que se guardó y no calcula nada. Las alertas y el
  * estado del análisis van en su propio apartado («Análisis de la sesión»,
@@ -49,20 +48,6 @@ import "./DetalleSesion.css";
    tarea programada que corre después de la entrega, así que llega tarde por construcción,
    y el apartado del análisis comparte la regla. */
 
-/**
- * Si la sesión dice que una página corrió sin captura, pero el aviso que lo
- * cuenta todavía no llegó al registro.
- *
- * Los diez minutos de `TRAS_EL_CIERRE_MS` no alcanzan siempre: Moodle manda el
- * aviso en una tarea que depende de su cron, y si el servidor de SAMCE no lo
- * acepta la reintenta cada vez más espaciada. La lista de sesiones, que se
- * sigue consultando, ya marca «Captura incompleta», y sin esto el registro
- * abierto se quedaba sin la fila que lo explica. Mientras falte, se sigue
- * preguntando.
- */
-function esperaElAviso(captura: Captura["state"] | undefined, yaLlego: boolean): boolean {
-  return (captura === "js_disabled" || captura === "no_start") && !yaLlego;
-}
 /** «3/11/2026». El día del examen, como lo escribe un docente. */
 function fechaCorta(iso: string): string {
   return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "numeric", year: "numeric" });
@@ -146,9 +131,10 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
     alVencer.current = onVencida;
     alConsultar.current = onConsulta;
   });
-  // Si el ciclo va a volver a preguntar. Arranca en sí: la primera consulta
-  // sale siempre, y el ciclo lo corrige cuando decide si programa otra.
-  const [consultando, setConsultando] = useState(true);
+  // Si el ciclo va a volver a preguntar. Arranca con lo que ya se sabe de la sesión: con una cerrada hace rato,
+  // arrancar en sí hacía que la cabecera dijera «En vivo» hasta que llegaba la primera respuesta. La primera
+  // consulta sale igual, y el ciclo lo corrige cuando decide si programa otra.
+  const [consultando, setConsultando] = useState(() => seSigueConsultando(sesion));
   const [sinConexion, setSinConexion] = useState(false);
   // El fallo también se avisa: si no, con la lista de sesiones respondiendo,
   // la cabecera decía «En vivo» justo encima del aviso de que el registro no
@@ -253,7 +239,10 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
     const ciclo = async () => {
       await consultar();
       if (!vigente) return;
-      const sigue = abierta || recienCerrada(cierre) || esperaElAviso(captura, avisoRecibido.current);
+      const sigue = seSigueConsultando(
+        { status: abierta ? "open" : "closed", closed_at: cierre, capture: { state: captura } },
+        avisoRecibido.current
+      );
       setConsultando(sigue);
       if (sigue) proxima = window.setTimeout(ciclo, CADENCIA_MS);
     };

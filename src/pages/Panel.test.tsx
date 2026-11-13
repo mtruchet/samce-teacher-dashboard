@@ -101,6 +101,34 @@ describe("El pulso del panel en el registro de un intento", () => {
     expect(screen.queryByText(QUIETO)).not.toBeInTheDocument();
   });
 
+  it("en una sesión cerrada hace rato no dice «En vivo» mientras espera el registro", async () => {
+    // El registro no contesta: antes, la cabecera decía «En vivo» hasta la primera respuesta, y en un teléfono
+    // el pulso que después desaparecía subía todo 35 px. Se mira cada cambio del documento, no solo el final.
+    vi.mocked(sesionesService.traerEventos).mockReturnValue(new Promise(() => undefined));
+    let dijoEnVivo = false;
+    const observador = new MutationObserver(() => {
+      const enElDetalle = screen.queryByRole("heading", { level: 1 })?.textContent?.includes("Ana Gómez");
+      if (enElDetalle && EN_VIVO.test(document.body.textContent ?? "")) dijoEnVivo = true;
+    });
+    observador.observe(document.body, { childList: true, subtree: true, characterData: true });
+    montar("/panel?examen=1&sesion=5");
+    await esperar();
+    observador.disconnect();
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Ana Gómez");
+    expect(dijoEnVivo).toBe(false);
+    expect(screen.queryByText(EN_VIVO)).not.toBeInTheDocument();
+  });
+
+  it("en una sesión abierta dice «En vivo» aunque el registro todavía no haya contestado", async () => {
+    vi.mocked(sesionesService.traerEventos).mockReturnValue(new Promise(() => undefined));
+    montar("/panel?examen=1&sesion=6");
+    await esperar();
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Bruno Pérez");
+    expect(screen.getByText(EN_VIVO)).toBeInTheDocument();
+  });
+
   it("al entrar a otra sesión que sigue abierta, el pulso vuelve a decir «En vivo»", async () => {
     montar("/panel?examen=1&sesion=5");
     await esperar();

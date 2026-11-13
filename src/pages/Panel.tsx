@@ -30,6 +30,7 @@ import { Pie } from "../components/Pie";
 import { SinSesion } from "./SinSesion";
 import { useFiltrosDeLaDireccion } from "./useFiltrosDeLaDireccion";
 import { useSesionesDelExamen } from "./useSesionesDelExamen";
+import { seSigueConsultando } from "../seguimiento";
 import { API_CONFIG } from "../config/api.config";
 import "./Panel.css";
 
@@ -522,12 +523,18 @@ export function Panel() {
   // quieto: prometer «se actualiza» sería falso aunque la última consulta
   // hubiera fallado, y el aviso del registro ya explica cómo volver a pedirlo.
   // Y un registro que se sigue consultando pero no contesta no puede decir
-  // «En vivo» encima del aviso de que no se pudo actualizar.
+  // «En vivo» encima del aviso de que no se pudo actualizar. Antes de que el
+  // registro avise, se decide con lo que ya se sabe de la sesión: si no, al
+  // entrar a una sesión cerrada hace rato decía «En vivo» hasta la primera
+  // respuesta, y en un teléfono el pulso que desaparecía subía todo 35 px.
   const delRegistro = nivel === "eventos" && registro?.sesion === sesionElegida ? registro : null;
+  const registroQuieto = delRegistro
+    ? !delRegistro.sigue
+    : nivel === "eventos" && sesionMostrada !== undefined && !seSigueConsultando(sesionMostrada);
   const estadoPulso: EstadoEnlace =
     enlace !== "vivo"
       ? enlace
-      : delRegistro && !delRegistro.sigue
+      : registroQuieto
         ? "quieto"
         : delRegistro?.fallo
           ? "sin-conexion"

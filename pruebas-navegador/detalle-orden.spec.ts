@@ -82,3 +82,30 @@ for (const ancho of [1280, 390]) {
     expect(corrimiento).toBeLessThan(0.05);
   });
 }
+
+test("a 390 px, la cabecera de una sesión cerrada hace rato no cambia de alto mientras llega el registro", async ({ page }) => {
+  // Antes decía «En vivo» hasta que el registro contestaba; el pulso desaparecía y todo subía 35 px.
+  await page.setViewportSize({ width: 390, height: 900 });
+  await simularBackend(page);
+  await demorar(page, { analisis: 100, eventos: 1500 });
+  await page.addInitScript(() => {
+    const w = window as unknown as { __altos: number[] };
+    w.__altos = [];
+    const tomar = () => {
+      const cabecera = document.querySelector(".panel__cabecera");
+      if (cabecera && document.querySelector(".detalle")) w.__altos.push(Math.round(cabecera.getBoundingClientRect().height));
+      requestAnimationFrame(tomar);
+    };
+    requestAnimationFrame(tomar);
+  });
+
+  await page.goto(VISTAS.detalleAlto);
+  await page.locator(".eventos tbody tr").first().waitFor();
+  await page.waitForTimeout(300);
+
+  const altos = await page.evaluate(() => (window as unknown as { __altos: number[] }).__altos);
+  expect(altos.length).toBeGreaterThan(10);
+  expect(altos[0]).toBe(altos[altos.length - 1]);
+  expect(new Set(altos).size).toBe(1);
+  await expect(page.getByText(/En vivo/)).toHaveCount(0);
+});
