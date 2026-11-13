@@ -19,7 +19,8 @@
   gap: var(--e4);
   padding: var(--e5) var(--e6);
   border: 0;
-  border-radius: var(--radio-panel);
+  /* Una ficha de examen es una lámina: el mismo radio que las de la lista y el detalle. */
+  border-radius: var(--radio-lamina);
   background: var(--sup-1);
   box-shadow: var(--anillo), var(--elev-2);
   font: inherit;
@@ -40,9 +41,14 @@
   transform: none;
 }
 
+/* Un solo foco en todo el panel (--anillo-foco), sumado a la sombra de la ficha y con el radio de la lámina.
+   Antes era un contorno celeste propio, distinto del de los demás controles. El contorno transparente queda
+   para colores forzados, como en base.css. */
 .ficha:focus-visible {
-  outline: 2px solid var(--celeste);
-  outline-offset: 3px;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  border-radius: var(--radio-lamina);
+  box-shadow: var(--anillo), var(--elev-2), var(--anillo-foco);
 }
 
 .ficha__nombre {
@@ -50,7 +56,7 @@
   min-width: 0;
   font-size: var(--panel-pieza);
   font-weight: 600;
-  line-height: 24px;
+  line-height: var(--panel-alto-pieza);
   letter-spacing: var(--track-titulo);
 }
 
@@ -100,6 +106,13 @@
    flecha de la derecha, que sólo indica que se entra. */
 .ficha > svg:first-child {
   color: var(--celeste-hondo);
+}
+
+/* Con colores forzados el anillo y la sombra desaparecen: la ficha, que es un botón, lleva su borde. */
+@media (forced-colors: active) {
+  .ficha {
+    border: 1px solid ButtonText;
+  }
 }
 
 @media (max-width: 620px) {

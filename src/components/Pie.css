@@ -105,3 +105,13 @@
   color: var(--tinta-clara-media);
 }
 
+/* Con colores forzados el fondo del pie pasa al del sistema y el logotipo, que es blanco, desaparecía: se le
+   deja su pizarra detrás, como al de la barra. */
+@media (forced-colors: active) {
+  .pie__logo {
+    forced-color-adjust: none;
+    background: var(--pizarra);
+    padding: 2px var(--e1);
+    border-radius: var(--radio-chip);
+  }
+}

@@ -33,7 +33,7 @@
 .analisis__aviso {
   margin: 0;
   padding: var(--e3) var(--e4);
-  border-radius: max(0px, calc(var(--radio-panel) - var(--e5)));
+  border-radius: var(--radio-ficha);
   background: var(--nivel-1-fondo);
   box-shadow: inset 0 0 0 1px var(--nivel-1-borde);
   font-size: var(--panel-nota);
@@ -102,7 +102,7 @@
 .veredicto__bajada {
   margin: 0;
   font-size: var(--panel-fila);
-  line-height: 1.5;
+  line-height: var(--panel-alto);
   color: var(--tinta-media);
 }
 
@@ -155,7 +155,7 @@
   margin: 0;
   font-size: var(--panel-cuerpo);
   font-weight: 600;
-  line-height: 1.4;
+  line-height: var(--panel-alto);
   text-wrap: pretty;
 }
 
@@ -184,7 +184,7 @@
   padding: 0;
   list-style: none;
   font-size: var(--panel-cuerpo);
-  line-height: 1.4;
+  line-height: var(--panel-alto);
 }
 
 .analisis__lista li {
@@ -198,7 +198,8 @@
 .analisis__lista li::before {
   content: "";
   position: absolute;
-  top: calc(0.75em - 3px);
+  /* El punto, de 6 px, centrado en el primer renglón. */
+  top: calc(var(--panel-alto) / 2 - 3px);
   left: 2px;
   width: 6px;
   height: 6px;
@@ -215,14 +216,15 @@
   max-width: var(--medida-panel);
   margin: 0;
   font-size: var(--panel-fila);
-  line-height: 1.5;
+  line-height: var(--panel-alto);
   color: var(--tinta-media);
   text-wrap: pretty;
 }
 
 .analisis__nota svg {
   flex: none;
-  margin-top: 0.3em;
+  /* Centrado en el primer renglón, con la misma cuenta que el ícono de los momentos (DetalleAnalisis.css). */
+  margin-top: calc((var(--panel-alto) - 16px) / 2);
   color: var(--tinta-suave);
 }
 

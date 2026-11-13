@@ -17,10 +17,21 @@ body:has(.panel) {
      debajo de la fila. */
   align-content: start;
   padding-block: var(--e10) var(--e16);
+  /* La letra y el renglón de base del panel. Sin esto, todo lo que no declaraba su tamaño heredaba los 19 px
+     y el interlineado de 30 de la landing (body), y cada pieza tenía que corregirlo por su cuenta. */
+  font-size: var(--panel-cuerpo);
+  line-height: var(--panel-alto);
 }
 
 .panel > * {
   min-width: 0;
+}
+
+/* La lista de un examen ocupa como mínimo la pantalla, como el detalle: al vaciarla con un filtro el pie no
+   sube a asomarse debajo de «Finalizadas». Antes dependía de que lo de arriba midiera justo lo suficiente, y
+   cualquier ajuste de unos píxeles en la lámina de control lo hacía asomar. */
+.panel:has(.panel__listas) {
+  min-height: calc(100dvh - var(--panel-barra));
 }
 
 /* La espera previa al detalle (entrando por su dirección) ocupa lo mismo que el detalle mientras carga
@@ -46,7 +57,7 @@ body:has(.panel) {
 
 .panel__curso {
   font-size: var(--panel-curso);
-  line-height: 1.2;
+  line-height: var(--panel-alto-curso);
   font-weight: 600;
   letter-spacing: var(--track-titulo);
   color: var(--tinta);
@@ -57,11 +68,18 @@ body:has(.panel) {
   text-wrap: balance;
 }
 
+/* Con la letra en su mínimo (24 px), un renglón de 35 deja un título partido en dos demasiado separado. */
+@media (max-width: 760px) {
+  .panel__curso {
+    line-height: 30px;
+  }
+}
+
 /* ==== Cuando un bloque no tiene filas =================================== */
 
 .panel__vacio {
   padding: var(--e5);
-  border-radius: max(0px, calc(var(--radio-panel) - var(--e5)));
+  border-radius: var(--radio-ficha);
   background: var(--sup-2);
   font-size: var(--panel-cuerpo);
   color: var(--tinta-media);
@@ -75,7 +93,7 @@ body:has(.panel) {
   align-items: center;
   gap: var(--e8);
   padding: var(--e10);
-  border-radius: var(--radio-panel);
+  border-radius: var(--radio-lamina);
   background: var(--sup-1);
   box-shadow: var(--anillo), var(--elev-2);
 }
@@ -209,5 +227,6 @@ body:has(.panel) {
 .grupos__vacio {
   margin: 0;
   font-size: var(--panel-cuerpo);
+  line-height: var(--panel-alto);
   color: var(--tinta-media);
 }

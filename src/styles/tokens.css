@@ -148,6 +148,11 @@
   --e20: 80px;
 
   /* ---- Radios: anidados, exterior = interior + padding ------------------- */
+  /* Un rol, un radio (docs/sistema-visual.md, «Superficies»):
+     - chip: controles (selectores, búsqueda, botones), etiquetas de estado y pasos de la escalera;
+     - ficha: tarjetas (de nivel, de estado, de alerta), avisos, el vacío de página y la ficha de la sesión;
+     - lámina: todas las láminas del panel, las tres de peso, las fichas de examen y la espera;
+     - panel: solo la landing. En el panel una lámina pesa más o menos por la sombra y el fondo, no por el radio. */
   --radio-chip: 6px;
   --radio-ficha: 12px;
   --radio-lamina: 16px;
@@ -192,9 +197,26 @@
   --panel-nota: 12px;
   --panel-rotulo: 11px;
   --panel-pieza: 17px;
-  /* El número de las tarjetas del resumen. Va con interlínea de 35px. */
-  --panel-cifra: 28px;
-  --panel-curso: clamp(1.375rem, 1.2rem + 0.85vw, 1.75rem);
+  /* El número de las tarjetas del resumen, de 20 a 24 px. Con 28 fijo empataba o le ganaba al título de la
+     vista: el h1 (--panel-curso, de 24 a 28 px) le saca siempre 4 px, a cualquier ancho. */
+  --panel-cifra: clamp(1.25rem, 1rem + 0.85vw, 1.5rem);
+  --panel-curso: clamp(1.5rem, 1.3rem + 0.85vw, 1.75rem);
+
+  /* Los interlineados del panel, todos múltiplos de 5: el cuerpo, la fila y la nota van en 20; el título de
+     una lámina en 25; la cifra del resumen en 30 y el título de la vista en 35 (los dos bajan 5 px por debajo
+     de 760, en su hoja). Con un número por rol, dos textos del mismo rol no quedan con renglones distintos. */
+  --panel-alto: 20px;
+  --panel-alto-pieza: 25px;
+  --panel-alto-cifra: 30px;
+  --panel-alto-curso: 35px;
+
+  /* Solo bordes de controles (selectores, búsqueda, botón secundario): 3,67:1 sobre --sup-1 y 3,52:1 sobre
+     --sup-2, por encima del 3:1 de WCAG 1.4.11. --sup-4 y --anillo daban 1,2:1: el control no se distinguía. */
+  --borde-control: #748991;
+
+  /* El ancho de la columna de la hora, el mismo en el registro y en «Momentos para revisar»: las horas de los
+     dos caen en la misma vertical. */
+  --columna-hora: 96px;
 
   --ancho-panel: 1080px;
   /* La medida del texto del panel. --medida (68ch) es de la landing: con la letra de 14 px del panel daba

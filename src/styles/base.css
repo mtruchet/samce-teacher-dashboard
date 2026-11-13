@@ -145,6 +145,14 @@ a {
   max-width: var(--ancho-panel);
 }
 
+/* En un teléfono el margen de la página es el mismo relleno lateral de las láminas: con 24 px a cada lado del
+   marco y 16 dentro de la lámina, a 390 px se perdían 80 px de una tabla que ya va apretada. */
+@media (max-width: 760px) {
+  .marco--panel {
+    padding-inline: var(--e4);
+  }
+}
+
 
 .seccion {
   padding-block: var(--stack-seccion);
@@ -272,16 +280,17 @@ a {
    dentro de cajas»), y ninguno más:
    - .lamina: la lámina principal (el bloque de control de la evaluación y cada grupo de sesiones);
    - .lamina--lectura: la que manda en el detalle, lo primero que se lee («Análisis de la sesión»);
-   - .lamina--apoyo: el segundo plano, sin elevación (el registro de eventos). */
+   - .lamina--apoyo: el segundo plano, sin elevación (el registro de eventos).
+   Las tres con el mismo radio (--radio-lamina): un rol, un radio. El peso lo dan la sombra y el fondo; con
+   24 px en una y 16 en otra, la lista y el detalle parecían dos sistemas. */
 .lamina {
   padding: var(--e5) var(--e6);
-  border-radius: var(--radio-panel);
+  border-radius: var(--radio-lamina);
   background: var(--sup-1);
   box-shadow: var(--anillo), var(--elev-2);
 }
 
 .lamina--lectura {
-  border-radius: var(--radio-lamina);
   box-shadow: var(--anillo), var(--elev-1);
 }
 
@@ -309,7 +318,7 @@ a {
   margin: 0;
   font-size: var(--panel-pieza);
   font-weight: 600;
-  line-height: 25px;
+  line-height: var(--panel-alto-pieza);
   letter-spacing: var(--track-titulo);
   color: var(--tinta);
 }
@@ -331,7 +340,7 @@ a {
   margin: 0;
   font-size: var(--panel-cuerpo);
   font-weight: 600;
-  line-height: 1.4;
+  line-height: var(--panel-alto);
   letter-spacing: normal;
   text-transform: none;
   color: var(--tinta);
@@ -356,6 +365,7 @@ a {
   font-family: inherit;
   font-size: var(--panel-fila);
   font-weight: 600;
+  line-height: var(--panel-alto);
   color: var(--tinta);
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -374,7 +384,7 @@ a {
 
 /* Un solo botón secundario para la misma acción de traer más: «Ver más sesiones» en la lista y «Mostrar 50
    más» / «Mostrar todos» en el registro. Es una acción de apoyo y no la principal de la pantalla: letra de
-   fila, peso medio, 40 px de alto y el borde fino de las superficies. Antes la lista tenía el suyo, en 19 px y
+   fila, peso medio, 40 px de alto y el borde de los controles. Antes la lista tenía el suyo, en 19 px y
    600, más grande que los títulos de lámina. */
 .boton-secundario {
   height: 40px;
@@ -382,7 +392,8 @@ a {
   border: 0;
   border-radius: var(--radio-chip);
   background: var(--sup-1);
-  box-shadow: inset 0 0 0 1px var(--sup-4);
+  /* El borde de todos los controles del panel (los selectores y la búsqueda llevan el mismo). */
+  box-shadow: inset 0 0 0 1px var(--borde-control);
   font: inherit;
   font-size: var(--panel-fila);
   font-weight: 500;
@@ -399,13 +410,22 @@ a {
    repite el anillo encima del borde. Lo verifica B1 en pruebas-navegador/a11y.spec.ts. */
 .boton-secundario:focus-visible {
   box-shadow:
-    inset 0 0 0 1px var(--sup-4),
+    inset 0 0 0 1px var(--borde-control),
     var(--anillo-foco);
 }
 
-/* Con colores forzados la sombra del borde desaparece: el botón lleva un borde del sistema. */
+/* Con colores forzados las sombras desaparecen:
+   - el botón lleva un borde del sistema;
+   - las láminas y la ficha de la sesión, que se recortan del fondo solo por el anillo y la sombra, llevan un
+     contorno hacia adentro (no ocupa lugar, así nada se corre respecto de los colores normales). */
 @media (forced-colors: active) {
   .boton-secundario {
     border: 1px solid ButtonText;
+  }
+
+  .lamina,
+  .detalle__sesion {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
   }
 }

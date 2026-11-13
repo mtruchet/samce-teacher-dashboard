@@ -67,6 +67,24 @@ describe("las hojas de estilo", () => {
     }
   });
 
+  it("un solo foco: las fichas de examen y las migas usan el anillo, sin un contorno celeste propio", () => {
+    for (const hoja of ["./components/Fichas.css", "./components/Migas.css"]) {
+      expect(sinComentarios(HOJAS[hoja])).not.toMatch(/outline\s*:[^;]*var\(--celeste\)/);
+    }
+  });
+
+  it("--radio-panel queda para la landing: ninguna pieza del panel deriva su radio de él", () => {
+    // Un rol, un radio (tokens.css, «Radios»): las cajas anidadas van con --radio-ficha.
+    const delPanel = (l: string) => l.startsWith("./components/") || l.startsWith("./pages/");
+    expect(buscar(/calc\(var\(--radio-panel\)/).filter(delPanel)).toEqual([]);
+  });
+
+  it("dos pesos en el panel: ninguna hoja del panel usa 700", () => {
+    // 400 y 600; el 500 queda para la barra y el botón secundario (docs/sistema-visual.md, «Escala»).
+    const delPanel = (l: string) => !l.startsWith("./pages/Landing.css");
+    expect(buscar(/font-weight\s*:\s*(700|bold)\b/).filter(delPanel)).toEqual([]);
+  });
+
   it("nadie apaga el contorno del foco", () => {
     expect(buscar(/outline\s*:\s*(none|0)\b/)).toEqual([]);
   });

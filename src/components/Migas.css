@@ -29,7 +29,10 @@
 .migas__volver {
   /* 24 px de alto como mínimo: el blanco que piden las pautas de accesibilidad para tocar o hacer clic. */
   min-height: 24px;
-  padding: 2px 0;
+  /* Un poco de relleno a los lados, que el margen negativo devuelve: el texto sigue alineado con el título,
+     y el anillo de foco de base.css (el mismo de todo el panel) no toca las letras. */
+  padding: 2px var(--e1);
+  margin-inline: calc(-1 * var(--e1));
   border: 0;
   background: none;
   font: inherit;
@@ -44,8 +47,3 @@
   text-underline-offset: 3px;
 }
 
-.migas__volver:focus-visible {
-  outline: 2px solid var(--celeste);
-  outline-offset: 2px;
-  border-radius: 3px;
-}

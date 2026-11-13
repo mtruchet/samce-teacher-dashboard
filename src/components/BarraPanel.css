@@ -168,3 +168,31 @@ html:has(.barra) {
     display: none;
   }
 }
+
+/* A 320 px (el ancho mínimo de WCAG 1.4.10) la barra quedaba justa: «Todos mis cursos» se apretaba contra la
+   salida. Se acortan los espacios y el logotipo, sin sacar nada. */
+@media (max-width: 360px) {
+  .barra__interna,
+  .barra__contexto {
+    gap: var(--e2);
+  }
+
+  .barra__institucion {
+    height: 20px;
+  }
+
+  .barra__salir {
+    padding-inline: var(--e2);
+  }
+}
+
+/* Con colores forzados el fondo de la barra pasa al del sistema y el logotipo, que es blanco, desaparecía: se
+   le deja su pizarra detrás. */
+@media (forced-colors: active) {
+  .barra__institucion {
+    forced-color-adjust: none;
+    background: var(--pizarra);
+    padding: 2px var(--e1);
+    border-radius: var(--radio-chip);
+  }
+}

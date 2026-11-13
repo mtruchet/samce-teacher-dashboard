@@ -100,7 +100,7 @@
 .resumen__numero {
   font-size: var(--panel-cifra);
   font-weight: 600;
-  line-height: 35px;
+  line-height: var(--panel-alto-cifra);
   letter-spacing: var(--track-titulo);
 }
 
@@ -137,6 +137,11 @@
 
   .resumen__tarjeta .rotulo-nivel {
     font-size: var(--panel-nota);
+  }
+
+  /* La cifra baja a 20 px: el renglón, con ella, de 30 a 25. */
+  .resumen__numero {
+    line-height: 25px;
   }
 }
 

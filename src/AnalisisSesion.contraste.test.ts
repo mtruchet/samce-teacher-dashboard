@@ -94,6 +94,10 @@ describe("contraste del texto atenuado y de los trazos del análisis", () => {
     ["--alerta-tono-low", "--sup-1"],
     ["--alerta-tono-medium", "--sup-1"],
     ["--alerta-tono-high", "--sup-1"],
+    // El borde de los controles (selectores, búsqueda y botón secundario) sobre la lámina y sobre la página: con
+    // --sup-4 daba 1,2:1 y el control no se distinguía de su fondo.
+    ["--borde-control", "--sup-1"],
+    ["--borde-control", "--sup-2"],
   ];
 
   it.each(graficos)("el trazo %s sobre %s tiene al menos 3:1", (trazo, fondo) => {

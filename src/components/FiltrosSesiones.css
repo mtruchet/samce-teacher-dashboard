@@ -29,19 +29,24 @@
   height: 40px;
   padding: 0 var(--e2);
   border: 0;
-  border-radius: var(--radio-ficha);
-  background: var(--sup-2);
-  box-shadow: var(--anillo);
+  /* La misma piel que .boton-secundario (base.css): un control del panel, una receta. El borde va en
+     --borde-control (3,67:1 sobre la lámina): con --anillo daba 1,2:1 y el selector no se distinguía del
+     fondo (WCAG 1.4.11). */
+  border-radius: var(--radio-chip);
+  background: var(--sup-1);
+  box-shadow: inset 0 0 0 1px var(--borde-control);
   font: inherit;
   font-size: var(--panel-fila);
   color: var(--tinta);
 }
 
 /* `.filtros__campo select` le gana por especificidad al anillo de base.css: esto repite el mismo anillo, sin
-   cambiarlo, para que el foco se vea. */
+   cambiarlo, encima del borde del control, para que el foco se vea y el borde no desaparezca. */
 .filtros__campo select:focus-visible,
 .filtros__campo input:focus-visible {
-  box-shadow: var(--anillo-foco);
+  box-shadow:
+    inset 0 0 0 1px var(--borde-control),
+    var(--anillo-foco);
 }
 
 .filtros__campo input::placeholder {

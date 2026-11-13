@@ -160,6 +160,80 @@ La última se resolvió escribiendo los componentes a mano, con un juego chico d
 
 ---
 
+## 8. La armonía del panel
+
+Revisión de noviembre (Sprint 4): la lista, el detalle y el nivel de exámenes se armaron en momentos distintos y cada uno había resuelto por su cuenta la letra, el aire, los radios y los controles. Esta sección fija una sola receta por rol. Un cambio que no entre en ella se discute antes de escribirlo.
+
+### Escala por rol
+
+Seis pasos, dos pesos (400 y 600) y un interlineado múltiplo de 5. El 500 queda solo para la barra oscura y `.boton-secundario`; el 700 no se usa (lo vigila `src/estilos.test.ts`).
+
+| Rol | Letra / peso / interlineado | Dónde |
+|---|---|---|
+| Vista | `--panel-curso`, de 24 a 28 px / 600 / `--panel-alto-curso` 35 (30 bajo 760 px) | el título de la vista (`.panel__curso`) |
+| Cifra | `--panel-cifra`, de 20 a 24 px / 600 / `--panel-alto-cifra` 30 (25 bajo 760 px) | el número de las tarjetas del resumen |
+| Pieza | 17 / 600 / `--panel-alto-pieza` 25, con `--track-titulo` | título de lámina, nombre de la ficha de examen, frase del veredicto |
+| Cuerpo | 14 / 400 o 600 / `--panel-alto` 20 | título de apartado, el hecho y la lista del análisis, las migas |
+| Fila | 13 / 400 en tinta-media o 600 en tinta / 20 | celdas, rótulo del nivel, notas, métricas, ficha de la sesión, «N de M», vacíos, botón de texto |
+| Nota | 12 / 400 en tinta-media / 20 | horas, cuentas, encabezados del registro y etiquetas (estos dos en 600) |
+| Rótulo de columna | 11 / 600 / mayúsculas con `--track-rotulo` | solo los encabezados de la tabla de la lista y los rótulos de los filtros |
+
+El título de la vista le saca siempre 4 px a la cifra, a cualquier ancho. `.panel` declara la letra y el renglón de base (14/20): nada dentro del panel hereda los 19/30 de la landing.
+
+### Ritmo
+
+- Del encabezado al primer bloque: 32 px.
+- Entre láminas: `--e6` (24 px), en la lista y en el detalle.
+- Del título de una lámina a su contenido: `--e4` (16 px). Del título de un apartado a su contenido: `--e3` (12 px); entre apartados, 32 px.
+- Relleno de lámina: `--e5`/`--e6` en escritorio; a los costados nunca menos de `--e4`. Margen de página en el teléfono: `--e4`.
+- Lo anidado nunca lleva más relleno que su contenedor.
+- El pie de una tabla («Ver más sesiones», «Mostrar 50 más»): `--e6` de aire y sin línea.
+- El texto detrás de una marca vertical arranca a marca + `--e3`.
+
+### Superficies
+
+Un rol, un radio. El peso de una lámina lo dan la sombra y el fondo, nunca el radio.
+
+| Rol | Fondo | Borde | Sombra | Radio |
+|---|---|---|---|---|
+| Página | `--sup-2` | — | — | — |
+| Lámina (control, grupos, fichas de examen, espera) | `--sup-1` | `--anillo` | `--elev-2` | `--radio-lamina` 16 |
+| Lámina de lectura | `--sup-1` | `--anillo` | `--elev-1` | 16 |
+| Lámina de apoyo | `--sup-2` | `--anillo` | — | 16 |
+| Ficha de datos (la de la sesión) | `--sup-1` | `--anillo` | — | `--radio-ficha` 12 |
+| Tarjeta (de nivel, de estado, de alerta) | tinte al 8 % o `--sup-2` | `--anillo`, más `--marca-tarjeta` si hay nivel | `--elev-1` al pasar el mouse | 12 |
+| Aviso y vacío de página | `--nivel-1-fondo`, o `--sup-1` en el vacío | 1 px adentro | — | 12 |
+| Control (selector, búsqueda, `.boton-secundario`) | `--sup-1` | 1 px adentro en `--borde-control` (3,5:1) | — | `--radio-chip` 6 |
+| Etiqueta de estado | `--sup-3` | 1 px adentro en `--sup-4`, más un borde transparente | — | 6 |
+| Paso de la escalera | `--sup-2` | 1 px adentro en `--sup-4` | — | 6 |
+| Renglón con marca | transparente, o `--sup-3` si está destacado | `--marca-renglon` | — | 0 |
+| Métrica | transparente | guía de 2 px | — | 0 |
+| Botón de texto | transparente; `--sup-3` al pasar el mouse | — | — | 6 |
+
+`--radio-panel` (24 px) queda solo para la landing; ninguna pieza del panel lo usa ni deriva su radio de él.
+
+### Componentes únicos
+
+- **Control de 40 px:** la misma piel en los selectores, la búsqueda y `.boton-secundario`.
+- **Etiqueta de estado:** una sola receta, la de `.detalle__estado`. «Entregó» en la lista es la misma etiqueta.
+- **Vacío dentro de una lámina:** un renglón de 13/20 en tinta-media, sin caja.
+- **Foco:** un solo anillo, `--anillo-foco`. Ninguna pieza lleva un contorno celeste propio; las filas del registro conservan el suyo, que marca la fila entera.
+- **Íconos de fila:** 16 px, trazo regular.
+- **Columna de la hora:** `--columna-hora` (96 px), compartida por el registro y «Momentos para revisar».
+
+### Vetos
+
+- No se sube el tinte del 8 % de las tarjetas ni el del 14 % del medidor.
+- Nada de `--tinta-suave` sobre `--sup-4`.
+- Sin texto sobre los tonos del nivel.
+- No se le quita relleno vertical al botón de texto ni al desplegable.
+- Nada por debajo de 11 px.
+- Todo contorno hecho con sombra lleva su regla de colores forzados.
+- Sin modo oscuro parcial.
+- El relleno lateral de una lámina no baja de `--e4`.
+
+---
+
 ## Refinamiento de agosto: de landing a documento
 
 Tras relevar galerías de referencia, portales universitarios y sistemas de diseño

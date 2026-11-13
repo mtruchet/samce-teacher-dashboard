@@ -1,9 +1,11 @@
 /* El renglón del resultado de un filtro, dentro de la lámina de control: la cifra y el botón de texto en la
-   misma línea de base, sin caja ni línea que los separe del resto. */
+   misma línea, sin caja ni línea que los separe del resto. Centrados y no por la línea de base: con la misma
+   letra y el mismo renglón el resultado es igual, pero mientras la cifra no llegó su celda está vacía, no
+   tiene línea de base, y el renglón crecía 2 px hasta que llegaba. */
 .control__resultado {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: var(--e1) var(--e3);
   /* La letra del botón: así `1lh` es el renglón del botón y no el del cuerpo. */
   font-size: var(--panel-fila);
@@ -13,7 +15,10 @@
 
 .control__cifra {
   margin: 0;
-  font-size: var(--panel-nota);
+  /* La letra del renglón (la del botón, 13 px): con 12 px la cifra se alineaba por la base con el botón y
+     bajaba 2 px, y el renglón con filtro medía 30 en lugar de los 28 reservados. Con la misma letra, cifra y
+     botón comparten el renglón y la lámina mide lo mismo con o sin filtro. */
+  font-size: inherit;
   color: var(--tinta-media);
   /* El lugar de «N de M sesiones» está reservado aunque la cifra no haya llegado, así «Quitar filtros» no se
      corre de costado cuando llega. Lo guarda el molde («M de M sesiones») en la misma celda que el texto:
