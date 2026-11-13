@@ -642,7 +642,11 @@ export function Panel() {
       />
 
       <main
-        className="marco marco--panel panel"
+        // Entrando por la dirección de una sesión (un enlace, la recarga), la espera ocupa la pantalla como la
+        // va a ocupar el detalle: si no, el pie se veía a media altura y bajaba de golpe al aparecer el detalle.
+        className={`marco marco--panel panel${
+          (cargando || esperandoSesiones) && sesionElegida ? " panel--antes-del-detalle" : ""
+        }`}
         id="sesiones"
         onFocus={(e) => {
           const enfocado = e.target as HTMLElement;

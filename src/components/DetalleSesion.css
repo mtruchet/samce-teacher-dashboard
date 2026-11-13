@@ -52,6 +52,11 @@
   white-space: nowrap;
 }
 
+/* El lugar de la cuenta mientras los eventos no llegan: mide lo mismo y no se ve. */
+.detalle__cuenta--reservada {
+  visibility: hidden;
+}
+
 .detalle__extremos {
   font-size: var(--panel-nota);
   color: var(--tinta-media);

@@ -342,7 +342,14 @@ function DetalleSesionSinMemo({ sesion, onVencida, onConsulta }: Props) {
                   </span>
                 ) : null}
               </span>
-            ) : null}
+            ) : (
+              // Mientras los eventos no llegan, el lugar de la cuenta está guardado, vacío y oculto: la cuenta es
+              // más alta que el título y se alinea por la línea de base, así que al aparecer bajaba el título
+              // unos píxeles, y en un teléfono (donde va en su propio renglón) bajaba todo lo de abajo.
+              <span className="detalle__cuenta detalle__cuenta--reservada" aria-hidden="true">
+                <span className="lamina__cuenta cifra">{" "}</span>
+              </span>
+            )}
           </header>
 
           {/* Los avisos del registro van adentro de su lámina, debajo del encabezado: hablan solo del registro,

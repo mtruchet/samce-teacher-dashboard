@@ -23,6 +23,12 @@ body:has(.panel) {
   min-width: 0;
 }
 
+/* La espera previa al detalle (entrando por su dirección) ocupa lo mismo que el detalle mientras carga
+   (`.detalle[aria-busy]`): el pie queda debajo de la pantalla desde el principio y no baja de golpe. */
+.panel--antes-del-detalle {
+  min-height: calc(100dvh - var(--panel-barra));
+}
+
 /* ==== El encabezado ==================================================== */
 
 /* Las migas y el título: dónde está parado el docente, en cualquier nivel. */

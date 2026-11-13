@@ -132,3 +132,86 @@ test("a 1280 px, el aviso de que el registro no se pudo actualizar no mueve el a
   expect(despues).toBe(antes);
   await expect(page.locator("section.detalle__registro").getByText(/No se pudo actualizar el registro/)).toBeVisible();
 });
+
+for (const ancho of [1280, 390]) {
+  test(`a ${ancho} px, cuando los eventos llegan después del análisis, el encabezado del registro no cambia`, async ({ page }) => {
+    // La cuenta («80 eventos, de…») aparecía con los eventos: a 1280 px empujaba el título 3 px, y a 390 px
+    // ocupaba un renglón nuevo y bajaba «Cargando los eventos…» y todo lo de abajo.
+    await page.setViewportSize({ width: ancho, height: 900 });
+    await simularBackend(page);
+    await demorar(page, { analisis: 100, eventos: 1500 });
+    await page.addInitScript(() => {
+      const w = window as unknown as { __medidas: Array<{ cuenta: boolean; top: number; alto: number }> };
+      w.__medidas = [];
+      const tomar = () => {
+        const titulo = document.getElementById("registro-de-eventos-titulo");
+        const encabezado = document.querySelector(".detalle__encabezado");
+        if (titulo && encabezado) {
+          w.__medidas.push({
+            cuenta: Boolean(document.querySelector(".detalle__cuenta .lamina__cuenta")?.textContent?.trim()),
+            top: titulo.getBoundingClientRect().top + window.scrollY,
+            alto: encabezado.getBoundingClientRect().height,
+          });
+        }
+        requestAnimationFrame(tomar);
+      };
+      requestAnimationFrame(tomar);
+    });
+
+    await page.goto(VISTAS.detalleAlto);
+    await page.locator(".eventos tbody tr").first().waitFor();
+    await page.waitForTimeout(300);
+    const medidas = await page.evaluate(
+      () => (window as unknown as { __medidas: Array<{ cuenta: boolean; top: number; alto: number }> }).__medidas
+    );
+    const antes = medidas.filter((m) => !m.cuenta);
+    const despues = medidas.filter((m) => m.cuenta);
+    expect(antes.length).toBeGreaterThan(5);
+    expect(despues.length).toBeGreaterThan(5);
+    for (const m of despues) {
+      expect(Math.abs(m.top - antes[0].top)).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(m.alto - antes[0].alto)).toBeLessThanOrEqual(0.5);
+    }
+  });
+}
+
+test("a 1280 px, entrando por la dirección del detalle, el pie no se asoma mientras se buscan las sesiones", async ({ page }) => {
+  // Con un enlace, la recarga o un favorito, la espera previa al detalle («Buscando sesiones») no ocupaba la
+  // pantalla: el pie se veía a media altura y bajaba de golpe cuando aparecía el detalle (0,21 de corrimiento).
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await simularBackend(page);
+  await page.route(/\/api\/monitored-quizzes\/\d+\/sessions\?/, async (route) => {
+    await new Promise((listo) => setTimeout(listo, 700));
+    await route.fallback();
+  });
+  await page.addInitScript(() => {
+    const w = window as unknown as { __corrimiento: number; __pieVisto: number[] };
+    w.__corrimiento = 0;
+    w.__pieVisto = [];
+    new PerformanceObserver((lista) => {
+      for (const e of lista.getEntries() as Array<PerformanceEntry & { value: number; hadRecentInput: boolean }>) {
+        if (!e.hadRecentInput) w.__corrimiento += e.value;
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+    const tomar = () => {
+      const pie = document.querySelector(".pie");
+      if (pie && !document.querySelector(".detalle")) {
+        const top = pie.getBoundingClientRect().top;
+        if (top < window.innerHeight) w.__pieVisto.push(Math.round(top));
+      }
+      requestAnimationFrame(tomar);
+    };
+    requestAnimationFrame(tomar);
+  });
+
+  await page.goto(VISTAS.detalleAlto);
+  await page.locator(".eventos tbody tr").first().waitFor();
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(400);
+  const { corrimiento, pieVisto } = await page.evaluate(() => {
+    const w = window as unknown as { __corrimiento: number; __pieVisto: number[] };
+    return { corrimiento: w.__corrimiento, pieVisto: w.__pieVisto };
+  });
+  expect(pieVisto).toEqual([]);
+  expect(corrimiento).toBeLessThan(0.01);
+});
