@@ -38,6 +38,8 @@
 
 .pie__nombre {
   font-size: var(--paso-apoyo);
+  /* 25, como los enlaces: heredaba 1,58 (25,26 px) y era el único renglón del pie fuera del múltiplo de 5. */
+  line-height: 25px;
   font-weight: 500;
   margin-bottom: var(--e2);
 }
@@ -110,6 +112,18 @@
     padding-left: 0;
     border-left: none;
   }
+
+  /* En una columna sola el renglón sí puede partirse: a 320 px y con el espaciado de texto del criterio 1.4.12
+     (interlineado 1,5, letras 0,12 em, palabras 0,16 em), «UTN Facultad Regional San Francisco» en un renglón
+     ensanchaba la columna y la página se corría de costado. Sin ese espaciado entra entero igual. */
+  .pie__col li:not(.pie__rol) {
+    text-wrap: wrap;
+  }
+}
+
+/* Los dos renglones de la dirección, pegados como un rótulo a su nombre en «El proyecto». */
+.pie__linea {
+  display: block;
 }
 
 /* El cargo va arriba y en chico, y el nombre debajo en su propio renglón: los

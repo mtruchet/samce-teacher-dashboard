@@ -19,7 +19,7 @@ async function medirPie(page: Page) {
   return page.evaluate(() => {
     const color = (s: string) => [...document.querySelectorAll<HTMLElement>(s)].map((e) => getComputedStyle(e).color);
     const renglones = [
-      ...document.querySelectorAll<HTMLElement>(".pie__col li, .pie__titulo, .pie__cargo, .pie__descripcion"),
+      ...document.querySelectorAll<HTMLElement>(".pie__nombre, .pie__col li, .pie__titulo, .pie__cargo, .pie__descripcion"),
     ].map((e) => parseFloat(getComputedStyle(e).lineHeight));
     return {
       nombre: color(".pie__nombre"),
@@ -30,6 +30,8 @@ async function medirPie(page: Page) {
       descripcion: color(".pie__descripcion"),
       renglones,
       desborde: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      // Los dos renglones de la dirección, pegados como un solo dato.
+      direccion: [...document.querySelectorAll<HTMLElement>(".pie__linea")].map((e) => e.getBoundingClientRect()),
     };
   });
 }
@@ -47,6 +49,8 @@ function comprobar(m: Awaited<ReturnType<typeof medirPie>>) {
   // Cada renglón en un múltiplo de 5.
   expect(m.renglones.filter((r) => r % 5 !== 0)).toEqual([]);
   expect(m.desborde).toBeLessThanOrEqual(0);
+  expect(m.direccion.length).toBe(2);
+  expect(Math.abs(m.direccion[1].top - m.direccion[0].bottom)).toBeLessThan(1);
 }
 
 for (const ancho of [1280, 390]) {
@@ -62,5 +66,28 @@ for (const ancho of [1280, 390]) {
     await page.setViewportSize({ width: ancho, height: ALTO });
     await abrir(page, VISTAS.lista);
     comprobar(await medirPie(page));
+  });
+}
+
+// Criterio 1.4.12 (espaciado del texto): con el interlineado, las letras y las palabras agrandadas, el pie no
+// puede correr la página de costado ni en el ancho más chico.
+const ESPACIADO = `* { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; }
+p { margin-bottom: 2em !important; }`;
+
+for (const [nombre, vista] of [
+  ["la landing", null],
+  ["el panel", VISTAS.lista],
+] as const) {
+  test(`a 320 px y con el espaciado de texto del 1.4.12, el pie de ${nombre} no desborda`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: ALTO });
+    if (vista) await abrir(page, vista);
+    else {
+      await page.goto("/");
+      await page.locator("footer.pie").waitFor();
+    }
+    await page.addStyleTag({ content: ESPACIADO });
+    await page.evaluate(() => document.fonts.ready);
+    const desborde = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(desborde).toBeLessThanOrEqual(0);
   });
 }

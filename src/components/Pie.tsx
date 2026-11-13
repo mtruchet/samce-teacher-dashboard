@@ -77,8 +77,11 @@ export function Pie({ children, ancho = "publico" }: Props) {
                 Campus Virtual
               </a>
             </li>
-            <li className="pie__rol">Av. de la Universidad 501</li>
-            <li className="pie__rol">(2400) San Francisco, Córdoba</li>
+            {/* La dirección es un solo dato en dos renglones: en dos li quedaba separada como dos datos. */}
+            <li className="pie__rol">
+              <span className="pie__linea">Av. de la Universidad 501</span>
+              <span className="pie__linea">(2400) San Francisco, Córdoba</span>
+            </li>
           </ul>
         </div>
       </div>
