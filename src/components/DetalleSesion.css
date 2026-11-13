@@ -86,12 +86,14 @@
    de abajo. Va como el vacío de página (Panel.css), porque también va sobre la página y no adentro de una lámina:
    --sup-1 con el anillo y el radio de una ficha, sin sombra (no es una lámina). --sup-1 y no --sup-3: la página
    del panel es --sup-3, y la caja no se habría visto; sobre --sup-1, --tinta-media da 8,1:1 y --tinta 16,1:1.
+   Con el radio de una lámina y no el de una ficha: ocupa una fila entera de la pila de láminas, y con 12 px las
+   esquinas cambiaban de una fila a la siguiente. El peso sigue siendo menor (sin sombra, sin título).
    La marca de renglón se va: con caja, una segunda señal sobra. El texto arranca donde el de las láminas
    (relleno de --e6, --e4 en el teléfono). */
 .detalle__captura {
   margin: 0;
   padding: var(--e4) var(--e6);
-  border-radius: var(--radio-ficha);
+  border-radius: var(--radio-lamina);
   background: var(--sup-1);
   box-shadow: var(--anillo);
   font-size: var(--panel-fila);

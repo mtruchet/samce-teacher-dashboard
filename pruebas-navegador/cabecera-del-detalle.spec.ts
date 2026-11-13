@@ -93,6 +93,7 @@ for (const ancho of [1280, 390]) {
         fondo: e.backgroundColor,
         pagina: getComputedStyle(document.body).backgroundColor,
         radio: e.borderTopLeftRadius,
+        radioLamina: getComputedStyle(lamina).borderTopLeftRadius,
         sombra: e.boxShadow,
         bordeIzquierdo: e.borderLeftWidth,
         color: e.color,
@@ -103,10 +104,12 @@ for (const ancho of [1280, 390]) {
         tituloIzquierda: titulo.getBoundingClientRect().left,
       };
     });
-    // Una caja propia: --sup-1 sobre la página --sup-3, con el anillo y el radio de una ficha, sin la marca.
+    // Una caja propia: --sup-1 sobre la página --sup-3, con el anillo, sin la marca, y con las esquinas de la
+    // lámina de abajo: ocupa una fila entera de la pila, y con otro radio las esquinas cambiaban de fila a fila.
     expect(m.fondo).toBe("rgb(255, 255, 255)");
     expect(m.fondo).not.toBe(m.pagina);
-    expect(m.radio).toBe("12px");
+    expect(m.radio).toBe("16px");
+    expect(m.radio).toBe(m.radioLamina);
     expect(m.sombra).toContain("inset");
     expect(m.bordeIzquierdo).toBe("0px");
     // Alineada con las láminas, y su texto con el de ellas.
