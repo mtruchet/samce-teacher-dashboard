@@ -283,6 +283,50 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     expect(viva().firstElementChild).toBe(nodo);
   });
 
+  it("mientras el docente escribe la búsqueda, solo se anuncia el resultado final y no los intermedios", async () => {
+    // Las respuestas quedan en espera hasta que la prueba las contesta, como con una red de verdad.
+    const pendientes = new Map<string, (p: sesionesService.PaginaDeSesiones) => void>();
+    vi.spyOn(sesionesService, "traerSesiones").mockImplementation((_examen, _limite, filtros) =>
+      filtros?.q
+        ? new Promise((contestar) => void pendientes.set(filtros.q!, contestar))
+        : Promise.resolve(pagina([rindiendo, entregadaHaceRato()], 2))
+    );
+    montar("/panel?examen=1");
+    await esperar();
+    const anuncios: string[] = [];
+    const anotar = (cambios: MutationRecord[]) => {
+      for (const c of cambios) for (const n of c.addedNodes) if (n.textContent) anuncios.push(n.textContent);
+    };
+    const observador = new MutationObserver(anotar);
+    observador.observe(viva(), { childList: true, subtree: true, characterData: true });
+
+    const campo = screen.getByLabelText("Buscar alumno");
+    fireEvent.change(campo, { target: { value: "ma" } });
+    await esperar(300);
+    // Llega el resultado de «ma» y el docente sigue escribiendo.
+    pendientes.get("ma")!(pagina([rindiendo, entregadaHaceRato()], 2));
+    await esperar(100);
+    fireEvent.change(campo, { target: { value: "mar" } });
+    await esperar(300);
+    pendientes.get("mar")!(pagina([rindiendo], 1));
+    await esperar();
+    await esperar(1000);
+    anotar(observador.takeRecords());
+    observador.disconnect();
+
+    expect(anuncios).toEqual(["1 de 2 sesiones"]);
+    expect(viva()).toHaveTextContent("1 de 2 sesiones");
+  });
+
+  it("el resultado de una tarjeta o un selector se anuncia en el momento, sin la espera de la búsqueda", async () => {
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1));
+    montar("/panel?examen=1");
+    await esperar();
+    fireEvent.change(screen.getByLabelText("Nivel de riesgo"), { target: { value: "high" } });
+    await esperar();
+    expect(viva()).toHaveTextContent("1 de 2 sesiones");
+  });
+
   it("el anuncio se vuelve a leer si se repite: ir a otro filtro y volver con la misma cifra", async () => {
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1));
     montar("/panel?examen=1");

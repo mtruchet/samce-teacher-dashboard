@@ -67,6 +67,12 @@ import "./Panel.css";
  */
 const CADENCIA_QUIETA_MS = 30_000;
 
+/**
+ * Cuánto espera el anuncio del resultado de una búsqueda a que el docente termine de escribir (ver el efecto
+ * del anuncio, en el panel).
+ */
+const ESPERA_DEL_ANUNCIO_MS = 900;
+
 /** El título del documento fuera de una vista con nombre, el mismo de index.html. */
 const TITULO_DEL_PANEL = "SAMCE — Panel Docente";
 
@@ -318,11 +324,22 @@ export function Panel() {
   // Una vista nueva sin acción, o la lista sin filtro, vacían la región: si conservara la frase de antes, quien
   // recorre la página con el lector encontraría una cifra que ya no es la de la pantalla. Cada anuncio va en
   // un nodo nuevo, así volver a un filtro con la misma cifra también se lee. Va en un efecto, no en el render.
+  //
+  // `porAccion` también dice de dónde vino la acción. La búsqueda se pide sola mientras el docente escribe, y
+  // cada pausa corta daba un resultado intermedio («3 de 30», «1 de 30») que el lector leía encima del
+  // siguiente. Su anuncio espera `ESPERA_DEL_ANUNCIO_MS` y se descarta si antes llega otra vista; el de las
+  // tarjetas y los selectores sigue siendo inmediato. Lo que se ve no espera nada.
   const [anuncioFiltro, anunciarFiltro, silenciarFiltro] = useAnuncio();
-  const porAccion = useRef(false);
+  const porAccion = useRef<false | "control" | "busqueda">(false);
   const vistaAnunciada = useRef("");
+  const anuncioEnEspera = useRef<{ vista: string; temporizador: number } | null>(null);
   const cuantasDelFiltro = respuestaDelFiltro ? cargadas.total! : null;
   useEffect(() => {
+    // El anuncio que esperaba es de otra vista: ya no es lo que hay en pantalla.
+    if (anuncioEnEspera.current && (!conFiltro || anuncioEnEspera.current.vista !== vistaDeLista)) {
+      window.clearTimeout(anuncioEnEspera.current.temporizador);
+      anuncioEnEspera.current = null;
+    }
     if (!conFiltro) {
       vistaAnunciada.current = "";
       porAccion.current = false;
@@ -333,18 +350,36 @@ export function Panel() {
     // La cifra que vino de la memoria de la vista es de antes: se anuncia la de la respuesta nueva.
     if (!alDia) return;
     vistaAnunciada.current = vistaDeLista;
-    if (!porAccion.current) {
+    const origen = porAccion.current;
+    if (!origen) {
       silenciarFiltro();
       return;
     }
     porAccion.current = false;
-    anunciarFiltro(textoDelResultado(cuantasDelFiltro, totalDeLaEvaluacion));
+    const texto = textoDelResultado(cuantasDelFiltro, totalDeLaEvaluacion);
+    if (origen !== "busqueda") {
+      anunciarFiltro(texto);
+      return;
+    }
+    const vista = vistaDeLista;
+    anuncioEnEspera.current = {
+      vista,
+      temporizador: window.setTimeout(() => {
+        anuncioEnEspera.current = null;
+        anunciarFiltro(texto);
+      }, ESPERA_DEL_ANUNCIO_MS),
+    };
   }, [conFiltro, cuantasDelFiltro, vistaDeLista, totalDeLaEvaluacion, alDia, anunciarFiltro, silenciarFiltro]);
+  useEffect(() => () => window.clearTimeout(anuncioEnEspera.current?.temporizador), []);
 
-  /** Un cambio de filtro del docente: si la dirección cambió, la vista que viene se anuncia. */
+  /**
+   * Un cambio de filtro del docente: si la dirección cambió, la vista que viene se anuncia. Lo que manda la
+   * búsqueda trae solo `q`; las tarjetas, aunque la borren, traen también los demás filtros.
+   */
   const filtrar = useCallback(
     (parciales: Parameters<typeof aplicarFiltros>[0]) => {
-      if (aplicarFiltros(parciales)) porAccion.current = true;
+      const soloBusqueda = Object.keys(parciales).every((clave) => clave === "q");
+      if (aplicarFiltros(parciales)) porAccion.current = soloBusqueda ? "busqueda" : "control";
     },
     [aplicarFiltros]
   );
