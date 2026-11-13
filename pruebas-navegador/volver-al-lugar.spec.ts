@@ -130,3 +130,31 @@ for (const [como, volver] of [
     await expect(page.locator(`button[data-sesion="${sesion}"]`)).toBeFocused();
   });
 }
+
+test("a 1280 px, abrir con el teclado mientras la página se desliza y volver deja el «Ver» enfocado a la vista", async ({ page }) => {
+  // Con el desplazamiento suave, Tab lleva la página al «Ver» deslizándola, y un Enter enseguida abría la
+  // sesión a mitad de camino: al volver se restauraba esa altura y el foco quedaba debajo del borde de la
+  // pantalla (WCAG 2.4.7). Sin movimiento reducido, que es donde pasa.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await abrir(page, VISTAS.lista);
+  const sesion = await page.evaluate(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+    const ver = [...document.querySelectorAll<HTMLButtonElement>("button[data-sesion]")];
+    // El primero que está debajo del borde de la pantalla, y el anterior a él recibe el foco sin mover nada.
+    const i = ver.findIndex((b) => b.getBoundingClientRect().top > window.innerHeight + 100);
+    ver[i - 1].focus({ preventScroll: true });
+    return ver[i].dataset.sesion!;
+  });
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
+  await page.getByRole("heading", { name: "Registro de eventos" }).waitFor();
+
+  await page.goBack();
+  const ver = page.locator(`button[data-sesion="${sesion}"]`);
+  await expect(ver).toBeFocused();
+  // Unos cuadros más, por si algo la moviera después.
+  await page.waitForTimeout(300);
+  const caja = (await ver.boundingBox())!;
+  expect(caja.y).toBeGreaterThanOrEqual(52);
+  expect(caja.y + caja.height).toBeLessThanOrEqual(900);
+});

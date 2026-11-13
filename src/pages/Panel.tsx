@@ -546,9 +546,16 @@ export function Panel() {
         // Vuelve al mismo lugar en que estaba la página al abrir la sesión, de una vez. Antes el foco movía la
         // página hasta el «Ver», y con el desplazamiento suave de la página se la veía deslizarse sola
         // cientos de píxeles. Si se volvió por otro camino (un enlace, la recarga), el «Ver» va al centro.
-        if (lugar.current?.sesion === antes.sesion) window.scrollTo({ top: lugar.current.y, behavior: "instant" });
-        else {
-          const r = ver.getBoundingClientRect();
+        const alMismoLugar = lugar.current?.sesion === antes.sesion;
+        if (alMismoLugar) window.scrollTo({ top: lugar.current!.y, behavior: "instant" });
+        // Si la página se estaba deslizando cuando se abrió la sesión (Tab y Enter seguidos, o un lector de
+        // pantalla que activa el botón sin mover la página), la altura guardada es de mitad de camino y el
+        // «Ver» quedaría fuera de la pantalla o debajo de la barra y el encabezado de columnas: en ese caso se
+        // lo centra, como cuando se vuelve por otro camino.
+        const r = ver.getBoundingClientRect();
+        const barra = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--panel-barra")) || 0;
+        const columnas = ver.closest("table")?.querySelector("thead")?.getBoundingClientRect().height ?? 0;
+        if (!alMismoLugar || r.top < barra + columnas || r.bottom > window.innerHeight) {
           window.scrollTo({ top: window.scrollY + r.top + r.height / 2 - window.innerHeight / 2, behavior: "instant" });
         }
         ver.focus({ preventScroll: true });
