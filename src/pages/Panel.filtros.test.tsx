@@ -358,7 +358,8 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
 
     fireEvent.click(screen.getByRole("button", { name: "Atrás del navegador" }));
     await esperar();
-    expect(screen.queryByText(/\d+ de \d+ sesiones/)).toBeNull();
+    // El molde que guarda el lugar de la cifra («M de M sesiones») no se ve ni se lee: no cuenta.
+    expect(screen.queryByText(/\d+ de \d+ sesiones/, { ignore: ".control__cifra-molde" })).toBeNull();
     expect(screen.getAllByRole("button", { name: "Quitar filtros" })).toHaveLength(1);
   });
 

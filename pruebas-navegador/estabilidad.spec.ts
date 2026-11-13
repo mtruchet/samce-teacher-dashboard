@@ -304,3 +304,38 @@ test("desde la primera tecla de la búsqueda, la lista está marcada como ocupad
   expect(await conOtraLista()).toEqual([]);
   await expect(page.locator(".panel__listas")).not.toHaveAttribute("aria-busy");
 });
+
+for (const [ancho, alto] of [[1280, 900], [390, 844]] as const) {
+  test(`a ${ancho} px, «Quitar filtros» va pegado a la cifra y no se corre cuando la cifra llega`, async ({ page }) => {
+    // El lugar de la cifra se guardaba con 17ch, más que «10 de 30 sesiones»: entre la cifra y el botón quedaban
+    // 34 px y no los 12 del renglón, y se leían como dos piezas sueltas.
+    await page.setViewportSize({ width: ancho, height: alto });
+    await abrir(page, VISTAS.lista);
+    const boton = page.getByRole("button", { name: "Quitar filtros" });
+    const cifra = page.locator(".control__cifra-texto");
+    /** Dónde termina el texto de la cifra, dónde empieza el botón y el hueco del renglón. */
+    const medir = () =>
+      page.evaluate(() => {
+        const p = document.querySelector(".control__cifra")!;
+        const rango = document.createRange();
+        rango.selectNodeContents(p.querySelector(".control__cifra-texto")!);
+        const b = [...document.querySelectorAll("button")].find((x) => x.textContent?.trim() === "Quitar filtros")!;
+        return {
+          finTexto: rango.getBoundingClientRect().right,
+          boton: b.getBoundingClientRect().left,
+          hueco: parseFloat(getComputedStyle(p.parentElement!).columnGap),
+        };
+      });
+
+    // Una búsqueda que deja tantas cifras como el total («17 de 22 sesiones»), con la respuesta demorada.
+    await demorarFiltrados(page, 800);
+    await page.getByLabel("Buscar alumno").fill("a");
+    await expect(boton).toBeVisible();
+    const sinCifra = await medir();
+    // Dos cifras de cada lado, para que el molde y la cifra midan lo mismo.
+    await expect(cifra).toHaveText(/^\d\d de \d\d sesiones$/);
+    const conCifra = await medir();
+    expect(Math.abs(conCifra.boton - sinCifra.boton)).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(conCifra.boton - conCifra.finTexto - conCifra.hueco)).toBeLessThanOrEqual(2);
+  });
+}

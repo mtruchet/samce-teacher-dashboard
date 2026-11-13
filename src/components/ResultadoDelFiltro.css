@@ -15,7 +15,17 @@
   margin: 0;
   font-size: var(--panel-nota);
   color: var(--tinta-media);
-  /* El lugar de «N de M sesiones» está reservado aunque la cifra no haya llegado: «Quitar filtros» no se
-     corre de costado cuando llega. */
-  min-inline-size: 17ch;
+  /* El lugar de «N de M sesiones» está reservado aunque la cifra no haya llegado, así «Quitar filtros» no se
+     corre de costado cuando llega. Lo guarda el molde («M de M sesiones») en la misma celda que el texto:
+     con números tabulares, N nunca es más ancho que M. */
+  display: inline-grid;
+}
+
+.control__cifra-texto,
+.control__cifra-molde {
+  grid-area: 1 / 1;
+}
+
+.control__cifra-molde {
+  visibility: hidden;
 }

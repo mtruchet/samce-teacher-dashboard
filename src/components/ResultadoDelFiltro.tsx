@@ -23,7 +23,8 @@ interface Props {
  * Es el único lugar con el total de la evaluación filtrada y el único «Quitar filtros» de la pantalla: está
  * a la vista siempre que hay un filtro, no solo cuando no coincide ninguna sesión. Mientras la respuesta
  * del filtro no llegó, la cifra no se muestra (mostrar la del pedido anterior daba «M de M»), pero su lugar
- * sí, así «Quitar filtros» no se corre cuando llega. No es una región viva: el anuncio va aparte, una vez por
+ * sí, así «Quitar filtros» no se corre cuando llega. Ese lugar mide lo que la cifra más larga posible, «M de M
+ * sesiones», y no un ancho fijo: así el botón queda pegado a la cifra, con el hueco del renglón. No es una región viva: el anuncio va aparte, una vez por
  * vista (`AnuncioVivo`).
  */
 export function ResultadoDelFiltro({ conFiltro, cuantas, deCuantas, onQuitar }: Props) {
@@ -31,7 +32,12 @@ export function ResultadoDelFiltro({ conFiltro, cuantas, deCuantas, onQuitar }: 
   return (
     <div className="control__resultado">
       <p className="control__cifra cifra" aria-hidden={cuantas === null || undefined}>
-        {cuantas !== null ? textoDelResultado(cuantas, deCuantas) : null}
+        <span className="control__cifra-texto">{cuantas !== null ? textoDelResultado(cuantas, deCuantas) : null}</span>
+        {/* El molde del lugar: la cifra más larga que puede haber («M de M sesiones»), invisible y debajo del
+            texto. Con 17ch fijos el lugar era más ancho que la cifra y el botón quedaba lejos, suelto. */}
+        <span className="control__cifra-molde" aria-hidden="true">
+          {textoDelResultado(deCuantas, deCuantas)}
+        </span>
       </p>
       <button type="button" className="boton-texto" onClick={onQuitar}>
         Quitar filtros
