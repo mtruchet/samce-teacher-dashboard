@@ -102,13 +102,13 @@ export const SESIONES: SesionFalsa[] = [
 const PESO: Record<Nivel, number> = { low: 1, medium: 2, high: 3 };
 
 /** El resumen se cuenta sobre toda la evaluación, como el backend: sin filtro ni página. */
-function resumen() {
-  const sin = (estado: Estado) => SESIONES.filter((s) => s.alerts_count === 0 && s.analysis_state === estado).length;
+function resumen(sesiones: SesionFalsa[] = SESIONES) {
+  const sin = (estado: Estado) => sesiones.filter((s) => s.alerts_count === 0 && s.analysis_state === estado).length;
   return {
-    total: SESIONES.length,
-    risk_high: SESIONES.filter((s) => s.risk_level === "high").length,
-    risk_medium: SESIONES.filter((s) => s.risk_level === "medium").length,
-    risk_low: SESIONES.filter((s) => s.risk_level === "low").length,
+    total: sesiones.length,
+    risk_high: sesiones.filter((s) => s.risk_level === "high").length,
+    risk_medium: sesiones.filter((s) => s.risk_level === "medium").length,
+    risk_low: sesiones.filter((s) => s.risk_level === "low").length,
     no_alerts: sin("analyzed"),
     not_analyzed: sin("not_analyzed"),
     insufficient_evidence: sin("insufficient_evidence"),
@@ -116,12 +116,12 @@ function resumen() {
   };
 }
 
-function filtrar(consulta: URLSearchParams): SesionFalsa[] {
+function filtrar(consulta: URLSearchParams, sesiones: SesionFalsa[] = SESIONES): SesionFalsa[] {
   const nivel = consulta.get("risk_level");
   const estado = consulta.get("status");
   const analisis = consulta.get("analysis");
   const q = consulta.get("q")?.toLocaleLowerCase("es");
-  let lista = SESIONES.filter((s) => {
+  let lista = sesiones.filter((s) => {
     if (nivel && s.risk_level !== nivel) return false;
     if (estado === "open" && s.status !== "open") return false;
     if (estado === "finished" && s.status === "open") return false;
@@ -236,6 +236,33 @@ function json(route: Route, cuerpo: unknown, cabeceras: Record<string, string> =
   return route.fulfill({ status: 200, contentType: "application/json", headers: cabeceras, body: JSON.stringify(cuerpo) });
 }
 
+/** La respuesta de la lista para la consulta de `url`, sobre `sesiones`, como la arma el backend. */
+function contestarLista(route: Route, url: URL, sesiones: SesionFalsa[] = SESIONES) {
+  const todas = filtrar(url.searchParams, sesiones);
+  const limite = Number(url.searchParams.get("limit") ?? "50");
+  return json(route, { sessions: todas.slice(0, limite), summary: resumen(sesiones) }, { "X-Total-Count": String(todas.length) });
+}
+
+/**
+ * Desde la consulta número `desde` de la lista, la sesión `id` llega entregada: el alumno entregó mientras el
+ * docente miraba, y la fila pasa de «En curso» a «Finalizadas» con la actualización automática. Se agrega
+ * después de `simularBackend`, y gana sobre su ruta de la lista.
+ */
+export async function entregarEnLaConsulta(page: Page, id: number, desde: number): Promise<void> {
+  let consultas = 0;
+  await page.route(
+    (url) => /\/api\/monitored-quizzes\/\d+\/sessions$/.test(url.pathname),
+    (route) => {
+      consultas += 1;
+      const sesiones =
+        consultas < desde
+          ? SESIONES
+          : SESIONES.map((s) => (s.id === id ? { ...s, status: "closed" as const, closed_at: new Date().toISOString() } : s));
+      return contestarLista(route, new URL(route.request().url()), sesiones);
+    }
+  );
+}
+
 /** Deja la sesión del docente guardada y contesta todos los pedidos a la API con los datos falsos. */
 export async function simularBackend(page: Page): Promise<void> {
   await page.addInitScript((sesion) => {
@@ -249,11 +276,7 @@ export async function simularBackend(page: Page): Promise<void> {
     if (ruta === "/monitored-quizzes") return json(route, EXAMENES);
 
     const lista = ruta.match(/^\/monitored-quizzes\/(\d+)\/sessions$/);
-    if (lista) {
-      const todas = filtrar(url.searchParams);
-      const limite = Number(url.searchParams.get("limit") ?? "50");
-      return json(route, { sessions: todas.slice(0, limite), summary: resumen() }, { "X-Total-Count": String(todas.length) });
-    }
+    if (lista) return contestarLista(route, url);
 
     const detalle = ruta.match(/^\/monitored-quizzes\/(\d+)\/sessions\/(\d+)\/(analysis|events)$/);
     if (detalle) {

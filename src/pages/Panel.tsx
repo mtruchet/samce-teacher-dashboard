@@ -523,6 +523,23 @@ export function Panel() {
     titular.current?.focus({ preventScroll: true });
   }, [listo, claveDeLaVista, nivel, sesionElegida]);
 
+  // El «Ver» que tenía el foco, para no perderlo con la actualización automática. Cuando una sesión pasa de «En
+  // curso» a «Finalizadas» (el alumno entregó), su fila se dibuja de nuevo en la otra tabla, el botón enfocado
+  // desaparece y el foco caía al cuerpo de la página: con el teclado o el lector, el docente perdía el lugar sin
+  // haber hecho nada. Después de cada dibujo, si eso pasó, el foco va al «Ver» de la misma sesión en su lugar
+  // nuevo, sin mover la página.
+  //
+  // Solo si el botón ya no está en la página: si sigue ahí y el foco está en el cuerpo, fue el docente el que
+  // hizo clic en un lugar vacío, y no hay que devolvérselo.
+  const verEnfocado = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const ver = verEnfocado.current;
+    if (!ver || ver.isConnected || document.activeElement !== document.body) return;
+    const nuevo = document.querySelector<HTMLButtonElement>(`button[data-sesion="${CSS.escape(ver.dataset.sesion ?? "")}"]`);
+    if (nuevo) nuevo.focus({ preventScroll: true });
+    else verEnfocado.current = null;
+  });
+
   // Sin sesión no hay nada que supervisar: se explica y se lo devuelve al
   // campus, igual que a quien llega de un favorito viejo.
   if (vencida) return <SinSesion motivo="vencida" />;
@@ -579,7 +596,14 @@ export function Panel() {
         onSalir={salir}
       />
 
-      <main className="marco marco--panel panel" id="sesiones">
+      <main
+        className="marco marco--panel panel"
+        id="sesiones"
+        onFocus={(e) => {
+          const enfocado = e.target as HTMLElement;
+          verEnfocado.current = enfocado.dataset.sesion ? enfocado : null;
+        }}
+      >
         {cargando || esperandoSesiones ? (
           // El mismo pulso que ya estaba girando antes de que React montara. Un
           // dibujo nuevo acá se leería como que algo terminó y algo distinto

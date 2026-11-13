@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { choquesConLasListas } from "../src/test/listas";
-import { abrir, simularBackend, VISTAS } from "./simulacion";
+import { abrir, entregarEnLaConsulta, simularBackend, VISTAS } from "./simulacion";
 
 /**
  * Lo que solo se puede comprobar en un navegador de verdad (R4, R9, R10 y R13 de la lista de control de
@@ -341,6 +341,25 @@ test("a 1280 px, tabulando por los «Ver» hacia adelante y hacia atrás, ningun
     await medir("atrás");
   }
   expect(tapados).toEqual([]);
+});
+
+test("a 1280 px, si el alumno entrega con el foco en su «Ver», el foco sigue en el «Ver» de la sesión ya finalizada", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  // La primera consulta trae a la sesión 503 rindiendo; desde la segunda, cinco segundos después, entregada.
+  await entregarEnLaConsulta(page, 503, 2);
+  await abrir(page, VISTAS.lista);
+  const ver = page.locator('button[data-sesion="503"]');
+  await expect(ver).toHaveCount(1);
+  const grupo = () => ver.evaluate((b) => b.closest("section")?.querySelector("h2")?.textContent ?? "");
+  expect(await grupo()).toContain("En curso");
+  await ver.focus();
+  const y = await page.evaluate(() => window.scrollY);
+
+  // Llega la actualización: la fila se dibuja de nuevo en «Finalizadas».
+  await expect.poll(grupo, { timeout: 8000 }).toContain("Finalizadas");
+  await expect(page.locator(":focus")).toHaveAttribute("data-sesion", "503");
+  // Sin mover la página.
+  expect(await page.evaluate(() => window.scrollY)).toBe(y);
 });
 
 /**
