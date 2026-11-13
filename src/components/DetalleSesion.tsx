@@ -13,10 +13,11 @@ import {
 import { horaCorta } from "../eventos";
 import { recienCerrada } from "../seguimiento";
 
-import { AnalisisSesion } from "./AnalisisSesion";
+import { AnalisisSesionVista } from "./AnalisisSesion";
 import { CronologiaSesion } from "./CronologiaSesion";
 import { ListaEventos } from "./ListaEventos";
 import { Transcurrido } from "./Transcurrido";
+import { useAnalisisDeSesion } from "./useAnalisisDeSesion";
 import "./DetalleSesion.css";
 
 /**
@@ -72,6 +73,12 @@ function cuentaDeEventos(n: number): string {
   return n === 1 ? "1 evento" : `${enCifras(n)} eventos`;
 }
 
+/**
+ * Cuánto espera el registro a que llegue el análisis antes de dibujarse igual. Con un análisis que no contesta,
+ * el docente no se queda sin el registro, que es lo que sí llegó.
+ */
+export const PLAZO_DEL_ANALISIS_MS = 3000;
+
 /** Tope de páginas por consulta, para que una sesión enorme no trabe el panel. */
 const PAGINAS_MAXIMAS = 20;
 
@@ -108,6 +115,17 @@ interface Props {
 
 export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
   const [eventos, setEventos] = useState<Evento[]>([]);
+  // El análisis se consulta acá y no dentro de su apartado: el detalle tiene que saber cuándo llegó. Las dos
+  // consultas salen juntas, pero el registro se dibuja recién cuando el análisis está (o falló, o pasó el
+  // plazo). Con red lenta, el registro llegaba primero, se dibujaba arriba y el análisis aparecía después y
+  // lo empujaba varios cientos de píxeles hacia abajo, con el docente ya leyéndolo.
+  const estadoAnalisis = useAnalisisDeSesion(sesion, onVencida);
+  const [plazoVencido, setPlazoVencido] = useState(false);
+  useEffect(() => {
+    const plazo = window.setTimeout(() => setPlazoVencido(true), PLAZO_DEL_ANALISIS_MS);
+    return () => window.clearTimeout(plazo);
+  }, []);
+  const analisisResuelto = estadoAnalisis.analisis !== null || estadoAnalisis.sinConexion || plazoVencido;
   // El evento al que se pidió ir desde «Momentos para revisar».
   const [destacado, setDestacado] = useState<{ id: number; vez: number } | null>(null);
   // La consulta corta a las `PAGINAS_MAXIMAS`, y sin esto el corte era mudo:
@@ -256,7 +274,9 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
   const sePerdioParte = eventos.some((e) => e.type === "events_dropped");
 
   return (
-    <div className="detalle">
+    // Mientras se espera el análisis, el detalle ocupa la pantalla: así el pie no se asoma y vuelve a bajar
+    // cuando llega todo. `aria-busy` y no `inert`: con `inert`, el foco caía al principio de la página.
+    <div className="detalle" aria-busy={!analisisResuelto || undefined}>
       {/* La ficha de la sesión. Quién es el alumno ya lo dicen el título de la
           pantalla y las migas; acá va lo que allá no entra, en una sola fila:
           si entregó, qué intento es, cuándo empezó y cuánto duró. El número
@@ -315,79 +335,84 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
         </p>
       ) : null}
 
-      <AnalisisSesion sesion={sesion} onVencida={onVencida} />
+      <AnalisisSesionVista sesion={sesion} estado={estadoAnalisis} />
 
       {/* El registro va en una lámina más liviana que la del análisis: el ojo
           tiene que caer primero en el análisis, y el registro queda para
-          ubicar un momento. */}
-      <section className="lamina lamina--apoyo detalle__registro" aria-labelledby="registro-de-eventos-titulo">
-        <header className="lamina__encabezado detalle__encabezado">
-          <h2 className="lamina__titulo" id="registro-de-eventos-titulo">Registro de eventos</h2>
-          {/* La cuenta y sus extremos van juntos, como una sola frase: en un teléfono bajan enteros a su
-              propio renglón, y no partidos a la mitad. */}
-          {recibido ? (
-            <span className="detalle__cuenta">
-              <span className="lamina__cuenta cifra">{cuentaDeEventos(eventos.length)}</span>
-              {/* Los dos extremos son las marcas temporales de las filas de las
-                  puntas, no una medida de la sesión: dicen hasta dónde llega el
-                  registro, que es lo que hace falta para saber si lo que se está
-                  mirando está completo. Sin segundos: las filas los tienen. */}
-              {primerEvento ? (
-                <span className="detalle__extremos cifra">
-                  {/* La coma no va oculta: sin ella, el lector leía la cuenta y los extremos pegados
-                      («214 eventosde 04:32…»). */}
-                  <span className="detalle__punto">, </span>
-                  {/* Sin segundos, dos extremos del mismo minuto se leían «de 14:00 a 14:00». */}
-                  {eventos.length === 1 ||
-                  horaCorta(primerEvento.received_at) === horaCorta(ultimoEvento.received_at)
-                    ? `a las ${horaCorta(primerEvento.received_at)}`
-                    : `de ${horaCorta(primerEvento.received_at)} a ${horaCorta(ultimoEvento.received_at)}`}
-                </span>
-              ) : null}
-            </span>
+          ubicar un momento. Y aparece después del análisis, nunca antes: se
+          lee de arriba abajo, y lo de arriba no puede llegar tarde y empujar
+          lo de abajo. Mientras tanto queda solo «Cargando el análisis…», un
+          único aviso de espera en vez de dos. */}
+      {analisisResuelto ? (
+        <section className="lamina lamina--apoyo detalle__registro" aria-labelledby="registro-de-eventos-titulo">
+          <header className="lamina__encabezado detalle__encabezado">
+            <h2 className="lamina__titulo" id="registro-de-eventos-titulo">Registro de eventos</h2>
+            {/* La cuenta y sus extremos van juntos, como una sola frase: en un teléfono bajan enteros a su
+                propio renglón, y no partidos a la mitad. */}
+            {recibido ? (
+              <span className="detalle__cuenta">
+                <span className="lamina__cuenta cifra">{cuentaDeEventos(eventos.length)}</span>
+                {/* Los dos extremos son las marcas temporales de las filas de las
+                    puntas, no una medida de la sesión: dicen hasta dónde llega el
+                    registro, que es lo que hace falta para saber si lo que se está
+                    mirando está completo. Sin segundos: las filas los tienen. */}
+                {primerEvento ? (
+                  <span className="detalle__extremos cifra">
+                    {/* La coma no va oculta: sin ella, el lector leía la cuenta y los extremos pegados
+                        («214 eventosde 04:32…»). */}
+                    <span className="detalle__punto">, </span>
+                    {/* Sin segundos, dos extremos del mismo minuto se leían «de 14:00 a 14:00». */}
+                    {eventos.length === 1 ||
+                    horaCorta(primerEvento.received_at) === horaCorta(ultimoEvento.received_at)
+                      ? `a las ${horaCorta(primerEvento.received_at)}`
+                      : `de ${horaCorta(primerEvento.received_at)} a ${horaCorta(ultimoEvento.received_at)}`}
+                  </span>
+                ) : null}
+              </span>
+            ) : null}
+          </header>
+
+          {/* Los momentos para revisar son el índice del registro: van adentro de su lámina, entre el encabezado y
+              la tabla, armados con los eventos que el detalle ya tiene, en el orden del registro (de lo más viejo a
+              lo más nuevo), y cada uno lleva a su fila. Sin eventos no se dibuja (el registro ya lo dice), y cuando no
+              hay momentos, lo que afirma depende de cuánto del registro se conoce. */}
+          {recibido && eventos.length > 0 ? (
+            <CronologiaSesion
+              eventos={eventos}
+              alcance={
+                incompleto || aviso || sePerdioParte ? "parcial" : abierta ? "abierta" : "completo"
+              }
+              onIrAlEvento={(id) => setDestacado((d) => ({ id, vez: (d?.vez ?? 0) + 1 }))}
+            />
           ) : null}
-        </header>
 
-        {/* Los momentos para revisar son el índice del registro: van adentro de su lámina, entre el encabezado y
-            la tabla, armados con los eventos que el detalle ya tiene, en el orden del registro (de lo más viejo a
-            lo más nuevo), y cada uno lleva a su fila. Sin eventos no se dibuja (el registro ya lo dice), y cuando no
-            hay momentos, lo que afirma depende de cuánto del registro se conoce. */}
-        {recibido && eventos.length > 0 ? (
-          <CronologiaSesion
-            eventos={eventos}
-            alcance={
-              incompleto || aviso || sePerdioParte ? "parcial" : abierta ? "abierta" : "completo"
-            }
-            onIrAlEvento={(id) => setDestacado((d) => ({ id, vez: (d?.vez ?? 0) + 1 }))}
-          />
-        ) : null}
-
-        {cargando ? (
-          <p className="detalle__cargando" role="status">Cargando los eventos…</p>
-        ) : !recibido ? null : (
-          <ListaEventos
-            eventos={eventos}
-            destacado={destacado}
-            vacio={
-              <p className="panel__vacio">
-                {/* Tres casos y no dos. Que no haya llegado nada se decide con
-                    `consultando`, no con `abierta`: el ciclo sigue preguntando
-                    unos minutos después del cierre y, si falta el aviso de una
-                    página sin captura, sin plazo — decir ahí que no quedó
-                    ninguno contradice al encabezado, que marca «En vivo».
-                    Y con el intento ya entregado no se puede prometer que los
-                    eventos aparecen al abrirse la página: esa página ya se
-                    cerró, y lo único que puede llegar es lo que venía tarde. */}
-                {!consultando
-                  ? "No quedó ningún evento registrado en esta sesión."
-                  : abierta
-                    ? "Todavía no hay eventos registrados para esta sesión. Aparecen solos en cuanto se abre la página del examen."
-                    : "Todavía no hay eventos registrados para esta sesión. El intento ya se entregó, así que solo puede aparecer lo que haya quedado en camino."}
-              </p>
-            }
-          />
-        )}
-      </section>
+          {cargando ? (
+            <p className="detalle__cargando" role="status">Cargando los eventos…</p>
+          ) : !recibido ? null : (
+            <ListaEventos
+              eventos={eventos}
+              destacado={destacado}
+              vacio={
+                <p className="panel__vacio">
+                  {/* Tres casos y no dos. Que no haya llegado nada se decide con
+                      `consultando`, no con `abierta`: el ciclo sigue preguntando
+                      unos minutos después del cierre y, si falta el aviso de una
+                      página sin captura, sin plazo — decir ahí que no quedó
+                      ninguno contradice al encabezado, que marca «En vivo».
+                      Y con el intento ya entregado no se puede prometer que los
+                      eventos aparecen al abrirse la página: esa página ya se
+                      cerró, y lo único que puede llegar es lo que venía tarde. */}
+                  {!consultando
+                    ? "No quedó ningún evento registrado en esta sesión."
+                    : abierta
+                      ? "Todavía no hay eventos registrados para esta sesión. Aparecen solos en cuanto se abre la página del examen."
+                      : "Todavía no hay eventos registrados para esta sesión. El intento ya se entregó, así que solo puede aparecer lo que haya quedado en camino."}
+                </p>
+              }
+            />
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }

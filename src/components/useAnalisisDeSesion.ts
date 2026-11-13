@@ -29,7 +29,7 @@ function novedades(antes: AlertaDeSesion[], ahora: AlertaDeSesion[]): string {
   return frases.join(" ");
 }
 
-interface EstadoDelAnalisisDeSesion {
+export interface EstadoDelAnalisisDeSesion {
   /** La última respuesta que llegó, o null mientras no llegó ninguna. */
   analisis: Analisis | null;
   /** La última consulta falló: lo que se ve es lo último que llegó. */

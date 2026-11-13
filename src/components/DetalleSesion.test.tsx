@@ -707,3 +707,69 @@ describe("DetalleSesion", () => {
     expect(screen.queryByText(/^Hasta ahora/)).toBeNull();
   });
 });
+
+/**
+ * El orden en que aparece el detalle: el análisis primero y el registro después. Con red lenta el registro
+ * llegaba antes, se dibujaba, y el análisis aparecía arriba y lo empujaba varios cientos de píxeles.
+ */
+describe("DetalleSesion, el orden de llegada", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "focus_lost")]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  const titulo = () => screen.queryByRole("heading", { name: "Registro de eventos" });
+
+  it("mientras el análisis no llega, el registro no se dibuja y hay un solo aviso de espera", async () => {
+    vi.spyOn(sesionesService, "traerAnalisis").mockReturnValue(new Promise(() => undefined));
+    const { container } = render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    expect(titulo()).toBeNull();
+    expect(container.querySelector(".detalle")).toHaveAttribute("aria-busy", "true");
+    const esperas = screen.getAllByRole("status").filter((n) => n.textContent);
+    expect(esperas).toHaveLength(1);
+    expect(esperas[0]).toHaveTextContent("Cargando el análisis…");
+  });
+
+  it("cuando llega el análisis, el registro aparece debajo del veredicto", async () => {
+    let responder: (a: sesionesService.Analisis) => void = () => undefined;
+    vi.spyOn(sesionesService, "traerAnalisis").mockReturnValue(new Promise((r) => (responder = r)));
+    const { container } = render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+    expect(titulo()).toBeNull();
+
+    await act(async () => responder(analisis()));
+    const encabezado = titulo();
+    expect(encabezado).not.toBeNull();
+    const veredicto = container.querySelector(".veredicto");
+    expect(veredicto).not.toBeNull();
+    expect(veredicto!.compareDocumentPosition(encabezado!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(container.querySelector(".detalle")).not.toHaveAttribute("aria-busy");
+  });
+
+  it("si el análisis falla, el registro aparece igual", async () => {
+    vi.spyOn(sesionesService, "traerAnalisis").mockRejectedValue(new Error("sin red"));
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    expect(titulo()).not.toBeNull();
+    expect(within(screen.getByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+  });
+
+  it("si el análisis no contesta, a los tres segundos el registro aparece igual", async () => {
+    vi.spyOn(sesionesService, "traerAnalisis").mockReturnValue(new Promise(() => undefined));
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar(2900);
+    expect(titulo()).toBeNull();
+
+    await esperar(100);
+    expect(titulo()).not.toBeNull();
+    expect(within(screen.getByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+  });
+});

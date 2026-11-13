@@ -7,7 +7,7 @@ import { EvolucionRiesgo } from "./EvolucionRiesgo";
 import { HistorialAlertas } from "./HistorialAlertas";
 import { MetricasSesion } from "./MetricasSesion";
 import { TarjetaAlerta } from "./TarjetaAlerta";
-import { useAnalisisDeSesion } from "./useAnalisisDeSesion";
+import { useAnalisisDeSesion, type EstadoDelAnalisisDeSesion } from "./useAnalisisDeSesion";
 import { Veredicto } from "./Veredicto";
 import "./AnalisisSesion.css";
 import "./DetalleAnalisis.css";
@@ -39,7 +39,15 @@ interface Props {
 }
 
 export function AnalisisSesion({ sesion, onVencida }: Props) {
-  const { analisis, sinConexion, anuncio } = useAnalisisDeSesion(sesion, onVencida);
+  return <AnalisisSesionVista sesion={sesion} estado={useAnalisisDeSesion(sesion, onVencida)} />;
+}
+
+/**
+ * El apartado sin su consulta. El detalle de la sesión hace la consulta él mismo y le pasa el estado: necesita
+ * saber cuándo llegó el análisis para recién ahí dibujar el registro debajo (ver `DetalleSesion`).
+ */
+export function AnalisisSesionVista({ sesion, estado }: { sesion: SesionNumerada; estado: EstadoDelAnalisisDeSesion }) {
+  const { analisis, sinConexion, anuncio } = estado;
   const abierta = sesion.status === "open";
   const alertas = analisis ? ordenarAlertas(analisis.alerts) : [];
   const veredicto = analisis ? veredictoDe(analisis, alertas, abierta) : null;

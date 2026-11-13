@@ -12,6 +12,15 @@
   min-width: 0;
 }
 
+/* Mientras se espera el análisis, el detalle llega hasta el fondo de la pantalla: si no, el pie se asomaba
+   debajo de «Cargando el análisis…» y volvía a bajar cuando llegaba todo. Con `align-content: start`: si no,
+   la grilla repartía el alto de sobra entre sus filas, la ficha se estiraba y todo volvía a subir al llegar el
+   análisis. */
+.detalle[aria-busy="true"] {
+  min-height: calc(100dvh - var(--panel-barra));
+  align-content: start;
+}
+
 /* La ficha de la sesión, arriba de la pila: una sola fila de datos en una
    lámina liviana. No repite el nombre del alumno, que ya está en el título de
    la pantalla y en las migas: lleva lo que allá no entra. El estado va primero
