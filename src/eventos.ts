@@ -96,6 +96,11 @@ export function horaExacta(iso: string): string {
   });
 }
 
+/** «3/11/2026». El día del examen, como lo escribe un docente. */
+export function fechaCorta(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "numeric", year: "numeric" });
+}
+
 /** «14:05». Sin segundos, para los extremos de un tramo. */
 export function horaCorta(iso: string): string {
   return new Date(iso).toLocaleTimeString("es-AR", {

@@ -9,7 +9,7 @@ import {
   type Evento,
   type SesionNumerada,
 } from "../services/sesionesService";
-import { horaCorta } from "../eventos";
+import { fechaCorta, horaCorta } from "../eventos";
 import { seSigueConsultando } from "../seguimiento";
 
 import { AnalisisSesionVista } from "./AnalisisSesion";
@@ -47,11 +47,6 @@ import "./DetalleSesion.css";
    `seguimiento.ts`: el aviso de que una página corrió sin captura lo manda Moodle en una
    tarea programada que corre después de la entrega, así que llega tarde por construcción,
    y el apartado del análisis comparte la regla. */
-
-/** «3/11/2026». El día del examen, como lo escribe un docente. */
-function fechaCorta(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "numeric", year: "numeric" });
-}
 
 /** «194 eventos», «1 evento». */
 function cuentaDeEventos(n: number): string {

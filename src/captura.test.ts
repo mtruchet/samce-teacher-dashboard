@@ -21,6 +21,14 @@ describe("avisoDeCaptura", () => {
     expect(aviso.detalle).toMatch(/No se recibieron eventos entre las \d{2}:\d{2} y las \d{2}:\d{2} mientras el examen seguía en curso \(15 minutos\)/);
   });
 
+  it("un silencio largo se escribe en horas, como en la lista, y si cruza de día cada extremo lleva su fecha", () => {
+    const { detalle } = avisoDeCaptura({ state: "gap", gap_minutes: 13245, last_event_at: "2026-11-04T13:26:00Z" })!;
+    expect(detalle).toContain("(220 h 45 min)");
+    expect(detalle).not.toMatch(/13245|13\.245/);
+    expect(detalle).toMatch(/entre el \d{1,2}\/11\/2026 a las \d{2}:\d{2} y el \d{1,2}\/11\/2026 a las \d{2}:\d{2} mientras/);
+    expect(avisoDeCaptura({ state: "gap", gap_minutes: 90 })!.detalle).toContain("durante 1 h 30 min");
+  });
+
   it("un silencio sin hora de la última señal igual dice cuánto duró", () => {
     expect(avisoDeCaptura({ state: "gap", gap_minutes: 12 })!.detalle).toContain("durante 12 minutos");
   });
