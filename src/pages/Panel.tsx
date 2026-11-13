@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { enCifras } from "../cifras";
 import { claveDelPedido, hayFiltro as hayFiltroEn, leerFiltros } from "../filtrosDeLaDireccion";
@@ -181,7 +181,21 @@ export function Panel() {
     navigate("/", { replace: true });
   }
 
+  // Dónde estaba la página al abrir una sesión desde la lista, para volver al mismo lugar.
+  const lugar = useRef<{ sesion: string; y: number } | null>(null);
+  // El lugar de la página lo decide el panel (ver el efecto del foco, abajo). Con la restauración del
+  // navegador, al volver con Atrás la página llegaba al lugar guardado y un instante después el navegador la
+  // corría a la altura que había anotado él, unos píxeles más abajo.
+  useEffect(() => {
+    const antes = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    return () => {
+      window.history.scrollRestoration = antes;
+    };
+  }, []);
+
   function verEventos(s: SesionNumerada) {
+    lugar.current = { sesion: String(s.id), y: window.scrollY };
     // El estado del registro anterior no vale para este: si quedara, la
     // cabecera mostraría un instante «Intento terminado» de la otra visita.
     setRegistro(null);
@@ -457,7 +471,9 @@ export function Panel() {
   // La sesión cuenta solo en el detalle: mientras se busca una sesión que no llegó, la vista sigue siendo la
   // lista y no es una vista nueva.
   const claveDeLaVista = [nivel, cursoElegido, examenElegido, nivel === "eventos" ? sesionElegida : ""].join("|");
-  useEffect(() => {
+  // Va antes de pintar (efecto de diseño): con un efecto común, el primer cuadro de la lista se pintaba arriba
+  // de todo y recién el siguiente volvía al lugar, y se veía el salto.
+  useLayoutEffect(() => {
     if (!listo) return;
     const antes = anterior.current;
     anterior.current = { clave: claveDeLaVista, nivel, sesion: sesionElegida };
@@ -467,7 +483,16 @@ export function Panel() {
         ? document.querySelector<HTMLButtonElement>(`button[data-sesion="${CSS.escape(antes.sesion)}"]`)
         : null;
       if (ver) {
-        ver.focus();
+        // Vuelve al mismo lugar en que estaba la página al abrir la sesión, de una vez. Antes el foco movía la
+        // página hasta el «Ver», y con el desplazamiento suave de la página se la veía deslizarse sola
+        // cientos de píxeles. Si se volvió por otro camino (un enlace, la recarga), el «Ver» va al centro.
+        if (lugar.current?.sesion === antes.sesion) window.scrollTo({ top: lugar.current.y, behavior: "instant" });
+        else {
+          const r = ver.getBoundingClientRect();
+          window.scrollTo({ top: window.scrollY + r.top + r.height / 2 - window.innerHeight / 2, behavior: "instant" });
+        }
+        ver.focus({ preventScroll: true });
+        lugar.current = null;
         return;
       }
     }
