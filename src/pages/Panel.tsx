@@ -5,6 +5,7 @@ import { claveDelPedido, hayFiltro as hayFiltroEn, leerFiltros } from "../filtro
 import { Broadcast, Examen, Materia } from "../iconos";
 import { clearSession, esPanelGeneral, getStoredSession } from "../services/authService";
 import {
+  CADENCIA_MS,
   SESIONES_POR_PAGINA,
   SESIONES_TOPE,
   type ExamenMonitoreado,
@@ -57,6 +58,14 @@ import "./Panel.css";
  * de integridad. Una alerta nueva se anuncia a los lectores de pantalla con una
  * frase corta (`AvisoAlertas`), sin releer la lista.
  */
+
+/**
+ * Cada cuánto se pregunta por la lista mientras el docente lee una sesión que ya no se consulta (cerrada hace
+ * rato, sin aviso pendiente). De esa sesión no va a cambiar nada, y la lista de atrás no se ve: con la de cinco
+ * segundos se descargaba la lista entera doce veces por minuto para nada. Al volver a la lista, se pregunta en
+ * el momento y se retoma la de cinco segundos.
+ */
+const CADENCIA_QUIETA_MS = 30_000;
 
 /** El título del documento fuera de una vista con nombre, el mismo de index.html. */
 const TITULO_DEL_PANEL = "SAMCE — Panel Docente";
@@ -148,11 +157,15 @@ export function Panel() {
   const [registro, setRegistro] = useState<{ sesion: string | null; sigue: boolean; fallo: boolean } | null>(
     null
   );
+  // Si se está leyendo una sesión que ya no se consulta: la lista se pide más espaciada (`CADENCIA_QUIETA_MS`).
+  // Se decide más abajo, con la sesión ya identificada, y se ajusta en el mismo render.
+  const [ritmoQuieto, setRitmoQuieto] = useState(false);
   // El ciclo de consultas: los exámenes y las sesiones del examen elegido (`useSesionesDelExamen`).
   const { examenes, cargadas, alDia, enlace, marca, recibido, vencida, vencer } = useSesionesDelExamen(
     examenElegido,
     clavePedido,
-    paginas
+    paginas,
+    ritmoQuieto ? CADENCIA_QUIETA_MS : CADENCIA_MS
   );
   // Mientras no llegó nada y la primera consulta no falló.
   const cargando = !recibido && enlace === "vivo";
@@ -202,6 +215,12 @@ export function Panel() {
     setRegistro(null);
     irA({ curso: cursoElegido, examen: examenElegido, sesion: String(s.id) });
   }
+
+  // Estable mientras no cambie la sesión: el detalle no se vuelve a dibujar si no cambió nada (`mismaSesion`).
+  const alConsultarElRegistro = useCallback(
+    (sigue: boolean, fallo: boolean) => setRegistro({ sesion: sesionElegida, sigue, fallo }),
+    [sesionElegida]
+  );
 
   // Salen del token y no de los exámenes: así aparecen también los cursos donde
   // todavía nadie rindió, que son la mayoría fuera de la época de parciales.
@@ -435,6 +454,9 @@ export function Panel() {
           : undefined,
     });
   }
+  const quieto = nivel === "eventos" && sesionMostrada !== undefined && !seSigueConsultando(sesionMostrada);
+  if (quieto !== ritmoQuieto) setRitmoQuieto(quieto);
+
   const nombreDelAlumno = sesionMostrada ? nombreDeAlumno(sesionMostrada) : "";
   if (nivel === "eventos") {
     escalones.push({ nombre: nombreDelAlumno });
@@ -528,9 +550,7 @@ export function Panel() {
   // entrar a una sesión cerrada hace rato decía «En vivo» hasta la primera
   // respuesta, y en un teléfono el pulso que desaparecía subía todo 35 px.
   const delRegistro = nivel === "eventos" && registro?.sesion === sesionElegida ? registro : null;
-  const registroQuieto = delRegistro
-    ? !delRegistro.sigue
-    : nivel === "eventos" && sesionMostrada !== undefined && !seSigueConsultando(sesionMostrada);
+  const registroQuieto = delRegistro ? !delRegistro.sigue : quieto;
   const estadoPulso: EstadoEnlace =
     enlace !== "vivo"
       ? enlace
@@ -624,7 +644,7 @@ export function Panel() {
               <DetalleSesion
                 key={sesionMostrada.id}
                 sesion={sesionMostrada}
-                onConsulta={(sigue, fallo) => setRegistro({ sesion: sesionElegida, sigue, fallo })}
+                onConsulta={alConsultarElRegistro}
                 onVencida={vencer}
               />
             ) : sesionesAjenas ? (

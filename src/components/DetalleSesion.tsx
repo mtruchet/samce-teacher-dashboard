@@ -1,6 +1,6 @@
 import { enCifras } from "../cifras";
 import { avisoDeCaptura } from "../captura";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   CADENCIA_MS,
   EVENTOS_POR_PAGINA,
@@ -98,7 +98,7 @@ interface Props {
   onConsulta?: (sigue: boolean, fallo: boolean) => void;
 }
 
-export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
+function DetalleSesionSinMemo({ sesion, onVencida, onConsulta }: Props) {
   const [eventos, setEventos] = useState<Evento[]>([]);
   // El análisis se consulta acá y no dentro de su apartado: el detalle tiene que saber cuándo llegó. Las dos
   // consultas salen juntas, pero el registro se dibuja recién cuando el análisis está (o falló, o pasó el
@@ -408,3 +408,31 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
     </div>
   );
 }
+
+/**
+ * Si dos versiones de la sesión se ven igual en el detalle. El panel arma la sesión de nuevo con cada respuesta
+ * de la lista, aunque no haya cambiado nada, y el detalle entero (el análisis, los momentos y hasta cientos de
+ * filas del registro) se volvía a dibujar cada cinco segundos. Se comparan los datos que el detalle muestra o de
+ * los que depende su consulta, y los avisos al panel por identidad: el panel los pasa estables, y uno nuevo
+ * tiene que llegar a las referencias que lee el ciclo.
+ */
+function mismaSesion(a: Props, b: Props): boolean {
+  const x = a.sesion;
+  const y = b.sesion;
+  return (
+    x.id === y.id &&
+    x.examenId === y.examenId &&
+    x.status === y.status &&
+    x.started_at === y.started_at &&
+    x.closed_at === y.closed_at &&
+    x.capture?.state === y.capture?.state &&
+    x.capture?.gap_minutes === y.capture?.gap_minutes &&
+    x.capture?.last_event_at === y.capture?.last_event_at &&
+    x.intento === y.intento &&
+    x.intentos === y.intentos &&
+    a.onVencida === b.onVencida &&
+    a.onConsulta === b.onConsulta
+  );
+}
+
+export const DetalleSesion = memo(DetalleSesionSinMemo, mismaSesion);

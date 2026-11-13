@@ -32,8 +32,15 @@ export interface SesionesCargadas {
  * - `examenElegido`: el examen de la dirección; solo de ese se piden las sesiones.
  * - `clavePedido`: lo que de verdad se le pide al backend, como texto (`claveDelPedido`).
  * - `paginas`: cuántas páginas de 50 sesiones se pidieron.
+ * - `cadencia`: cada cuánto se vuelve a preguntar. Mientras el docente lee una sesión que ya no cambia, la lista
+ *   de atrás no necesita la de cinco segundos (ver el panel). Si vuelve a ser la rápida, pregunta enseguida.
  */
-export function useSesionesDelExamen(examenElegido: string | null, clavePedido: string, paginas: number) {
+export function useSesionesDelExamen(
+  examenElegido: string | null,
+  clavePedido: string,
+  paginas: number,
+  cadencia = CADENCIA_MS
+) {
   const [examenes, setExamenes] = useState<ExamenMonitoreado[]>([]);
   // Solo las sesiones del examen que se está mirando, con el examen del que
   // son: las de los demás no se piden.
@@ -143,6 +150,12 @@ export function useSesionesDelExamen(examenElegido: string | null, clavePedido: 
     }
   }, [examenElegido, clavePedido, paginas, vencer]);
 
+  // El ritmo va en una referencia y no en las dependencias del ciclo: si lo rearmara, cada cambio largaría una
+  // consulta de inmediato, y al entrar a una sesión terminada se pedía la lista dos veces seguidas. El cambio lo
+  // atiende `reprogramar`, que corre la próxima consulta sin repetir la que está en vuelo.
+  const ritmo = useRef(cadencia);
+  const reprogramar = useRef<((antes: number) => void) | null>(null);
+
   useEffect(() => {
     if (vencida) return;
 
@@ -152,17 +165,38 @@ export function useSesionesDelExamen(examenElegido: string | null, clavePedido: 
     // descartada por vieja, y el panel seguía diciendo «En vivo» sin mostrar
     // nada nuevo.
     let activo = true;
+    let enVuelo = false;
     let proxima: number | undefined;
     const ciclo = async () => {
+      enVuelo = true;
       await consultar();
-      if (activo) proxima = window.setTimeout(ciclo, CADENCIA_MS);
+      enVuelo = false;
+      if (activo) proxima = window.setTimeout(ciclo, ritmo.current);
+    };
+    reprogramar.current = (antes) => {
+      // Con una consulta en vuelo no hace falta nada: al terminar, la próxima ya sale con el ritmo nuevo.
+      if (!activo || enVuelo) return;
+      window.clearTimeout(proxima);
+      // Más rápido que antes (se volvió a la lista): se pregunta ya, la lista no puede esperar el plazo largo.
+      // Más lento: la próxima se corre al plazo nuevo, contado desde ahora.
+      if (ritmo.current < antes) void ciclo();
+      else proxima = window.setTimeout(ciclo, ritmo.current);
     };
     void ciclo();
     return () => {
       activo = false;
+      reprogramar.current = null;
       window.clearTimeout(proxima);
     };
   }, [consultar, vencida]);
+
+  // Va después del ciclo: si los dos cambian juntos, el ciclo ya se rearmó y consultó, y esto no repite nada.
+  useEffect(() => {
+    const antes = ritmo.current;
+    if (antes === cadencia) return;
+    ritmo.current = cadencia;
+    reprogramar.current?.(antes);
+  }, [cadencia]);
 
   // Lo que se muestra es siempre una respuesta completa (filas, total y resumen del mismo pedido): la de la
   // vista pedida si es la última que llegó o está en memoria, y si no, la última. `alDia` dice si es de la

@@ -95,7 +95,8 @@ describe("El pulso del panel en el registro de un intento", () => {
     expect(document.querySelector(".enlace")).toBeNull();
 
     vi.mocked(sesionesService.traerExamenes).mockRejectedValue(new Error("sin red"));
-    await esperar(5000);
+    // Con la sesión cerrada hace rato, la lista se pide cada treinta segundos (ver Panel.ritmo.test).
+    await esperar(30_000);
 
     expect(screen.getByText(SIN_CONEXION)).toBeInTheDocument();
     expect(screen.queryByText(QUIETO)).not.toBeInTheDocument();
