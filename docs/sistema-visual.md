@@ -196,7 +196,7 @@ Un rol, un radio. El peso de una lámina lo dan la sombra y el fondo, nunca el r
 
 | Rol | Fondo | Borde | Sombra | Radio |
 |---|---|---|---|---|
-| Página | `--sup-2` | — | — | — |
+| Página del panel | `--sup-3` (la landing sigue en `--sup-1`/`--sup-2`) | — | — | — |
 | Lámina (control, grupos, fichas de examen, espera) | `--sup-1` | `--anillo` | `--elev-2` | `--radio-lamina` 16 |
 | Lámina de lectura | `--sup-1` | `--anillo` | `--elev-1` | 16 |
 | Lámina de apoyo | `--sup-2` | `--anillo` | — | 16 |
@@ -204,7 +204,7 @@ Un rol, un radio. El peso de una lámina lo dan la sombra y el fondo, nunca el r
 | Tarjeta (de nivel, de estado, de alerta) | tinte al 8 % o `--sup-2` | `--anillo`, más `--marca-tarjeta` si hay nivel | `--elev-1` al pasar el mouse | 12 |
 | Aviso y vacío de página | `--nivel-1-fondo`, o `--sup-1` en el vacío | 1 px adentro | — | 12 |
 | Control (selector, búsqueda, `.boton-secundario`) | `--sup-1` | 1 px adentro en `--borde-control` (3,5:1) | — | `--radio-chip` 6 |
-| Etiqueta de estado | `--sup-3` | 1 px adentro en `--sup-4`, más un borde transparente | — | 6 |
+| Etiqueta de estado | `--sup-3`; `--sup-1` en la ficha de la sesión, que va sobre la página | 1 px adentro en `--sup-4`, más un borde transparente | — | 6 |
 | Paso de la escalera | `--sup-2` | 1 px adentro en `--sup-4` | — | 6 |
 | Renglón con marca | transparente, o `--sup-3` si está destacado | `--marca-renglon` | — | 0 |
 | Métrica | transparente | guía de 2 px | — | 0 |
@@ -224,7 +224,7 @@ Un rol, un radio. El peso de una lámina lo dan la sombra y el fondo, nunca el r
 ### Vetos
 
 - No se sube el tinte del 8 % de las tarjetas ni el del 14 % del medidor.
-- Nada de `--tinta-suave` sobre `--sup-4`.
+- Nada de `--tinta-suave` sobre `--sup-4`. Sobre la página (`--sup-3`) da 4,51:1: el mínimo justo, así que lo que va directo sobre la página prefiere `--tinta-media` (7,34:1).
 - Sin texto sobre los tonos del nivel.
 - No se le quita relleno vertical al botón de texto ni al desplegable.
 - Nada por debajo de 11 px.

@@ -1,11 +1,17 @@
 /* El área privada.
 
-   El fondo es el segundo escalón de la escalera de superficies y cada bloque va
+   El fondo es el tercer escalón de la escalera de superficies y cada bloque va
    sobre una lámina blanca. Se separan por el escalón, sin una sola línea, que
-   es la regla del sistema. */
+   es la regla del sistema.
+
+   --sup-3 y no --sup-2 (13/11): la lámina de apoyo del registro es --sup-2, y sobre una página del mismo
+   escalón solo la recortaba el anillo; parecía un hueco sin fondo. Un escalón más abajo la despega. Solo en el
+   panel: la landing sigue alternando sus secciones sobre --sup-1 y --sup-2. Todo lo que va directo sobre la
+   página (migas, título, ficha, pulso, avisos y notas) se comprueba en pruebas-navegador/fondo-del-panel.spec.ts:
+   --tinta-suave queda en 4,51:1, el celeste de las migas en 4,95:1 y --tinta-media en 7,34:1. */
 
 body:has(.panel) {
-  background: var(--sup-2);
+  background: var(--sup-3);
 }
 
 .panel {
@@ -86,7 +92,7 @@ body:has(.panel) {
 /* ==== Cuando un bloque no tiene filas =================================== */
 
 /* El aviso de página, fuera de toda lámina, cuando todavía no llegó nada del servidor. Va en la superficie de
-   las láminas con su anillo, como un aviso: en --sup-2 sobre la página, que también es --sup-2, no tenía
+   las láminas con su anillo, como un aviso: en --sup-2 sobre la página (entonces también --sup-2) no tenía
    borde ni fondo propio y el texto quedaba suelto entre el encabezado y el pie. */
 .panel__vacio {
   padding: var(--e5);
