@@ -19,7 +19,8 @@
   gap: var(--e4);
   padding: var(--e5) var(--e6);
   border: 0;
-  border-radius: var(--radio-panel);
+  /* Una ficha de examen es una lámina: el mismo radio que las de la lista y el detalle. */
+  border-radius: var(--radio-lamina);
   background: var(--sup-1);
   box-shadow: var(--anillo), var(--elev-2);
   font: inherit;
@@ -40,9 +41,14 @@
   transform: none;
 }
 
+/* Un solo foco en todo el panel (--anillo-foco), sumado a la sombra de la ficha y con el radio de la lámina.
+   Antes era un contorno celeste propio, distinto del de los demás controles. El contorno transparente queda
+   para colores forzados, como en base.css. */
 .ficha:focus-visible {
-  outline: 2px solid var(--celeste);
-  outline-offset: 3px;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  border-radius: var(--radio-lamina);
+  box-shadow: var(--anillo), var(--elev-2), var(--anillo-foco);
 }
 
 .ficha__nombre {
@@ -50,7 +56,7 @@
   min-width: 0;
   font-size: var(--panel-pieza);
   font-weight: 600;
-  line-height: 24px;
+  line-height: var(--panel-alto-pieza);
   letter-spacing: var(--track-titulo);
 }
 
@@ -68,6 +74,9 @@
 }
 
 .ficha__cuenta {
+  /* Una cuenta va en la nota, como la de cada lámina («Finalizadas 30») y la del registro: en el cuerpo era
+     la única cuenta del panel fuera de su paso de la escala (docs/sistema-visual.md, tabla de roles). */
+  font-size: var(--panel-nota);
   display: inline-flex;
   align-items: center;
   gap: var(--e2);
@@ -77,7 +86,8 @@
    el mismo celeste con que el panel marca todo lo que está vivo. */
 .ficha__cuenta--vivo {
   color: var(--celeste-hondo);
-  font-weight: 500;
+  /* El panel usa dos pesos, 400 y 600: lo vivo se destaca con el de los datos que importan. */
+  font-weight: 600;
 }
 
 .ficha__estado--nada {
@@ -102,6 +112,13 @@
   color: var(--celeste-hondo);
 }
 
+/* Con colores forzados el anillo y la sombra desaparecen: la ficha, que es un botón, lleva su borde. */
+@media (forced-colors: active) {
+  .ficha {
+    border: 1px solid ButtonText;
+  }
+}
+
 @media (max-width: 620px) {
   /* En dos renglones: arriba de qué se trata, abajo qué está pasando adentro.
      El orden se declara pieza por pieza y no por posición, porque hacerlo por
@@ -116,8 +133,11 @@
     order: 0;
   }
 
+  /* Base cero y no `auto`: con `auto` un nombre largo pedía todo su ancho, no entraba al lado del ícono y bajaba
+     solo a otro renglón, dejando el ícono suelto arriba. Con base cero se queda con lo que el ícono deja libre
+     y, si no entra, parte su texto en lugar de mudarse. */
   .ficha__nombre {
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     order: 1;
   }
 

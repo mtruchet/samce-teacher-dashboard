@@ -1,0 +1,18 @@
+/* El tono de cada nivel de riesgo, en un solo lugar.
+
+   Todo lo que dice un nivel (la marca de la celda «Análisis», las tarjetas del resumen, la tarjeta de la
+   alerta, los renglones del historial y el medidor) lleva `data-nivel` y pinta con `--tono`. Son los tonos de
+   las alertas (--alerta-tono-*, en tokens.css), de frío y suave a cálido e intenso: el mismo nivel se ve igual
+   en la lista, en el resumen y en el detalle, sin semáforo (D1). Ninguna otra hoja asigna `--tono`; lo
+   comprueba src/estilos.test.ts. */
+[data-nivel="low"] {
+  --tono: var(--alerta-tono-low);
+}
+
+[data-nivel="medium"] {
+  --tono: var(--alerta-tono-medium);
+}
+
+[data-nivel="high"] {
+  --tono: var(--alerta-tono-high);
+}

@@ -66,14 +66,25 @@ describe("Enrutado y acceso", () => {
 
   it("canjea el token de lanzamiento y entra al panel", async () => {
     window.history.pushState({}, "", "/auth/callback?token=un-token-de-lanzamiento");
-    vi.spyOn(authService, "verifyMoodleLaunch").mockImplementation(async () => {
-      guardarSesion();
-      return SESION;
-    });
+    // El canje queda pendiente hasta soltarlo: si contestara enseguida, según el orden en que corren las
+    // pruebas (con --sequence.shuffle --sequence.seed=33, por ejemplo) la pantalla ya pasaba al panel antes
+    // de que la prueba alcanzara a ver «Verificando el acceso».
+    let soltar: (() => void) | undefined;
+    vi.spyOn(authService, "verifyMoodleLaunch").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          soltar = () => {
+            guardarSesion();
+            resolve(SESION);
+          };
+        })
+    );
 
     render(<App />);
 
     expect(await screen.findByText(/Verificando el acceso/i)).toBeInTheDocument();
+    await waitFor(() => expect(soltar).toBeDefined());
+    soltar!();
 
     await waitFor(() => {
       expect(
@@ -395,7 +406,7 @@ describe("Enrutado y acceso", () => {
     // Al entrar a uno se piden las de ese, y solo esas.
     fireEvent.click(await screen.findByRole("button", { name: /Primer Parcial/i }));
     expect(await screen.findByText("Ana Gómez")).toBeInTheDocument();
-    expect(traer).toHaveBeenCalledWith(1, 50, expect.anything());
+    expect(traer).toHaveBeenCalledWith(1, 50, expect.anything(), expect.any(AbortSignal));
     expect(traer.mock.calls.every(([examen]) => examen === 1)).toBe(true);
   });
 
@@ -414,10 +425,10 @@ describe("Enrutado y acceso", () => {
     render(<App />);
 
     const verMas = await screen.findByRole("button", { name: /Ver más sesiones/i });
-    expect(traer).toHaveBeenCalledWith(1, 50, expect.anything());
+    expect(traer).toHaveBeenCalledWith(1, 50, expect.anything(), expect.any(AbortSignal));
 
     fireEvent.click(verMas);
-    await waitFor(() => expect(traer).toHaveBeenCalledWith(1, 100, expect.anything()));
+    await waitFor(() => expect(traer).toHaveBeenCalledWith(1, 100, expect.anything(), expect.any(AbortSignal)));
   });
 
   it("aclara cuando el examen tiene más sesiones de las que el backend devuelve por pedido", async () => {
@@ -595,11 +606,11 @@ describe("Enrutado y acceso", () => {
 
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /Ver los eventos de Ana Gómez/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Ver la sesión de Ana Gómez/i }));
 
-    expect(within(await screen.findByRole("group", { name: "Registro de eventos" })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+    expect(within(await screen.findByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
     // Se pide por el examen y la sesión que se eligieron, y la dirección lo recuerda.
-    expect(traerEventos).toHaveBeenCalledWith(1, 5, 0);
+    expect(traerEventos).toHaveBeenCalledWith(1, 5, 0, expect.any(AbortSignal));
     expect(window.location.search).toContain("sesion=5");
     // El rastro dice dónde está parado el docente y deja volver.
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Ana Gómez");

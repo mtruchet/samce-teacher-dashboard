@@ -1,3 +1,15 @@
+/* Las tintas del pie, en tres escalones y con un solo criterio (13/11):
+   - en blanco (--tinta-clara), solo el nombre del sistema: es la firma del pie;
+   - en clara-media (78 %), todo lo que se lee: los títulos de columna, los nombres, las frases y los enlaces;
+   - en clara-suave (62 %, 4,72:1 sobre la pizarra), los rótulos que los presentan («Autor 1», «Se registra
+     solo») y la bajada del nombre.
+   Antes estaba al revés: el rótulo «Autor 1» iba más claro que el nombre que presentaba, y el título de la
+   columna más apagado que sus renglones. Lo comprueba pruebas-navegador/pie.spec.ts, en la landing y en el panel.
+
+   Las mayúsculas del pie (los títulos de columna y los rótulos) son una excepción a la regla del panel, que las
+   deja solo para los encabezados de la tabla: el pie es de la landing y el panel lo comparte entero, con sus
+   rótulos de directorio. Una variante propia del panel lo partiría en dos, y cuando estuvo escrito dos veces ya
+   se había despegado (Pie.tsx). Está anotada en docs/sistema-visual.md. */
 .pie {
   background: var(--sup-5);
   color: var(--tinta-clara);
@@ -26,24 +38,27 @@
 
 .pie__nombre {
   font-size: var(--paso-apoyo);
+  /* 25, como los enlaces: heredaba 1,58 (25,26 px) y era el único renglón del pie fuera del múltiplo de 5. */
+  line-height: 25px;
   font-weight: 500;
   margin-bottom: var(--e2);
 }
 
 .pie__descripcion {
   font-size: var(--paso-rotulo);
-  line-height: 1.6;
+  line-height: 20px;
   color: var(--tinta-clara-suave);
   max-width: 34ch;
 }
 
 .pie__titulo {
   font-size: var(--paso-rotulo);
+  line-height: 20px;
   font-weight: 500;
   letter-spacing: var(--track-rotulo);
   text-transform: uppercase;
-  color: var(--tinta-clara-suave);
-  margin-bottom: var(--e5);
+  color: var(--tinta-clara-media);
+  margin-bottom: var(--e4);
 }
 
 .pie__col ul {
@@ -51,9 +66,12 @@
   gap: var(--e3);
 }
 
+/* Cada renglón del pie va en un interlineado múltiplo de 5, como el resto del sistema: 25 para los enlaces
+   (16 px) y 20 para los renglones chicos (12 px). Con 1,45 daban 23,2 px, fuera del ritmo, y los enlaces de
+   «La facultad» no caían al paso de los renglones de al lado. */
 .pie__col li {
   font-size: var(--paso-apoyo);
-  line-height: 1.45;
+  line-height: 25px;
   color: var(--tinta-clara-media);
 }
 
@@ -75,9 +93,12 @@
   text-underline-offset: 3px;
 }
 
-.pie__rol {
-  color: var(--tinta-clara-suave) !important;
-  font-size: var(--paso-rotulo) !important;
+/* Un renglón chico: el nombre de una persona, una frase del panel o una línea de la dirección. Va en
+   clara-media, como todo lo que se lee; lo apagado es su rótulo (.pie__cargo). */
+.pie__col .pie__rol {
+  font-size: var(--paso-rotulo);
+  line-height: 20px;
+  color: var(--tinta-clara-media);
 }
 
 
@@ -91,6 +112,18 @@
     padding-left: 0;
     border-left: none;
   }
+
+  /* En una columna sola el renglón sí puede partirse: a 320 px y con el espaciado de texto del criterio 1.4.12
+     (interlineado 1,5, letras 0,12 em, palabras 0,16 em), «UTN Facultad Regional San Francisco» en un renglón
+     ensanchaba la columna y la página se corría de costado. Sin ese espaciado entra entero igual. */
+  .pie__col li:not(.pie__rol) {
+    text-wrap: wrap;
+  }
+}
+
+/* Los dos renglones de la dirección, pegados como un rótulo a su nombre en «El proyecto». */
+.pie__linea {
+  display: block;
 }
 
 /* El cargo va arriba y en chico, y el nombre debajo en su propio renglón: los
@@ -98,10 +131,20 @@
    como una frase sola. */
 .pie__cargo {
   display: block;
-  margin-bottom: 2px;
   font-size: var(--panel-rotulo);
+  line-height: 15px;
   letter-spacing: var(--track-rotulo);
   text-transform: uppercase;
-  color: var(--tinta-clara-media);
+  color: var(--tinta-clara-suave);
 }
 
+/* Con colores forzados el fondo del pie pasa al del sistema y el logotipo, que es blanco, desaparecía: se le
+   deja su pizarra detrás, como al de la barra. */
+@media (forced-colors: active) {
+  .pie__logo {
+    forced-color-adjust: none;
+    background: var(--pizarra);
+    padding: 2px var(--e1);
+    border-radius: var(--radio-chip);
+  }
+}

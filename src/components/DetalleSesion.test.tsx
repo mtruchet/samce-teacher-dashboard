@@ -1,9 +1,10 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as sesionesService from "../services/sesionesService";
-import { esperar, evento, sesionNumerada } from "../test/fabricas";
+import { alerta, analisis, esperar, evento, sesionNumerada } from "../test/fabricas";
 import { horaCorta, horaExacta } from "../eventos";
-import { DetalleSesion } from "./DetalleSesion";
+import { ingresar } from "../test/panel";
+import { DetalleSesion, PLAZO_DEL_ANALISIS_MS } from "./DetalleSesion";
 
 const SESION = sesionNumerada();
 const nada = () => undefined;
@@ -12,9 +13,7 @@ describe("DetalleSesion", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     // El apartado «Análisis de la sesión» hace su propia consulta; acá solo importa el registro.
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue({
-      state: "not_analyzed", reason: null, calculated_at: null, alerts: [],
-    });
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(analisis({ state: "not_analyzed", calculated_at: null }));
   });
 
   afterEach(() => {
@@ -31,43 +30,37 @@ describe("DetalleSesion", () => {
     render(<DetalleSesion sesion={SESION} onVencida={nada} />);
     await esperar();
 
-    expect(sesionesService.traerEventos).toHaveBeenCalledWith(3, 7, 0);
+    expect(sesionesService.traerEventos).toHaveBeenCalledWith(3, 7, 0, expect.any(AbortSignal));
     const filas = screen.getAllByRole("row").slice(1);
     expect(filas).toHaveLength(2);
     expect(filas[0]).toHaveTextContent("Pegó");
     expect(filas[0]).toHaveTextContent("pregunta 1, unas 57 palabras");
     expect(filas[1]).toHaveTextContent("Pasó a otra ventana");
     // Quién es el alumno lo dice el título de la pantalla, no esta vista, con
-    // o sin nombre. El estado sí, porque es lo único que cambia solo.
+    // o sin nombre. El estado tampoco: va en la ficha, en la cabecera (FichaSesion).
     expect(screen.queryByText("Ana Gómez")).not.toBeInTheDocument();
     expect(screen.queryByText(/Alumno 41/)).not.toBeInTheDocument();
-    expect(screen.getByText("Rindiendo ahora")).toBeInTheDocument();
+    expect(screen.queryByText("Rindiendo ahora")).not.toBeInTheDocument();
   });
 
   it("el análisis de la sesión va en su apartado, aparte del registro de eventos", async () => {
     vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "focus_lost")]);
-    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue({
-      state: "analyzed",
-      reason: null,
-      calculated_at: "2026-10-23T14:30:05.123Z",
-      alerts: [{
-        origin: "event", level: "high", explanation: "Se pegó un bloque de 4.370 caracteres.",
-        level_since: "2026-10-23T14:10:00.000Z", created_at: "2026-10-23T14:00:00.000Z", updated_at: "2026-10-23T14:30:05.123Z",
-      }],
-    });
+    vi.spyOn(sesionesService, "traerAnalisis").mockResolvedValue(
+      analisis({ alerts: [alerta({ origin: "event", level: "high", explanation: "Se pegó un bloque de 4.370 caracteres." })] })
+    );
 
     render(<DetalleSesion sesion={SESION} onVencida={nada} />);
     await esperar();
 
-    const analisis = screen.getByRole("region", { name: "Análisis de la sesión" });
-    expect(analisis).toHaveTextContent("Riesgo alto");
-    expect(analisis).toHaveTextContent("Se pegó un bloque de 4.370 caracteres.");
+    const apartado = screen.getByRole("region", { name: "Análisis de la sesión" });
+    expect(apartado).toHaveTextContent("Riesgo alto");
+    expect(apartado).toHaveTextContent("Se pegó un bloque de 4.370 caracteres.");
     // El registro sigue siendo solo lo que pasó: la alerta no entra en su tabla.
     const registro = screen.getByRole("heading", { name: "Registro de eventos" }).closest("section");
     expect(registro).not.toBeNull();
-    expect(registro).not.toContainElement(analisis);
+    expect(registro).not.toContainElement(apartado);
     expect(registro).not.toHaveTextContent("Se pegó un bloque de 4.370 caracteres.");
-    expect(sesionesService.traerAnalisis).toHaveBeenCalledWith(3, 7);
+    expect(sesionesService.traerAnalisis).toHaveBeenCalledWith(3, 7, expect.any(AbortSignal));
   });
 
   it("pide por orden de llegada y muestra el evento tardío donde llegó", async () => {
@@ -85,7 +78,7 @@ describe("DetalleSesion", () => {
     ]);
     await esperar(5000);
 
-    expect(traer).toHaveBeenLastCalledWith(3, 7, 2);
+    expect(traer).toHaveBeenLastCalledWith(3, 7, 2, expect.any(AbortSignal));
     const filas = screen.getAllByRole("row").slice(1);
     expect(filas).toHaveLength(3);
     // Se ordena con la misma hora que se muestra, la de llegada: el tardío queda
@@ -119,7 +112,7 @@ describe("DetalleSesion", () => {
     await esperar(5000);
 
     // La segunda vez pide después del último que ya tenía, y agrega a lo mostrado.
-    expect(traer).toHaveBeenLastCalledWith(3, 7, 11);
+    expect(traer).toHaveBeenLastCalledWith(3, 7, 11, expect.any(AbortSignal));
     expect(screen.getAllByRole("row")).toHaveLength(4);
     expect(screen.getByText("El mouse salió del área del examen")).toBeInTheDocument();
   });
@@ -139,7 +132,7 @@ describe("DetalleSesion", () => {
     await esperar(15000);
     // La de hace una hora se consulta una sola vez; la reciente siguió sus consultas.
     expect(traer.mock.calls.filter(([, sesion]) => sesion === 9)).toHaveLength(1);
-    expect(screen.getAllByText("Entregó")).toHaveLength(2);
+    expect(screen.getAllByRole("heading", { name: "Registro de eventos" })).toHaveLength(2);
   });
 
   it("al cerrarse la sesión conserva lo mostrado, pide solo lo que falta y deja de preguntar", async () => {
@@ -155,7 +148,7 @@ describe("DetalleSesion", () => {
     await esperar();
 
     // No volvió a pedir desde cero: pidió después del último que ya tenía.
-    expect(traer).toHaveBeenLastCalledWith(3, 7, 2);
+    expect(traer).toHaveBeenLastCalledWith(3, 7, 2, expect.any(AbortSignal));
     expect(traer).toHaveBeenCalledTimes(2);
     expect(screen.getAllByRole("row").slice(1)).toHaveLength(3);
 
@@ -225,10 +218,24 @@ describe("DetalleSesion", () => {
     expect(onConsulta).toHaveBeenLastCalledWith(true, true);
     // Lo que ya había llegado sigue a la vista, con el aviso.
     expect(screen.getByText(/No se pudo actualizar el registro/)).toBeInTheDocument();
-    expect(within(screen.getByRole("group", { name: "Registro de eventos" })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+    expect(within(screen.getByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
 
     await esperar(5000);
     expect(onConsulta).toHaveBeenLastCalledWith(true, false);
+  });
+
+  it("el aviso de que el registro no se pudo actualizar va dentro del registro, no arriba del análisis", async () => {
+    // Arriba del análisis, cada corte de la conexión lo bajaba y lo volvía a subir.
+    vi.spyOn(sesionesService, "traerEventos")
+      .mockResolvedValueOnce([evento(1, "focus_lost")])
+      .mockRejectedValueOnce(new Error("sin red"))
+      .mockResolvedValue([]);
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+    await esperar(5000);
+
+    const registro = screen.getByText(/No se pudo actualizar el registro/).closest("section");
+    expect(registro).toHaveAttribute("aria-labelledby", "registro-de-eventos-titulo");
   });
 
   it("sin eventos lo dice, sin tabla vacía, y aclara que aparecen al abrirse la página", async () => {
@@ -271,21 +278,6 @@ describe("DetalleSesion", () => {
     expect(registro.queryByText(/índice|riesgo|alerta|integridad|sospech/i)).not.toBeInTheDocument();
   });
 
-  it("no le dice «entregó» a un intento que quedó sin entregar", async () => {
-    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "focus_lost")]);
-
-    render(<DetalleSesion sesion={{ ...SESION, status: "abandoned", closed_at: "2026-09-21T14:40:00Z" }} onVencida={nada} />);
-    await esperar();
-
-    // «abandoned» es justo lo que no se entregó. La lista, del mismo dato,
-    // dice «sin entregar»: dos pantallas del mismo registro no pueden
-    // contradecirse.
-    expect(screen.getByText("Sin entregar")).toBeInTheDocument();
-    expect(screen.queryByText("Entregó")).not.toBeInTheDocument();
-    // Sin duración, como en la lista: el cierre de un abandono no es cuándo dejó de rendir.
-    expect(screen.queryByText(/Duró/)).not.toBeInTheDocument();
-  });
-
   it("junta varias páginas cuando la sesión tiene más eventos que los que entran en una", async () => {
     const pagina = Array.from({ length: sesionesService.EVENTOS_POR_PAGINA }, (_, i) => evento(i + 1, "mouse_enter"));
     const traer = vi
@@ -296,7 +288,7 @@ describe("DetalleSesion", () => {
     render(<DetalleSesion sesion={SESION} onVencida={nada} />);
     await esperar();
 
-    expect(traer).toHaveBeenNthCalledWith(2, 3, 7, sesionesService.EVENTOS_POR_PAGINA);
+    expect(traer).toHaveBeenNthCalledWith(2, 3, 7, sesionesService.EVENTOS_POR_PAGINA, expect.any(AbortSignal));
     expect(screen.getByText("El mouse salió del área del examen")).toBeInTheDocument();
   });
 
@@ -391,43 +383,33 @@ describe("DetalleSesion", () => {
     );
     expect(filas[2]).toHaveTextContent("Pasó a otra ventana");
     // Y el silencio no se cuenta como un evento más.
-    expect(screen.getByText("2 eventos", { selector: ".lista__cuenta" })).toBeInTheDocument();
+    expect(screen.getByText("2 eventos", { selector: ".lamina__cuenta" })).toBeInTheDocument();
   });
 
-  it("la ficha dice si entregó, qué intento es, cuándo empezó y cuánto duró, en una sola fila", async () => {
+  it("la ficha de la sesión no es parte del detalle: va en la cabecera, debajo del nombre", async () => {
     vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
-    const entregada = {
-      ...SESION, intento: 5, intentos: 5, status: "closed" as const,
-      started_at: "2026-11-03T12:11:33Z", closed_at: "2026-11-03T12:27:46Z",
-    };
-
-    const { container } = render(<DetalleSesion sesion={entregada} onVencida={nada} />);
+    const { container } = render(<DetalleSesion sesion={{ ...SESION, intento: 2, intentos: 2 }} onVencida={nada} />);
     await esperar();
 
-    const ficha = container.querySelector(".detalle__sesion") as HTMLElement;
-    expect(within(ficha).getByText("Entregó")).toBeInTheDocument();
-    expect(ficha).toHaveTextContent("Intento 5 de 5");
-    // Con la fecha: con varios parciales, la hora sola no decía qué día (ronda 3).
-    const dia = new Date("2026-11-03T12:11:33Z").toLocaleDateString("es-AR", { day: "numeric", month: "numeric", year: "numeric" });
-    expect(dia).toMatch(/^\d{1,2}\/11\/2026$/);
-    expect(ficha).toHaveTextContent(`Empezó el ${dia} a las ${horaCorta("2026-11-03T12:11:33Z")}`);
-    // El estado, como una etiqueta.
-    expect(within(ficha).getByText("Entregó")).toHaveClass("detalle__estado");
-    // La misma duración que la lista de sesiones, con el mismo componente.
-    expect(ficha).toHaveTextContent("Duró 16 min");
-    // El estado una sola vez: ya no hay un segundo rótulo que lo repita con otras palabras.
-    expect(screen.getAllByText("Entregó")).toHaveLength(1);
+    expect(container.querySelector(".detalle__sesion")).toBeNull();
+    expect(screen.queryByText(/Intento 2 de 2/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Empezó el/)).not.toBeInTheDocument();
   });
 
-  it("con un solo intento no dice qué intento es, y abierta no dice cuánto duró", async () => {
-    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
-    const { container } = render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+  it("si todos los eventos caen en el mismo minuto, el encabezado dice «a las HH:MM» y no «de HH:MM a HH:MM»", async () => {
+    const primero = "2026-09-21T14:00:05.000Z";
+    const ultimo = "2026-09-21T14:00:50.000Z";
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
+      evento(1, "focus_lost", {}, { id: 1, received_at: primero, occurred_at: primero }),
+      evento(2, "focus_gained", {}, { id: 2, received_at: ultimo, occurred_at: ultimo }),
+    ]);
+
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
     await esperar();
 
-    const ficha = container.querySelector(".detalle__sesion") as HTMLElement;
-    expect(ficha).not.toHaveTextContent(/Intento/);
-    expect(ficha).not.toHaveTextContent(/Duró/);
-    expect(ficha).toHaveTextContent(/Empezó el \d{1,2}\/\d{1,2}\/\d{4} a las \d{2}:\d{2}/);
+    const encabezado = screen.getByRole("heading", { name: "Registro de eventos" }).parentElement!;
+    expect(encabezado).toHaveTextContent(`2 eventos, a las ${horaCorta(primero)}`);
+    expect(encabezado.textContent).not.toMatch(/ de \d{2}:\d{2} a /);
   });
 
   it("el encabezado del registro dice cuántos eventos hay y de qué hora a qué hora, sin segundos", async () => {
@@ -449,17 +431,11 @@ describe("DetalleSesion", () => {
       `, de ${horaCorta(primero)} a ${horaCorta(ultimo)}`
     );
     expect(encabezado.textContent).not.toMatch(/\d{2}:\d{2}:\d{2}/);
+    // La coma se lee también con lector de pantalla: oculta, la cuenta y los extremos quedaban pegados
+    // («3 eventosde …») en el árbol accesible (LV2-02).
+    expect(encabezado.querySelector(".detalle__punto")?.closest("[aria-hidden]")).toBeNull();
     // Y el orden se dice a la vista, no solo para los lectores de pantalla.
     expect(screen.getByText("Lo más reciente va arriba.")).toBeInTheDocument();
-  });
-
-  it("aclara el número de intento cuando el alumno rindió más de una vez", async () => {
-    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
-
-    render(<DetalleSesion sesion={{ ...SESION, intento: 2, intentos: 2 }} onVencida={nada} />);
-    await esperar();
-
-    expect(screen.getByText(/Intento 2 de 2/)).toBeInTheDocument();
   });
 
   // El panel se redibuja con cada respuesta de su propia consulta y le pasa a
@@ -469,12 +445,12 @@ describe("DetalleSesion", () => {
 
     const { rerender } = render(<DetalleSesion sesion={SESION} onVencida={() => undefined} />);
     await esperar();
-    expect(within(screen.getByRole("group", { name: "Registro de eventos" })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+    expect(within(screen.getByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
 
     for (let segundo = 0; segundo < 3; segundo++) {
       rerender(<DetalleSesion sesion={{ ...SESION }} onVencida={() => undefined} />);
       await esperar(1000);
-      expect(within(screen.getByRole("group", { name: "Registro de eventos" })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+      expect(within(screen.getByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
       expect(screen.queryByText(/Cargando los eventos/)).not.toBeInTheDocument();
     }
 
@@ -511,7 +487,7 @@ describe("DetalleSesion", () => {
     rerender(<DetalleSesion key={8} sesion={{ ...SESION, id: 8 }} onVencida={nada} />);
     await esperar();
 
-    expect(traer).toHaveBeenLastCalledWith(3, 8, 0);
+    expect(traer).toHaveBeenLastCalledWith(3, 8, 0, expect.any(AbortSignal));
     expect(screen.queryByText("Pasó a otra ventana")).not.toBeInTheDocument();
     expect(screen.getByText("El mouse entró en el área del examen")).toBeInTheDocument();
   });
@@ -550,5 +526,241 @@ describe("DetalleSesion", () => {
 
     // Tres consultas, los mismos dos eventos: se deduplica por `id`, dos filas.
     expect(screen.getAllByRole("row").slice(1)).toHaveLength(2);
+  });
+
+  // ---- Momentos para revisar, dentro del registro ----------------------------------------------
+
+  it("HU05_T02, momentos: van adentro de la lámina del registro, entre el encabezado y la tabla", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "clipboard", { action: "paste" })]);
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    const registro = screen.getByRole("heading", { level: 2, name: "Registro de eventos" }).closest("section") as HTMLElement;
+    expect(registro).toHaveClass("lamina", "lamina--apoyo");
+    const momentos = within(registro).getByRole("heading", { level: 3, name: "Momentos para revisar" });
+    expect(momentos.closest(".lamina")).toBe(registro);
+    // Antes de la tabla: es su índice.
+    const tabla = within(registro).getByRole("table");
+    expect(momentos.compareDocumentPosition(tabla) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Sin lámina propia.
+    expect(document.querySelectorAll(".lamina")).toHaveLength(2);
+  });
+
+  it("HU05_T02, momentos: «Ver en el registro» lleva el foco a la fila, aunque esté fuera de las primeras 50 (la más vieja de 120)", async () => {
+    const eventos = [
+      evento(1, "clipboard", { action: "paste" }),
+      ...Array.from({ length: 119 }, (_, i) => evento(i + 2, "keystroke", { count: 1 })),
+    ];
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValueOnce(eventos).mockResolvedValue([]);
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+    expect(document.getElementById("evento-1")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Ver en el registro: Pegó un texto, a las \d{2}:\d{2}:\d{2}$/ }));
+    await esperar();
+    expect(document.getElementById("evento-1")).toHaveFocus();
+  });
+
+  it("después de ir a un momento, «Mostrar N más» lleva el foco a la primera fila nueva y no a la del momento", async () => {
+    const eventos = Array.from({ length: 200 }, (_, i) =>
+      i + 1 === 120 ? evento(120, "clipboard", { action: "paste" }) : evento(i + 1, "keystroke", { count: 1 })
+    );
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValueOnce(eventos).mockResolvedValue([]);
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Ver en el registro: Pegó un texto/ }));
+    await esperar();
+    expect(document.getElementById("evento-120")).toHaveFocus();
+
+    const mas = screen.getByRole("button", { name: /^Mostrar \d+ más$/ });
+    mas.focus();
+    fireEvent.click(mas);
+    await esperar();
+    expect(document.getElementById("evento-120")).not.toHaveFocus();
+    // Se veía hasta la fila del momento (la 120); la que sigue, más vieja, es la 119.
+    expect(document.getElementById("evento-119")).toHaveFocus();
+  });
+
+  it("HU05_T02, momentos (P8): con el seq desordenado, los momentos siguen el orden del registro: hora de llegada, seq e id", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
+      evento(5, "clipboard", { action: "paste" }, { id: 1, received_at: "2026-09-21T14:05:03.000Z" }),
+      evento(1, "focus_lost", {}, { id: 2, received_at: "2026-09-21T14:05:03.000Z" }),
+      evento(9, "fullscreen", { on: false }, { id: 3, received_at: "2026-09-21T14:04:00.000Z" }),
+    ]);
+    const { container } = render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    expect([...container.querySelectorAll(".momentos__titulo")].map((t) => t.textContent)).toEqual([
+      "Salió de pantalla completa",
+      "Pasó a otra ventana",
+      "Pegó un texto",
+    ]);
+  });
+  it("HU05_T02, momentos: sin ningún evento no se dibujan, porque no hay con qué afirmar que no pegó ni salió", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([]);
+    const cerrada = sesionNumerada({ status: "closed", closed_at: new Date(Date.now() - 60 * 60_000).toISOString() });
+    render(<DetalleSesion sesion={cerrada} onVencida={nada} />);
+    await esperar();
+
+    expect(screen.getByText("No quedó ningún evento registrado en esta sesión.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Momentos para revisar" })).toBeNull();
+    expect(screen.queryByText(/no pegó texto/i)).toBeNull();
+  });
+
+  it("HU05_T02, momentos: con el registro incompleto no afirma nada sobre lo que no se cargó", async () => {
+    // Veinte páginas llenas: el panel corta y avisa que falta lo más reciente.
+    vi.spyOn(sesionesService, "traerEventos").mockImplementation(async (_e, _s, cursor = 0) =>
+      Array.from({ length: sesionesService.EVENTOS_POR_PAGINA }, (_, i) => evento(cursor + i + 1, "keystroke", { count: 1 }))
+    );
+    const cerrada = sesionNumerada({ status: "closed", closed_at: new Date(Date.now() - 60 * 60_000).toISOString() });
+    render(<DetalleSesion sesion={cerrada} onVencida={nada} />);
+    await esperar();
+
+    expect(screen.getByText(/todavía falta lo más reciente/)).toBeInTheDocument();
+    expect(screen.queryByText("No pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa.")).toBeNull();
+    expect(
+      screen.getByText(
+        "En lo que quedó registrado, no pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("HU05_T02, momentos: si se perdió parte del registro, habla solo de lo que quedó, aunque la captura figure completa", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
+      evento(1, "keystroke", { count: 1 }),
+      evento(2, "events_dropped", { count: 1, rejected: 1 }),
+    ]);
+    const cerrada = sesionNumerada({
+      status: "closed",
+      closed_at: new Date(Date.now() - 60 * 60_000).toISOString(),
+      capture: { state: "ok" },
+    });
+    render(<DetalleSesion sesion={cerrada} onVencida={nada} />);
+    await esperar();
+
+    expect(screen.queryByText("No pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa.")).toBeNull();
+    expect(
+      screen.getByText(
+        "En lo que quedó registrado, no pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("HU05_T02, momentos: con la sesión abierta dice «hasta ahora»", async () => {
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "keystroke", { count: 1 })]);
+    render(<DetalleSesion sesion={sesionNumerada({ status: "open", closed_at: undefined })} onVencida={nada} />);
+    await esperar();
+
+    expect(
+      screen.getByText("Hasta ahora no pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa.")
+    ).toBeInTheDocument();
+  });
+
+  it("HU05_T02, momentos (LV2-01): con la sesión abierta y un corte de la captura, gana «en lo que quedó registrado»", async () => {
+    // Las cinco sesiones abiertas de la réplica llegan así. Queda fijado cuál de las dos salvedades sale; si
+    // Facundo elige una variante que diga las dos, esta prueba es la que cambia.
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "keystroke", { count: 1 })]);
+    const abiertaConCorte = sesionNumerada({ status: "open", closed_at: undefined, capture: { state: "gap", gap_minutes: 3 } });
+    render(<DetalleSesion sesion={abiertaConCorte} onVencida={nada} />);
+    await esperar();
+
+    expect(
+      screen.getByText(
+        "En lo que quedó registrado, no pegó texto, no estuvo en otra ventana ni en otra pestaña y no salió de pantalla completa."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^Hasta ahora/)).toBeNull();
+  });
+});
+
+/**
+ * El orden en que aparece el detalle: el análisis primero y el registro después. Con red lenta el registro
+ * llegaba antes, se dibujaba, y el análisis aparecía arriba y lo empujaba varios cientos de píxeles.
+ */
+describe("DetalleSesion, el orden de llegada", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([evento(1, "focus_lost")]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  const titulo = () => screen.queryByRole("heading", { name: "Registro de eventos" });
+
+  it("mientras el análisis no llega, el registro no se dibuja y hay un solo aviso de espera", async () => {
+    vi.spyOn(sesionesService, "traerAnalisis").mockReturnValue(new Promise(() => undefined));
+    const { container } = render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    expect(titulo()).toBeNull();
+    expect(container.querySelector(".detalle")).toHaveAttribute("aria-busy", "true");
+    const esperas = screen.getAllByRole("status").filter((n) => n.textContent);
+    expect(esperas).toHaveLength(1);
+    expect(esperas[0]).toHaveTextContent("Cargando el análisis…");
+  });
+
+  it("cuando llega el análisis, el registro aparece debajo del veredicto", async () => {
+    let responder: (a: sesionesService.Analisis) => void = () => undefined;
+    vi.spyOn(sesionesService, "traerAnalisis").mockReturnValue(new Promise((r) => (responder = r)));
+    const { container } = render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+    expect(titulo()).toBeNull();
+
+    await act(async () => responder(analisis()));
+    const encabezado = titulo();
+    expect(encabezado).not.toBeNull();
+    const veredicto = container.querySelector(".veredicto");
+    expect(veredicto).not.toBeNull();
+    expect(veredicto!.compareDocumentPosition(encabezado!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(container.querySelector(".detalle")).not.toHaveAttribute("aria-busy");
+  });
+
+  it("si el análisis falla, el registro aparece igual", async () => {
+    vi.spyOn(sesionesService, "traerAnalisis").mockRejectedValue(new Error("sin red"));
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    expect(titulo()).not.toBeNull();
+    expect(within(screen.getByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+  });
+
+  it("si el análisis no contesta, pasado el plazo el registro aparece igual", async () => {
+    vi.spyOn(sesionesService, "traerAnalisis").mockReturnValue(new Promise(() => undefined));
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    // A los tres segundos todavía no: con ese plazo, un análisis lento empujaba el registro ya dibujado.
+    await esperar(3100);
+    expect(titulo()).toBeNull();
+    await esperar(PLAZO_DEL_ANALISIS_MS - 3100 - 100);
+    expect(titulo()).toBeNull();
+
+    await esperar(100);
+    expect(titulo()).not.toBeNull();
+    expect(within(screen.getByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+  });
+
+  it("al cerrar la sesión con el registro todavía en camino, el pedido se cancela y no se avisa un corte", async () => {
+    ingresar();
+    // El pedido de verdad, con un fetch que no contesta: solo termina si se lo cancela.
+    const fetch = vi.fn(
+      (_url: string, opciones: RequestInit) =>
+        new Promise<Response>((_, rechazar) => {
+          opciones.signal!.addEventListener("abort", () => rechazar(opciones.signal!.reason));
+        })
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    const { unmount } = render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    unmount();
+    await esperar();
+
+    expect(fetch.mock.calls[0][1].signal!.aborted).toBe(true);
+    expect(screen.queryByText(/No se pudo actualizar/)).toBeNull();
+    sessionStorage.clear();
   });
 });

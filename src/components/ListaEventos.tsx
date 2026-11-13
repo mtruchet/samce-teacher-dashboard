@@ -1,8 +1,11 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { enCifras } from "../cifras";
+import { memo, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { Evento } from "../services/sesionesService";
 import { cortesDeConexion, describirEvento, horaCorta, horaExacta } from "../eventos";
 import { conHuecos } from "../huecos";
 import { Silencio } from "../iconos";
+import { AnuncioVivo } from "./AnuncioVivo";
+import { useAnuncio } from "./useAnuncio";
 import "./ListaEventos.css";
 
 /**
@@ -44,6 +47,9 @@ import "./ListaEventos.css";
 /** Cuántas filas se agregan con cada «Mostrar más». */
 export const TANDA = 50;
 
+/** Cuánto dura resaltada la fila a la que se saltó. */
+const RESALTADO_MS = 2000;
+
 function Hora({ evento }: { evento: Evento }) {
   return (
     <time
@@ -66,11 +72,20 @@ function Hora({ evento }: { evento: Evento }) {
  * tanto. El evento de una fila ya guardada no cambia nunca, así que comparar la
  * referencia alcanza.
  */
-const Fila = memo(function Fila({ evento, cortadaMs }: { evento: Evento; cortadaMs?: number }) {
+const Fila = memo(function Fila({
+  evento,
+  cortadaMs,
+  destacada,
+}: {
+  evento: Evento;
+  cortadaMs?: number;
+  /** Si es la fila a la que se acaba de saltar desde «Momentos para revisar». */
+  destacada: boolean;
+}) {
   const { titulo, detalle, icono: Icono } = describirEvento(evento, { cortadaMs });
   // El `id` y el foco programático son el destino del salto desde «Momentos para revisar».
   return (
-    <tr id={`evento-${evento.id}`} tabIndex={-1}>
+    <tr id={`evento-${evento.id}`} tabIndex={-1} className={destacada ? "eventos__fila--destacada" : undefined}>
       <td className="eventos__hora"><Hora evento={evento} /></td>
       <td className="eventos__que">
         <span className="eventos__tipo">
@@ -82,6 +97,27 @@ const Fila = memo(function Fila({ evento, cortadaMs }: { evento: Evento; cortada
     </tr>
   );
 });
+
+/**
+ * Si el contenido de un elemento es más ancho que el elemento (se desplaza de costado). Se vuelve a medir
+ * cuando cambia el tamaño del elemento o de su contenido.
+ */
+function useDesborde(): [RefObject<HTMLDivElement>, boolean] {
+  const ref = useRef<HTMLDivElement>(null);
+  const [desborda, setDesborda] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const medir = () => setDesborda(el.scrollWidth > el.clientWidth + 1);
+    medir();
+    if (typeof ResizeObserver === "undefined") return;
+    const observador = new ResizeObserver(medir);
+    observador.observe(el);
+    if (el.firstElementChild) observador.observe(el.firstElementChild);
+    return () => observador.disconnect();
+  });
+  return [ref, desborda];
+}
 
 interface Props {
   eventos: Evento[];
@@ -99,42 +135,97 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
   const entradas = useMemo(() => conHuecos(eventos).reverse(), [eventos]);
   // Cuánto duró cada corte de la conexión, para que la fila de la vuelta lo diga (ver `cortesDeConexion`).
   const cortes = useMemo(() => cortesDeConexion(eventos), [eventos]);
-  const [visibles, setVisibles] = useState(TANDA);
+  // Cuántas filas quedan sin mostrar, contadas desde el extremo viejo (el de abajo). Se cuentan desde ahí y
+  // no cuántas se ven desde arriba: los eventos nuevos entran arriba, y con la cuenta desde arriba cada uno
+  // empujaba fuera de la tabla la última fila visible, justo la que el docente podía estar leyendo, y si
+  // tenía el foco, el foco caía al principio de la página. Así, un evento nuevo agrega una fila arriba y no
+  // saca ninguna de abajo.
+  const [ocultas, setOcultas] = useState(() => Math.max(0, entradas.length - TANDA));
+  // Un registro que se montó vacío cuenta sus primeras filas cuando llegan, no al montarse: si no, el primer
+  // lote entraba entero, con cero ocultas.
+  const [iniciada, setIniciada] = useState(entradas.length > 0);
+  if (!iniciada && entradas.length > 0) {
+    setIniciada(true);
+    setOcultas(Math.max(0, entradas.length - TANDA));
+  }
+  const cuantasSeVen = entradas.length - ocultas;
 
   // Si la fila pedida no está entre las que se ven, se muestran filas hasta incluirla; después se la lleva a
   // la vista, recibe el foco y queda resaltada un momento.
-  const indiceDestacado = destacado
-    ? entradas.findIndex((e) => e.clase !== "hueco" && e.evento.id === destacado.id)
+  // Cada pedido (`vez`) se atiende una sola vez: «Mostrar N más» y los eventos nuevos no vuelven a llevar el
+  // foco a la fila.
+  const atendido = useRef(0);
+  // El resaltado es estado de React y no una clase puesta a mano: con dos saltos seguidos, la clase de la
+  // primera fila quedaba puesta, y una fila que se volvía a dibujar la perdía antes de tiempo.
+  const [resaltada, setResaltada] = useState<{ id: number; vez: number } | null>(null);
+  // Un solo temporizador: cada salto cancela el anterior y arranca otro.
+  const apagar = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(apagar.current), []);
+  const pendiente = destacado && destacado.vez !== atendido.current ? destacado : null;
+  const indiceDestacado = pendiente
+    ? entradas.findIndex((e) => e.clase !== "hueco" && e.evento.id === pendiente.id)
     : -1;
-  if (indiceDestacado >= visibles) setVisibles(indiceDestacado + 1);
+  if (indiceDestacado >= cuantasSeVen) setOcultas(entradas.length - 1 - indiceDestacado);
   useEffect(() => {
-    if (!destacado) return;
+    if (!destacado || destacado.vez === atendido.current) return;
     const fila = document.getElementById(`evento-${destacado.id}`);
     if (!fila) return;
+    atendido.current = destacado.vez;
     const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     fila.scrollIntoView?.({ block: "center", behavior: reducido ? "auto" : "smooth" });
     fila.focus({ preventScroll: true });
-    fila.classList.add("eventos__fila--destacada");
-    const quitar = window.setTimeout(() => fila.classList.remove("eventos__fila--destacada"), 2000);
-    return () => window.clearTimeout(quitar);
-  }, [destacado, visibles]);
+    setResaltada({ id: destacado.id, vez: destacado.vez });
+    window.clearTimeout(apagar.current);
+    apagar.current = window.setTimeout(() => setResaltada(null), RESALTADO_MS);
+  }, [destacado, ocultas]);
+
+  // «Se ven los N eventos más recientes de M» queda a la vista y al día, pero se anuncia solo cuando el
+  // docente pide más filas: un evento nuevo cambia la cifra en silencio.
+  const [anuncioVistos, anunciar] = useAnuncio();
+  const [marco, desborda] = useDesborde();
+  // Al mostrar más, el foco va a la primera fila nueva, la que sigue a la última que se veía, como en el
+  // salto desde los momentos. Con «Mostrar todos» los dos botones desaparecían y el foco caía al principio de
+  // la página; con «Mostrar 50 más» se quedaba en el botón, que bajaba cincuenta filas y quedaba fuera de la
+  // pantalla, lejos de lo que se acababa de agregar.
+  const filaQueSigue = useRef<number | null>(null);
+  useEffect(() => {
+    if (filaQueSigue.current === null) return;
+    document.getElementById(`evento-${filaQueSigue.current}`)?.focus();
+    filaQueSigue.current = null;
+  }, [ocultas]);
+  const mostrar = (nuevasOcultas: number) => {
+    const siguiente = entradas.slice(cuantasSeVen).find((e) => e.clase === "evento");
+    filaQueSigue.current = siguiente?.clase === "evento" ? siguiente.evento.id : null;
+    setOcultas(nuevasOcultas);
+    const vistos = entradas.slice(0, entradas.length - nuevasOcultas).filter((e) => e.clase !== "hueco").length;
+    anunciar(
+      vistos < eventos.length
+        ? `Se ven los ${enCifras(vistos)} eventos más recientes de ${enCifras(eventos.length)}.`
+        : `Se ven los ${enCifras(eventos.length)} eventos.`
+    );
+  };
 
   if (eventos.length === 0) return <>{vacio}</>;
 
-  const mostradas = entradas.slice(0, visibles);
+  const mostradas = entradas.slice(0, cuantasSeVen);
   const quedan = entradas.length - mostradas.length;
   // Los huecos no son eventos: la cuenta dice cuántos eventos se ven, que es lo que dice el encabezado.
   const eventosVistos = mostradas.filter((e) => e.clase !== "hueco").length;
 
-  // El marco recorta la tabla y se desplaza por dentro, pero adentro no hay nada
-  // que pueda recibir el foco: sin tabIndex, quien navega con teclado no pasa de
-  // la primera pantalla de filas.
   return (
     <>
       {/* Visible y no solo en la `caption`: sin esto, quien mira la tabla por
           primera vez no sabe si lo de arriba es el comienzo o el final. */}
       <p className="eventos__orden" aria-hidden="true">Lo más reciente va arriba.</p>
-      <div className="eventos__marco" tabIndex={0} role="group" aria-label="Registro de eventos">
+      {/* El marco solo se desplaza de costado si la tabla no entra. Solo entonces es una parada del
+          tabulador, para que el teclado pueda desplazarlo (adentro no hay nada que reciba el foco). Si entra,
+          que es lo normal a cualquier ancho, era una parada de más con un anillo alrededor de todo el
+          registro, y un grupo con el mismo nombre que la región que lo contiene. */}
+      <div
+        className={desborda ? "eventos__marco eventos__marco--desborda" : "eventos__marco"}
+        ref={marco}
+        {...(desborda ? { tabIndex: 0, role: "group", "aria-label": "Registro de eventos" } : {})}
+      >
         <table className="eventos">
           <caption className="solo-lectores">
             Eventos de la sesión, del más reciente al más viejo, uno por fila. Cada fila dice a
@@ -159,7 +250,7 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
                   // renglón que lo contiene.
                   <tr key={entrada.clave} className="eventos__hueco">
                     <td colSpan={3}>
-                      <Silencio size={18} aria-hidden="true" />
+                      <Silencio size={16} aria-hidden="true" />
                       sin eventos recibidos entre {horaCorta(entrada.desde)} y{" "}
                       {horaCorta(entrada.hasta)}
                     </td>
@@ -167,27 +258,35 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
                 );
               }
 
-              return <Fila key={entrada.clave} evento={entrada.evento} cortadaMs={cortes.get(entrada.evento.id)} />;
+              return (
+                <Fila
+                  key={entrada.clave}
+                  evento={entrada.evento}
+                  cortadaMs={cortes.get(entrada.evento.id)}
+                  destacada={resaltada?.id === entrada.evento.id}
+                />
+              );
             })}
           </tbody>
         </table>
       </div>
       {quedan > 0 ? (
         <div className="eventos__mas">
-          <p className="eventos__vistos" role="status">
-            Se ven los {eventosVistos.toLocaleString("es-AR")} eventos más recientes de{" "}
-            {eventos.length.toLocaleString("es-AR")}.
+          <p className="eventos__vistos">
+            Se ven los {enCifras(eventosVistos)} eventos más recientes de{" "}
+            {enCifras(eventos.length)}.
           </p>
           <div className="eventos__botones">
-            <button type="button" className="eventos__boton" onClick={() => setVisibles((v) => v + TANDA)}>
-              Mostrar {Math.min(TANDA, quedan).toLocaleString("es-AR")} más
+            <button type="button" className="boton-secundario" onClick={() => mostrar(Math.max(0, ocultas - TANDA))}>
+              Mostrar {enCifras(Math.min(TANDA, quedan))} más
             </button>
-            <button type="button" className="eventos__boton" onClick={() => setVisibles(entradas.length)}>
+            <button type="button" className="boton-secundario" onClick={() => mostrar(0)}>
               Mostrar todos
             </button>
           </div>
         </div>
       ) : null}
+      <AnuncioVivo aviso={anuncioVistos} etiqueta="Eventos a la vista" />
     </>
   );
 }

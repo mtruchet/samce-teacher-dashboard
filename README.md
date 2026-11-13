@@ -46,33 +46,25 @@ mismo examen, aclara en cuál va, por orden de comienzo.
 
 Cada sesión dice también lo que se ve de su análisis, en la columna «Análisis»: su
 nivel de riesgo, que es el más alto entre los de sus alertas, con su marca y con
-cuántas alertas tiene; o, si no tiene alertas, el estado de su análisis («Sin
-alertas», «Sin analizar», «No se pudo analizar» o «Análisis no disponible»). Nunca
-el índice de integridad.
+cuántas alertas tiene y de dónde salieron («2 alertas: en toda la sesión y en un
+momento de la sesión»); o, si no tiene alertas, el estado de su análisis («Sin
+alertas», «Sin analizar», «No se pudo analizar» o «Análisis no disponible»).
 
-Arriba de la lista, el resumen de la evaluación cuenta cuántas sesiones hay en cada
-nivel de riesgo y en cada estado del análisis, y cada tarjeta filtra la lista. Una
-barra permite filtrar por nivel y por estado, buscar al alumno por su nombre y
-ordenar por nivel de riesgo; el orden predeterminado es por hora de inicio.
+Arriba de la lista, el resumen de la evaluación cuenta las sesiones de todo el
+examen en siete tarjetas, siempre en el mismo orden: Riesgo alto, Riesgo medio,
+Riesgo bajo, Sin alertas, Sin analizar, No se pudo analizar y Análisis no
+disponible. Son recuentos, sin nombres ni promedios, y cada tarjeta filtra la
+lista. Debajo, una barra permite filtrar por nivel de riesgo y por estado, buscar
+al alumno por su nombre y ordenar por hora de inicio (lo predeterminado) o por
+nivel de riesgo. Con un filtro se lee cuántas sesiones lo cumplen sobre el total
+(«16 de 245 sesiones») y un solo «Quitar filtros». Los filtros quedan en la
+dirección, así sobreviven a la actualización y al botón Atrás.
 
 Desde cada sesión se abre su detalle. Arriba va una ficha de una sola línea con
 lo que la lista no alcanza a decir: si entregó, qué intento es, qué día y a qué
 hora empezó y cuánto duró. Debajo están el análisis y el registro.
 
-El registro cuenta lo que pasó durante el intento: un evento por fila, con su
-hora, qué pasó y el detalle, del más reciente al más antiguo. El encabezado dice
-cuántos eventos hay y entre qué horas («194 eventos, de 09:28 a 09:42»), y las
-filas están escritas en palabras de todos los días, sin abreviaturas ni términos
-técnicos («Movimiento del mouse», o «Volvió a la ventana del examen» con el
-detalle «45 segundos afuera»). Se recorre entero, de a tandas o con «Mostrar todos», y se lee igual en
-el teléfono. Se actualiza mientras el alumno rinde y unos minutos después de la
-entrega, porque lo último del intento llega con retraso. El registro cuenta y no
-juzga: no tiene índice de integridad, nivel de riesgo, alertas ni orden por
-relevancia. La lista marca las sesiones cuya captura quedó incompleta, y el
-registro explica qué no quedó registrado.
-
-Arriba del registro, el apartado **«Análisis de la sesión»** muestra lo que el
-análisis encontró, en tres capas:
+El apartado **«Análisis de la sesión»** muestra lo que el análisis encontró:
 
 - **El veredicto**, una frase con la misma forma en todos los estados: «Hay 2
   alertas para revisar.», «No hay alertas para revisar.», «Esta sesión todavía no
@@ -80,33 +72,45 @@ análisis encontró, en tres capas:
   disponible en este momento.». Cuenta las alertas y dice de qué tratan, pero
   nunca dice un nivel. Cuando una sesión no se pudo analizar, da el motivo y
   aclara que eso no indica ningún problema en el examen.
-- **Una tarjeta por alerta vigente**, con su nivel escrito con los nombres del
-  criterio de HU06 («Riesgo bajo», «Riesgo medio» o «Riesgo alto»), un medidor de
-  tres segmentos que dice lo mismo en dibujo y su origen: «En toda la sesión» o
-  «En un momento de la sesión». Debajo va el hecho en una oración; en un pegado,
-  con la hora y la pregunta de su fila en el registro («A las 09:35, en la
-  pregunta 3, pegó de una sola vez un texto largo en una respuesta que todavía
-  estaba vacía…»).
-- **«Lo que más se notó»**, en la alerta de toda la sesión: una frase por cosa,
-  con cifras que el docente puede comprobar en el registro («Pasó a otra ventana
-  11 veces.»).
+- **Una tarjeta por alerta vigente**, con su nivel («Riesgo bajo», «Riesgo
+  medio» o «Riesgo alto»), un medidor de tres segmentos que dice lo mismo en
+  dibujo y su origen: «En toda la sesión» o «En un momento de la sesión». Debajo
+  va el hecho en una oración y, en la alerta de toda la sesión, «Lo que más se
+  notó»: una frase por cosa, con cifras que el docente puede comprobar en el
+  registro («Pasó a otra ventana 11 veces.»).
+- **Cómo cambió el riesgo**: los niveles que tomó la sesión, uno detrás de otro,
+  con la hora del análisis que registró cada subida.
+- **El historial de alertas**: cada aparición o subida de nivel de cada alerta,
+  con su explicación. Si la explicación es la misma que la de la alerta vigente,
+  queda plegada para no leerla dos veces.
+- **Las métricas de la sesión**, cuando la sesión terminó y se analizó: seis
+  valores del propio alumno en palabras («un minuto y 33 segundos», «No pegó
+  texto»), sin valores esperados ni comparaciones con otras sesiones.
 
 Los textos de las alertas y el motivo de una sesión que no se pudo analizar los
 escribe el motor de análisis para el docente, y el panel los muestra tal cual,
-sin traducirlos ni recortarlos. El apartado nunca muestra el índice de integridad.
-Debajo de las alertas, dice cómo cambió el riesgo de la sesión (los niveles que
-tomó, con la hora de cada análisis), el historial de las alertas (cada aparición
-o subida de nivel con su explicación) y, con la sesión finalizada, una métrica
-por dimensión con el valor del alumno, sin valores esperados ni comparaciones.
-Entre el apartado y el registro, «Momentos para revisar» lista los pegados de
-texto y las salidas de la ventana o de la pantalla completa, y cada uno lleva a
-su fila del registro. Una
-alerta señala algo para revisar y no una conclusión sobre el alumno. Se actualiza
-igual que el registro, mientras el alumno rinde y unos minutos después de la
-entrega, y un lector de pantalla anuncia la alerta que aparece o sube de nivel
-mientras se mira. Lo pide a
+sin traducirlos ni recortarlos. Una alerta señala algo para revisar y no una
+conclusión sobre el alumno. El apartado se actualiza mientras el alumno rinde y
+unos minutos después de la entrega, y un lector de pantalla anuncia la alerta que
+aparece o sube de nivel mientras se mira. Lo pide a
 `GET /monitored-quizzes/{id}/sessions/{sessionId}/analysis`, que tiene el mismo
 control de acceso que el registro de eventos.
+
+El registro cuenta lo que pasó durante el intento: un evento por fila, con su
+hora, qué pasó y el detalle, del más reciente al más antiguo. El encabezado dice
+cuántos eventos hay y entre qué horas («194 eventos, de 09:28 a 09:42»), y las
+filas están escritas en palabras de todos los días, sin abreviaturas ni términos
+técnicos («Movimiento del mouse», o «Volvió a la ventana del examen» con el
+detalle «45 segundos afuera»). Arriba de la tabla, **«Momentos para revisar»**
+lista los pegados y las salidas de la ventana o de la pantalla completa, de lo
+más viejo a lo más nuevo, y cada uno lleva a su fila. El registro se recorre
+entero, de a tandas o con «Mostrar todos», y se lee igual en el teléfono. Se
+actualiza mientras el alumno rinde y unos minutos después de la entrega, porque
+lo último del intento llega con retraso. El registro cuenta y no juzga: no tiene
+nivel de riesgo, alertas ni orden por relevancia. La lista marca las sesiones
+cuya captura quedó incompleta, y el registro explica qué no quedó registrado.
+
+En ninguna pantalla aparece el índice de integridad, ni sus partes.
 
 Los exámenes aparecen solos: nadie los da de alta. Cuando un alumno abre el
 cuestionario, el complemento avisa al backend y la sesión se registra sin que
@@ -161,7 +165,15 @@ npm run dev      # servidor de desarrollo
 npm run test     # pruebas con Vitest
 npm run lint     # ESLint
 npm run build    # verifica tipos y compila
+npm run test:navegador  # foco, colores forzados y 390 px en Chromium (puerto 4317, backend simulado)
 ```
+
+Las pruebas de navegador viven en `pruebas-navegador/`. La primera vez hace falta
+`npx playwright install chromium`. Construyen el panel aparte (`dist-navegador`),
+lo sirven con `vite preview` en el 4317 y contestan la API con datos falsos: no
+hablan con ningún backend. Para revisar las pantallas a ojo:
+`CAPTURAS=carpeta npx playwright test capturas` deja la lista y tres detalles a
+1280 y a 390 px. Hace falta Node 22 (`.nvmrc`).
 
 ## Cómo está armado
 
@@ -179,7 +191,11 @@ src/
   huecos.ts         los silencios entre eventos
   captura.ts        el aviso de una captura incompleta
   explicacion.ts    cómo se ordena, renglón por renglón, el texto de una alerta
-  lenguajeAlerta.ts el orden de las alertas de una sesión
+  lenguajeAlerta.ts los niveles, sus palabras y el orden de las alertas
+  veredicto.ts      la frase de arriba del análisis
+  evolucion.ts      los pasos de «Cómo cambió el riesgo»
+  metricas.ts       los rótulos y los formatos de las métricas
+  filtrosDeLaDireccion.ts  los filtros de la lista, leídos y escritos en la dirección
   seguimiento.ts    hasta cuándo se sigue preguntando por una sesión cerrada
   secciones.ts      las secciones de la portada
   iconos.ts         los iconos, importados de a uno

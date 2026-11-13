@@ -1,7 +1,6 @@
-/* La celda «Análisis» de la lista (HU03). Con alertas: el borde y el medidor en el tono del nivel,
-   el rótulo en --tinta, como la tarjeta de la alerta en el detalle; sin alertas, el estado del
-   análisis en tinta media, sin borde ni medidor. Los tonos son los de las alertas del detalle
-   (--alerta-tono-*), nunca los --nivel-*. */
+/* La celda «Análisis» de la lista (HU03). Con alertas: la marca de 3 px (.marca-nivel, en base.css) y
+   el rótulo del nivel (RotuloNivel), los mismos del detalle, en el tono que pone `data-nivel`
+   (styles/nivel.css); sin alertas, el estado del análisis en tinta media, sin borde ni medidor. */
 .indicador {
   display: inline-flex;
   flex-direction: column;
@@ -10,39 +9,16 @@
   font-size: var(--panel-fila);
 }
 
-.indicador--low {
-  --tono: var(--alerta-tono-low);
-}
-
-.indicador--medium {
-  --tono: var(--alerta-tono-medium);
-}
-
-.indicador--high {
-  --tono: var(--alerta-tono-high);
-}
-
-.indicador--low,
-.indicador--medium,
-.indicador--high {
-  padding-left: var(--e2);
-  border-left: 3px solid var(--tono);
-}
-
-.indicador__nivel {
-  display: inline-flex;
-  align-items: center;
-  font-weight: 600;
-  color: var(--tinta);
-  white-space: nowrap;
-}
-
 .indicador__alertas,
 .indicador__estado {
   color: var(--tinta-media);
 }
 
+/* Sin nivel no hay marca, pero el texto deja su lugar: el de la marca y su separación (.marca-nivel). Así el
+   «Sin alertas» de una fila empieza donde empieza el medidor de la fila de al lado, y la columna se lee sobre
+   una sola vertical. */
 .indicador--sin-nivel {
+  padding-left: calc(var(--marca-renglon) + var(--e3));
   color: var(--tinta-media);
 }
 

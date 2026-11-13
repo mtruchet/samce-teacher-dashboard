@@ -1,5 +1,6 @@
 import { API_CONFIG } from "../config/api.config";
 import { getStoredSession } from "./authService";
+import { NIVELES_DE_RIESGO, type AnalisisDelFiltro, type EstadoDelFiltro, type NivelDeRiesgo } from "../niveles";
 
 /**
  * Los exámenes monitoreados del docente y sus sesiones.
@@ -27,6 +28,22 @@ export interface ExamenMonitoreado {
   abandoned_sessions: number;
 }
 
+// Los niveles viven en `niveles.ts`; se reexportan para quien ya los toma del servicio.
+export { NIVELES_DE_RIESGO, type NivelDeRiesgo };
+
+/**
+ * Lo que el panel puede pedir sobre la lista de un examen, con los nombres del panel. `traerSesiones` lo
+ * traduce a los parámetros del backend (`risk_level`, `status`, `analysis`, `q`, `sort`). Cómo se escribe
+ * en la dirección de la página no es asunto del servicio (`filtrosDeLaDireccion.ts`).
+ */
+export interface PedidoDeSesiones {
+  nivel?: NivelDeRiesgo;
+  estado?: EstadoDelFiltro;
+  analisis?: AnalisisDelFiltro;
+  q?: string;
+  orden?: "risk_level";
+}
+
 export interface Sesion {
   id: number;
   moodle_attempt_id: number;
@@ -47,7 +64,7 @@ export interface Sesion {
    * El nivel de riesgo de la sesión: el más alto entre los de sus alertas. Nulo si no tiene
    * alertas, que no es lo mismo que riesgo bajo. Sin el campo (un backend viejo) no se marca nada.
    */
-  risk_level?: "low" | "medium" | "high" | null;
+  risk_level?: NivelDeRiesgo | null;
   /** Cuántas alertas tiene: a lo sumo una por origen. */
   alerts_count?: number;
   /** De dónde salió cada alerta, la de toda la sesión primero. */
@@ -142,12 +159,18 @@ export class SesionVencida extends Error {
   }
 }
 
-async function pedir<T>(ruta: string): Promise<T> {
-  return (await (await pedirRespuesta(ruta)).json()) as T;
+async function pedir<T>(ruta: string, senal?: AbortSignal): Promise<T> {
+  return (await (await pedirRespuesta(ruta, senal)).json()) as T;
 }
 
-/** El pedido con el token, el plazo y el manejo del token vencido; devuelve la respuesta entera. */
-async function pedirRespuesta(ruta: string): Promise<Response> {
+/**
+ * El pedido con el token, el plazo y el manejo del token vencido; devuelve la respuesta entera.
+ *
+ * `senal` es la de quien pidió: cuando su respuesta ya no le sirve a nadie (se cambió de vista, se cerró el
+ * detalle), la cancela y el pedido se corta en vez de terminar de descargarse para tirarlo. Se combina con el
+ * plazo, que sigue valiendo. El corte rechaza con un AbortError, que quien pidió ya descarta por viejo.
+ */
+async function pedirRespuesta(ruta: string, senal?: AbortSignal): Promise<Response> {
   const sesion = getStoredSession();
   if (!sesion) {
     throw new SesionVencida();
@@ -155,7 +178,7 @@ async function pedirRespuesta(ruta: string): Promise<Response> {
 
   const respuesta = await fetch(`${API_CONFIG.BASE_URL}${ruta}`, {
     headers: { Authorization: `Bearer ${sesion.token}` },
-    signal: AbortSignal.timeout(PLAZO),
+    signal: senal ? AbortSignal.any([senal, AbortSignal.timeout(PLAZO)]) : AbortSignal.timeout(PLAZO),
   });
 
   if (respuesta.status === 401) {
@@ -191,8 +214,8 @@ export interface SesionNumerada extends SesionDeExamen {
   intentos: number;
 }
 
-export function traerExamenes(): Promise<ExamenMonitoreado[]> {
-  return pedir<ExamenMonitoreado[]>(API_CONFIG.ENDPOINTS.MONITORED_QUIZZES);
+export function traerExamenes(senal?: AbortSignal): Promise<ExamenMonitoreado[]> {
+  return pedir<ExamenMonitoreado[]>(API_CONFIG.ENDPOINTS.MONITORED_QUIZZES, senal);
 }
 
 /** Cuántas sesiones se muestran por vez en la lista de un examen. */
@@ -209,6 +232,13 @@ export const SESIONES_POR_PAGINA = 50;
  */
 export const SESIONES_TOPE = 1000;
 
+/** Un total que no es un número entero no negativo (cabecera ausente, vacía o rara) no se usa: así nunca se ve «NaN de 30». */
+function totalDeLaCabecera(valor: string | null): number | null {
+  if (valor === null || valor.trim() === "") return null;
+  const n = Number(valor);
+  return Number.isInteger(n) && n >= 0 ? n : null;
+}
+
 /**
  * Las sesiones de un examen: las en curso primero y después las finalizadas,
  * cada grupo con las más recientes arriba. `limite` es cuántas pedir desde la
@@ -218,7 +248,8 @@ export const SESIONES_TOPE = 1000;
 export async function traerSesiones(
   examenId: number,
   limite = SESIONES_POR_PAGINA,
-  filtros: FiltrosSesiones = {}
+  filtros: PedidoDeSesiones = {},
+  senal?: AbortSignal
 ): Promise<PaginaDeSesiones> {
   // Nunca por encima del tope del backend: pedir de más no trae de más, y lo
   // único que consigue es que la cuenta del panel no cierre.
@@ -227,28 +258,18 @@ export async function traerSesiones(
   if (filtros.estado) consulta.set("status", filtros.estado);
   if (filtros.analisis) consulta.set("analysis", filtros.analisis);
   if (filtros.q) consulta.set("q", filtros.q);
-  if (filtros.orden && filtros.orden !== "started_at") consulta.set("sort", filtros.orden);
+  if (filtros.orden) consulta.set("sort", filtros.orden);
 
-  const respuesta = await pedirRespuesta(`${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?${consulta}`);
+  const respuesta = await pedirRespuesta(
+    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?${consulta}`,
+    senal
+  );
   const cuerpo = (await respuesta.json()) as Sesion[] | { sessions: Sesion[]; summary: ResumenDeEvaluacion };
-  const total = respuesta.headers.get("X-Total-Count");
+  const total = totalDeLaCabecera(respuesta.headers.get("X-Total-Count"));
   // Lectura tolerante: un backend sin el resumen devuelve el arreglo de siempre.
   return Array.isArray(cuerpo)
-    ? { sesiones: cuerpo, total: total === null ? null : Number(total), resumen: null }
-    : { sesiones: cuerpo.sessions, total: total === null ? null : Number(total), resumen: cuerpo.summary };
-}
-
-/**
- * Lo que el docente pidió sobre la lista de un examen (HU04). Vive en la dirección de la página, así
- * sobrevive a la actualización automática, al botón Atrás y a la vuelta por las migas. Vacío es la
- * lista de siempre. `analisis` solo lo escriben las tarjetas del resumen de la evaluación.
- */
-export interface FiltrosSesiones {
-  nivel?: "high" | "medium" | "low";
-  estado?: "open" | "finished";
-  analisis?: "no_alerts" | "not_analyzed" | "insufficient_evidence" | "unavailable";
-  q?: string;
-  orden?: "started_at" | "risk_level";
+    ? { sesiones: cuerpo, total, resumen: null }
+    : { sesiones: cuerpo.sessions, total, resumen: cuerpo.summary };
 }
 
 /**
@@ -284,7 +305,12 @@ export interface PaginaDeSesiones {
  * todo lo que ya mostró. El examen tiene que ser del que salió la sesión: el
  * backend lo verifica, y responde 404 si la sesión es de otro examen.
  */
-export function traerEventos(examenId: number, sesionId: number, despuesDeId = 0): Promise<Evento[]> {
+export function traerEventos(
+  examenId: number,
+  sesionId: number,
+  despuesDeId = 0,
+  senal?: AbortSignal
+): Promise<Evento[]> {
   // after_id se manda siempre, aun en cero: es lo que pide el orden de llegada.
   const consulta = new URLSearchParams({
     limit: String(EVENTOS_POR_PAGINA),
@@ -292,12 +318,13 @@ export function traerEventos(examenId: number, sesionId: number, despuesDeId = 0
   });
 
   return pedir<Evento[]>(
-    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions/${sesionId}/events?${consulta}`
+    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions/${sesionId}/events?${consulta}`,
+    senal
   );
 }
 
 /**
- * Cómo está el análisis de una sesión (SAMCE-36).
+ * Cómo está el análisis de una sesión (TT_S4_02).
  *
  * not_analyzed: todavía no hay ningún cálculo. analyzed: se analizó, con alertas o sin
  * ellas. insufficient_evidence: no tuvo evidencia suficiente (poca actividad o captura
@@ -312,7 +339,7 @@ export type EstadoDelAnalisis = "not_analyzed" | "analyzed" | "insufficient_evid
 export interface AlertaDeSesion {
   /** model: el índice de integridad bajó del umbral. event: un solo evento, el pegado de un bloque largo. */
   origin: "model" | "event";
-  level: "low" | "medium" | "high";
+  level: NivelDeRiesgo;
   explanation: string;
   /** Desde cuándo la alerta está en su nivel actual (sube cuando el nivel sube). */
   level_since: string;
@@ -323,7 +350,7 @@ export interface AlertaDeSesion {
 /** Una aparición o subida de nivel de una alerta, en el historial de la sesión (HU05). */
 export interface EntradaDelHistorial {
   origin: "model" | "event";
-  level: "low" | "medium" | "high";
+  level: NivelDeRiesgo;
   explanation: string;
   /** Hora del análisis que la registró, no la del hecho. */
   recorded_at: string;
@@ -357,9 +384,10 @@ export interface Analisis {
 }
 
 /** El análisis de una sesión: su estado, el último cálculo y las alertas vigentes. */
-export function traerAnalisis(examenId: number, sesionId: number): Promise<Analisis> {
+export function traerAnalisis(examenId: number, sesionId: number, senal?: AbortSignal): Promise<Analisis> {
   return pedir<Analisis>(
-    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions/${sesionId}/analysis`
+    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions/${sesionId}/analysis`,
+    senal
   );
 }
 

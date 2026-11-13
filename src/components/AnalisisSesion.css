@@ -1,16 +1,13 @@
-/* El apartado «Análisis de la sesión»: la lámina principal del detalle, arriba del registro.
-   Pesa más que el registro (blanca y con sombra, sobre el fondo del panel) porque es lo primero
-   que el docente tiene que leer. Adentro, el veredicto arriba y una tarjeta por alerta.
+/* El apartado «Análisis de la sesión»: la lámina que manda en el detalle (`.lamina--lectura`, base.css), arriba
+   del registro. Pesa más que el registro porque es lo primero que el docente tiene que leer. Adentro, el
+   veredicto arriba, una tarjeta por alerta y los apartados de HU05 (DetalleAnalisis.css).
 
    Los textos de lectura van en los pasos del sitio y no en los del panel: son frases que el
    docente lee enteras, no datos de una tabla. */
+/* Del título a lo de adentro, var(--e4): el mismo aire que en todas las láminas. */
 .analisis {
   display: grid;
-  gap: var(--e5);
-  padding: var(--e5) var(--e6) var(--e6);
-  border-radius: var(--radio-lamina);
-  background: var(--sup-1);
-  box-shadow: var(--anillo), var(--elev-1);
+  gap: var(--e4);
 }
 
 .analisis__encabezado {
@@ -18,14 +15,6 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--e1) var(--e4);
-}
-
-.analisis__titulo {
-  margin: 0;
-  font-size: var(--panel-pieza);
-  font-weight: 600;
-  line-height: 1.25;
-  color: var(--tinta);
 }
 
 /* La hora del último análisis se va al final del encabezado: precisa lo que se está mirando, no
@@ -36,16 +25,17 @@
   color: var(--tinta-media);
 }
 
+/* «Cargando el análisis…»: el mismo vacío de renglón que el del registro. */
 .analisis__estado {
   margin: 0;
-  font-size: var(--panel-nota);
-  color: var(--tinta);
+  font-size: var(--panel-fila);
+  color: var(--tinta-media);
 }
 
 .analisis__aviso {
   margin: 0;
   padding: var(--e3) var(--e4);
-  border-radius: max(0px, calc(var(--radio-panel) - var(--e5)));
+  border-radius: var(--radio-ficha);
   background: var(--nivel-1-fondo);
   box-shadow: inset 0 0 0 1px var(--nivel-1-borde);
   font-size: var(--panel-nota);
@@ -66,6 +56,9 @@
 /* El ícono va arriba, a la altura del título, en todos los estados: centrado contra un bloque de tres
    renglones quedaba más abajo que la frase (ronda 3). */
 .veredicto {
+  /* El lado del cuadro del ícono: 56 px, y 40 en el teléfono (abajo). La frase se centra contra él con este
+     mismo valor, así que se declara una sola vez. */
+  --veredicto-cuadro: 56px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
@@ -76,8 +69,8 @@
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  width: 56px;
-  height: 56px;
+  width: var(--veredicto-cuadro);
+  height: var(--veredicto-cuadro);
   border-radius: var(--radio-ficha);
   background: var(--sup-3);
   color: var(--tinta-media);
@@ -95,26 +88,30 @@
   color: var(--veredicto-bien-tinta);
 }
 
-/* El primer renglón queda a la altura del centro del cuadro del ícono, y la bajada sigue debajo. */
+/* El primer renglón queda centrado contra el cuadro del ícono, y la bajada sigue debajo. La cuenta sale del lado
+   del cuadro y del interlineado de la frase, no de un número suelto: si cambia la escala, se sigue centrando. */
 .veredicto__texto {
   display: grid;
   gap: var(--e1);
-  max-width: var(--medida);
-  padding-top: 13px;
+  max-width: var(--medida-panel);
+  padding-top: calc((var(--veredicto-cuadro) - var(--panel-alto)) / 2);
 }
 
+/* La frase, en su propio paso (--panel-frase, 15 px), 600 y el renglón del cuerpo (20): un escalón debajo del
+   título de la lámina (17/25) y uno arriba de la bajada (13/20). */
 .veredicto__frase {
   margin: 0;
-  font-size: var(--panel-pieza);
+  font-size: var(--panel-frase);
   font-weight: 600;
-  line-height: 1.35;
+  line-height: var(--panel-alto);
+  letter-spacing: var(--track-titulo);
   color: var(--tinta);
 }
 
 .veredicto__bajada {
   margin: 0;
   font-size: var(--panel-fila);
-  line-height: 1.5;
+  line-height: var(--panel-alto);
   color: var(--tinta-media);
 }
 
@@ -128,7 +125,8 @@
   list-style: none;
 }
 
-/* El nivel se lee en la palabra, en el medidor y en el borde izquierdo. El tono sube en calidez con el
+/* El nivel se lee en la palabra, en el medidor y en el borde izquierdo (el tono lo pone `data-nivel`, en
+   styles/nivel.css; el rótulo es RotuloNivel). El tono sube en calidez con el
    nivel (azul petróleo, ocre, ámbar), y el alto se distingue por los tres segmentos llenos. Todas tienen
    el mismo fondo y el mismo borde: el fondo tibio de la alta se leía como una condena (ronda 2), y el
    terracota con el borde más grueso, también (ronda 3). La palabra va siempre escrita al lado, en
@@ -136,26 +134,19 @@
 .analisis__alerta {
   display: grid;
   gap: var(--e4);
-  padding: var(--e6);
-  border-left: 4px solid var(--tono);
+  /* Una tarjeta adentro de la lámina no lleva más relleno que la lámina (var(--e6) a los lados): con el mismo,
+     la caja de adentro pesaba como la de afuera. */
+  padding: var(--e5);
+  border-left: var(--marca-tarjeta) solid var(--tono);
   border-radius: var(--radio-ficha);
   background: var(--fondo, var(--sup-2));
+  /* El anillo de toda tarjeta: sin él, era la única del panel que se apoyaba solo en su fondo. */
+  box-shadow: var(--anillo);
   color: var(--tinta);
 }
 
-.analisis__alerta--low {
-  --tono: var(--alerta-tono-low);
-}
-
-.analisis__alerta--medium {
-  --tono: var(--alerta-tono-medium);
-}
-
-.analisis__alerta--high {
-  --tono: var(--alerta-tono-high);
-}
-
-.analisis__cuerpo {
+.analisis__cuerpo,
+.explicacion {
   display: grid;
   gap: var(--e3);
   min-width: 0;
@@ -171,36 +162,13 @@
   color: var(--tinta-media);
 }
 
-.analisis__rotulo {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--e1) var(--e2);
-}
-
-.analisis__nivel {
-  font-weight: 600;
-  color: var(--tinta);
-}
-
-/* Una línea vertical fina entre el nivel y el origen, sin ningún carácter en el texto. */
-.analisis__separador {
-  display: inline-block;
-  width: 1px;
-  height: 1.1em;
-  margin: 0 var(--e2);
-  vertical-align: -0.2em;
-  background: var(--tinta-suave);
-  opacity: 0.5;
-}
-
 /* El hecho es lo primero que se lee de la tarjeta: pesa más que todo lo demás. */
 .analisis__hecho {
-  max-width: var(--medida);
+  max-width: var(--medida-panel);
   margin: 0;
   font-size: var(--panel-cuerpo);
   font-weight: 600;
-  line-height: 1.4;
+  line-height: var(--panel-alto);
   text-wrap: pretty;
 }
 
@@ -224,23 +192,27 @@
 .analisis__lista {
   display: grid;
   gap: var(--e2);
-  max-width: var(--medida);
+  max-width: var(--medida-panel);
   margin: 0;
   padding: 0;
   list-style: none;
   font-size: var(--panel-cuerpo);
-  line-height: 1.4;
+  line-height: var(--panel-alto);
 }
 
 .analisis__lista li {
   position: relative;
   padding-left: var(--e5);
+  /* Con la medida del panel, una viñeta larga corre casi toda la lámina: sin esto, su último renglón podía
+     quedar con una palabra sola. Lo mismo en las notas de abajo. */
+  text-wrap: pretty;
 }
 
 .analisis__lista li::before {
   content: "";
   position: absolute;
-  top: calc(0.75em - 3px);
+  /* El punto, de 6 px, centrado en el primer renglón. */
+  top: calc(var(--panel-alto) / 2 - 3px);
   left: 2px;
   width: 6px;
   height: 6px;
@@ -254,30 +226,49 @@
   display: flex;
   align-items: flex-start;
   gap: var(--e2);
-  max-width: var(--medida);
+  max-width: var(--medida-panel);
   margin: 0;
   font-size: var(--panel-fila);
-  line-height: 1.5;
+  line-height: var(--panel-alto);
   color: var(--tinta-media);
+  text-wrap: pretty;
 }
 
 .analisis__nota svg {
   flex: none;
-  margin-top: 0.3em;
+  /* Centrado en el primer renglón, con la misma cuenta que el ícono de los momentos (DetalleAnalisis.css). */
+  margin-top: calc((var(--panel-alto) - 16px) / 2);
   color: var(--tinta-suave);
 }
 
 @media (max-width: 760px) {
-  .analisis {
-    padding: var(--e4);
-  }
-
   .analisis__alerta {
     padding: var(--e4);
   }
 }
 
+/* Con colores forzados el anillo de la tarjeta desaparece: va un contorno del sistema hacia adentro (no ocupa
+   lugar), y la marca de nivel de la izquierda sigue siendo el borde, que el sistema pinta solo. */
+@media (forced-colors: active) {
+  .analisis__alerta {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+}
+
 @media (max-width: 640px) {
+  /* En el teléfono el cuadro del ícono baja a 40 px: con 56 se comía un sexto del ancho, y la frase se partía en
+     dos renglones con el ícono más pesado que ella. El ícono baja en proporción (de 36 a 24). */
+  .veredicto {
+    --veredicto-cuadro: 40px;
+    gap: var(--e3);
+  }
+
+  .veredicto__icono svg {
+    width: 24px;
+    height: 24px;
+  }
+
   /* La hora baja a su propio renglón. */
   .analisis__alerta {
     gap: var(--e3);

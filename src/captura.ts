@@ -1,4 +1,5 @@
-import { horaCorta } from "./eventos";
+import { duracion } from "./cifras";
+import { fechaCorta, horaCorta } from "./eventos";
 import type { Captura } from "./services/sesionesService";
 
 /**
@@ -29,13 +30,24 @@ export function avisoDeCaptura(captura: Captura | undefined): AvisoDeCaptura | n
       };
     case "gap": {
       const minutos = captura.gap_minutes ?? 0;
+      // Cuánto duró, escrito como en el resto del panel: bajo la hora en minutos («15 minutos»); desde la hora,
+      // como la columna «Transcurrido» de la lista («220 h 45 min»), y no «13245 minutos».
+      const cuanto = minutos < 60 ? `${minutos} minutos` : duracion(minutos);
       const desde = captura.last_event_at ? Date.parse(captura.last_event_at) : NaN;
-      const rango = Number.isNaN(desde)
-        ? `durante ${minutos} minutos`
-        : `entre las ${horaCorta(captura.last_event_at!)} y las ${horaCorta(new Date(desde + minutos * 60_000).toISOString())}`;
+      let rango = `durante ${cuanto}`;
+      if (!Number.isNaN(desde)) {
+        const inicio = captura.last_event_at!;
+        const fin = new Date(desde + minutos * 60_000).toISOString();
+        // Si el hueco cruza de día, cada extremo lleva su fecha, como «Empezó el 4/11/2026 a las 10:24»: con
+        // solo las horas, la del final quedaba en otro día sin decirlo.
+        rango =
+          fechaCorta(inicio) === fechaCorta(fin)
+            ? `entre las ${horaCorta(inicio)} y las ${horaCorta(fin)}`
+            : `entre el ${fechaCorta(inicio)} a las ${horaCorta(inicio)} y el ${fechaCorta(fin)} a las ${horaCorta(fin)}`;
+      }
       return {
         corto: "Sin eventos recibidos",
-        detalle: `No se recibieron eventos ${rango} mientras el examen seguía en curso (${minutos} minutos). Puede deberse a una falla técnica o a que la captura estaba desactivada.`,
+        detalle: `No se recibieron eventos ${rango} mientras el examen seguía en curso (${cuanto}). Puede deberse a una falla técnica o a que la captura estaba desactivada.`,
       };
     }
     case "js_disabled":

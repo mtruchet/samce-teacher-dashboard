@@ -1,3 +1,4 @@
+import { enCifras } from "../cifras";
 import { nombreDeAlumno, type SesionNumerada } from "../services/sesionesService";
 import { Usuario } from "../iconos";
 import { avisoDeCaptura } from "../captura";
@@ -55,41 +56,52 @@ interface Props {
   sesiones: SesionNumerada[];
   /** Cuántas tiene el grupo en total, aunque no estén todas cargadas. */
   total?: number;
+  /** Si la cabecera lleva la cifra. Con un filtro y la lista cortada no se sabe cuántas tiene el grupo. */
+  conCuenta?: boolean;
   /** Las cerradas no llevan un reloj corriendo sino una duración. */
   cerradas?: boolean;
   vacio?: React.ReactNode;
+  /**
+   * De qué respuesta son las filas (la vista: examen y filtros). Cuando cambia, la tabla se arma de nuevo en
+   * vez de reacomodar la anterior: las filas que siguen después de un filtro se movían dentro de la tabla, y el
+   * navegador lo contaba como un corrimiento de lo que el docente estaba leyendo. El refresco de la misma
+   * vista no la cambia, así el foco y la fila que se mira no se pierden cada pocos segundos.
+   */
+  vista?: string;
   /** Abre lo que pasó durante el intento. */
   onVerEventos: (sesion: SesionNumerada) => void;
 }
 
-export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio, onVerEventos }: Props) {
+export function ListaSesiones({ titulo, sesiones, total, conCuenta = true, cerradas = false, vacio, vista, onVerEventos }: Props) {
   // «50 de 80» cuando la lista está cortada, para que el número coincida con el
   // de la ficha del examen y se note que faltan filas por traer.
   const cuenta =
-    total !== undefined && total > sesiones.length ? `${sesiones.length} de ${total}` : String(sesiones.length);
+    total !== undefined && total > sesiones.length
+      ? `${enCifras(sesiones.length)} de ${enCifras(total)}`
+      : enCifras(sesiones.length);
   return (
-    <section className="lista">
-      <header className="lista__encabezado">
-        <h2 className="lista__titulo">{titulo}</h2>
-        <span className="lista__cuenta cifra">{cuenta}</span>
+    <section className="lamina lista">
+      <header className="lamina__encabezado lista__encabezado">
+        <h2 className="lamina__titulo">{titulo}</h2>
+        {conCuenta ? <span className="lamina__cuenta cifra">{cuenta}</span> : null}
       </header>
 
       {sesiones.length === 0 ? (
         vacio
       ) : (
-        <div className="lista__marco">
+        <div className="lista__marco" key={vista}>
           <table className="tabla">
             <caption className="solo-lectores">
-              {titulo}. Cada fila es la sesión de un alumno: el estado de su análisis y, si
-              tiene alertas, su nivel de riesgo; cuándo empezó, cuánto lleva o cuánto duró, y
-              el acceso a sus eventos.
+              {/* Corto a propósito: el lector de pantalla lo lee entero cada vez que entra a la tabla. */}
+              {titulo}: una fila por alumno, con su análisis, la hora de inicio,{" "}
+              {cerradas ? "la duración" : "el tiempo transcurrido"} y el acceso al detalle.
             </caption>
             <thead>
               <tr>
                 <th scope="col">Alumno</th>
                 <th scope="col" className="tabla__analisis">Análisis</th>
                 <th scope="col" className="tabla__der tabla__hora">Comenzó</th>
-                <th scope="col" className="tabla__der">
+                <th scope="col" className="tabla__der tabla__duracion">
                   {cerradas ? "Duración" : "Transcurrido"}
                 </th>
                 <th scope="col" className="tabla__der tabla__eventos">Eventos</th>
@@ -103,7 +115,7 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
                   <tr key={s.id}>
                     <td>
                       <span className="alumno">
-                        <Usuario size={18} weight="duotone" aria-hidden="true" />
+                        <Usuario size={16} aria-hidden="true" />
                         <span className="alumno__datos">
                           {/* El nombre es lo que el docente reconoce. Sin nombre,
                               `nombreDeAlumno` pone el número del aula virtual. */}
@@ -134,7 +146,7 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
                     <td className="tabla__der tabla__hora">
                       <span className="cifra">{comienzo(s.started_at)}</span>
                     </td>
-                    <td className="tabla__der">
+                    <td className="tabla__der tabla__duracion">
                       {/* Un intento sin entregar no tiene una duración que el panel
                           conozca: el cierre es cuando Moodle procesó el abandono,
                           que puede ser mucho después de que el alumno dejó de
@@ -150,10 +162,11 @@ export function ListaSesiones({ titulo, sesiones, total, cerradas = false, vacio
                     </td>
                     <td className="tabla__der tabla__eventos">
                       <button
-                        className="tabla__accion"
+                        className="boton-texto"
                         type="button"
+                        data-sesion={s.id}
                         onClick={() => onVerEventos(s)}
-                        aria-label={`Ver los eventos de ${nombreDeAlumno(s)}${
+                        aria-label={`Ver la sesión de ${nombreDeAlumno(s)}${
                           s.intentos > 1 ? `, intento ${s.intento} de ${s.intentos}` : ""
                         }`}
                       >

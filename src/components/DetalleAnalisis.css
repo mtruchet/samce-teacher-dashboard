@@ -1,145 +1,318 @@
-/* Las partes nuevas del detalle (HU05): cómo cambió el riesgo, el historial de alertas, las métricas y los
-   momentos para revisar. Texto y el medidor del nivel; sin barras, sin comparaciones y sin porcentajes. */
-.detalle-analisis__parte {
-  display: grid;
-  gap: var(--e2);
-  margin-top: var(--e5);
-}
+/* Los apartados de HU05 en el detalle: cómo cambió el riesgo, el historial de alertas, las métricas y los
+   momentos para revisar. Texto, el rótulo del nivel y pocas formas: sin barras, sin comparaciones, sin
+   porcentajes y sin cajas dentro de la lámina. Los títulos son los de `.apartado__titulo` (base.css). */
 
-.detalle-analisis--cronologia {
-  display: grid;
-  gap: var(--e3);
-  padding: var(--e5) var(--e6);
-  border-radius: var(--radio-panel);
-  background: var(--sup-1);
-  box-shadow: var(--anillo), var(--elev-2);
-}
-
-.detalle-analisis__titulo {
-  font-size: var(--panel-pieza);
-  font-weight: 600;
-  line-height: 25px;
-  color: var(--tinta);
-}
-
-.detalle-analisis__subtitulo {
+/* Una línea suelta del apartado: que las métricas se muestran al terminar, que el recorrido anterior no quedó
+   registrado, un origen sin registro. Acompaña, no encabeza. */
+.apartado__nota {
+  max-width: var(--medida-panel);
   font-size: var(--panel-fila);
-  font-weight: 600;
-  letter-spacing: var(--track-rotulo);
-  text-transform: uppercase;
+  line-height: var(--panel-alto);
   color: var(--tinta-media);
+  text-wrap: pretty;
 }
 
-.detalle-analisis__lista {
-  display: grid;
-  gap: var(--e2);
-  padding: 0;
-  list-style: none;
-  font-size: var(--panel-fila);
-  color: var(--tinta);
-}
+/* ==== Cómo cambió el riesgo: una escalera ============================== */
 
-.detalle-analisis__tramo,
-.detalle-analisis__entrada {
-  padding-left: var(--e3);
-  border-left: 3px solid var(--tono, var(--guia));
-}
-
-.detalle-analisis__tramo--low,
-.detalle-analisis__entrada--low {
-  --tono: var(--alerta-tono-low);
-}
-
-.detalle-analisis__tramo--medium,
-.detalle-analisis__entrada--medium {
-  --tono: var(--alerta-tono-medium);
-}
-
-.detalle-analisis__tramo--high,
-.detalle-analisis__entrada--high {
-  --tono: var(--alerta-tono-high);
-}
-
-.detalle-analisis__cabeza {
+/* Una pastilla por paso, unidas por una flecha chica: se lee de izquierda a derecha, como una frase, y no
+   compite con las tarjetas de arriba. */
+/* Las pastillas de un renglón miden todas lo mismo de alto: el primer paso, de un solo renglón, se centra en
+   la altura de los que llevan la hora arriba. */
+.pasos {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--e1) var(--e2);
+  align-items: stretch;
+  gap: var(--e2) var(--e3);
 }
 
-.detalle-analisis__hora,
-.detalle-analisis__origen,
-.detalle-analisis__nota,
-.detalle-analisis__dimension {
-  color: var(--tinta-media);
-}
-
-.detalle-analisis__nivel {
-  font-weight: 600;
-}
-
-.detalle-analisis__explicacion {
-  display: grid;
-  gap: var(--e1);
-  margin-top: var(--e1);
-}
-
-.detalle-analisis__explicacion ul {
-  margin: 0;
-  padding-left: var(--e5);
-}
-
-.detalle-analisis__nota {
-  font-size: var(--panel-nota);
-}
-
-.detalle-analisis__metricas {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+.pasos__item {
+  display: flex;
+  align-items: stretch;
   gap: var(--e3);
 }
 
-.detalle-analisis__metrica {
-  display: grid;
-  gap: var(--e1);
-  padding: var(--e3);
-  border-radius: var(--radio-ficha);
-  background: var(--sup-2);
-  box-shadow: var(--anillo);
+.pasos__flecha {
+  flex: none;
+  align-self: center;
+  color: var(--tinta-tenue);
 }
 
-.detalle-analisis__metrica dt {
-  display: grid;
+.paso {
+  display: inline-grid;
+  align-content: center;
   gap: 2px;
+  padding: var(--e1) var(--e3);
+  border-radius: var(--radio-chip);
+  background: var(--sup-2);
+  box-shadow: inset 0 0 0 1px var(--sup-4);
   font-size: var(--panel-fila);
-}
-
-.detalle-analisis__dimension {
-  font-size: var(--panel-rotulo);
-  letter-spacing: var(--track-rotulo);
-  text-transform: uppercase;
-}
-
-.detalle-analisis__metrica dd {
-  margin: 0;
-  font-weight: 600;
+  line-height: var(--panel-alto);
   color: var(--tinta);
 }
 
-.detalle-analisis__momento {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--e2) var(--e4);
-}
-
-.detalle-analisis__ir {
-  border: 0;
-  background: none;
-  padding: 0;
-  font: inherit;
+/* La hora del análisis en su renglón, arriba del nivel: nunca pegada al medidor con dos puntos. */
+.paso__hora {
   font-size: var(--panel-nota);
   color: var(--tinta-media);
+}
+
+/* A menos de 760 px, una columna: todas las pastillas del mismo ancho y la flecha centrada entre una y otra. */
+@media (max-width: 760px) {
+  .pasos {
+    flex-direction: column;
+    gap: var(--e1);
+  }
+
+  .pasos__item {
+    flex-direction: column;
+    gap: var(--e1);
+  }
+
+  .pasos__flecha {
+    transform: rotate(90deg);
+  }
+
+  .paso {
+    display: grid;
+  }
+}
+
+/* ==== Historial de alertas ============================================= */
+
+.historial {
+  display: grid;
+  gap: var(--e5);
+}
+
+/* La marca del nivel (`.marca-nivel`, 3 px) a la izquierda, la hora arriba, el rótulo y la explicación. */
+.historial__entrada {
+  display: grid;
+  justify-items: start;
+  gap: var(--e2);
+  font-size: var(--panel-fila);
+  color: var(--tinta);
+}
+
+.historial__hora {
+  font-size: var(--panel-nota);
+  color: var(--tinta-media);
+}
+
+.historial__entrada > .explicacion,
+.historial__plegado {
+  justify-self: stretch;
+}
+
+/* El aviso de D6 lo escribe el panel, no el motor: va con otra forma que las notas de la explicación (sin el
+   ícono de información, en cursiva y en --tinta-media) y separado de ella. */
+.historial__aviso {
+  max-width: var(--medida-panel);
+  font-size: var(--panel-nota);
+  font-style: italic;
+  line-height: var(--panel-alto);
+  color: var(--tinta-media);
+  text-wrap: pretty;
+}
+
+/* La explicación que repite la vigente queda plegada: se abre si hace falta, sin leer dos veces lo mismo.
+   «Ver la explicación» se viste como el botón de texto del panel (en --tinta, con el subrayado tenue que se
+   afirma al pasar o enfocar) y conserva el triángulo nativo, que dice que se despliega ahí mismo. En
+   --tinta-media y sin subrayado no se leía como algo que se puede tocar. */
+.historial__plegado > summary {
+  width: fit-content;
+  padding: var(--e1) var(--e2);
+  margin-left: calc(-1 * var(--e2));
+  border-radius: var(--radio-chip);
+  font-size: var(--panel-fila);
+  font-weight: 600;
+  color: var(--tinta);
   text-decoration: underline;
+  text-decoration-color: var(--tinta-tenue);
+  text-underline-offset: 3px;
   cursor: pointer;
+  transition:
+    background-color var(--mov-estado) var(--curva),
+    text-decoration-color var(--mov-estado) var(--curva);
+}
+
+.historial__plegado > summary:hover {
+  background: var(--sup-3);
+}
+
+.historial__plegado > summary:hover,
+.historial__plegado > summary:focus-visible {
+  text-decoration-color: currentcolor;
+}
+
+.historial__plegado[open] > summary {
+  margin-bottom: var(--e2);
+}
+
+/* La misma explicación que la tarjeta, un paso de letra más chica: es lo que pasó, no lo que se mira ahora. */
+.explicacion--historial .analisis__hecho,
+.explicacion--historial .analisis__lista {
+  font-size: var(--panel-fila);
+}
+
+.explicacion--historial .analisis__nota {
+  font-size: var(--panel-nota);
+}
+
+/* ==== Métricas de la sesión ============================================ */
+
+/* Un rótulo y su valor, sin cajas: una guía fina a la izquierda separa cada una. */
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e4) var(--e6);
+}
+
+.metricas__metrica {
+  display: grid;
+  /* El valor va al pie de la métrica y el rótulo se apoya sobre él: si un rótulo ocupa dos renglones, los
+     valores de la misma fila siguen en una sola línea, que es como se comparan. */
+  grid-template-rows: 1fr auto;
+  gap: var(--e1);
+  /* El texto arranca donde el del historial, que lleva la marca de nivel (3 px) más var(--e3): la guía sigue
+     en 2 px para no confundirse con esa marca, y la diferencia va al relleno. */
+  padding-left: calc(var(--e3) + var(--marca-renglon));
+  box-shadow: inset 2px 0 0 var(--guia);
+}
+
+/* El rótulo acompaña y el valor manda: el rótulo en tinta media, el valor en la tinta del texto y con peso. Los
+   dos con la letra de una fila, como los datos de la ficha de la sesión. */
+.metricas__rotulo {
+  align-self: end;
+  font-size: var(--panel-fila);
+  line-height: var(--panel-alto);
+  color: var(--tinta-media);
+}
+
+.metricas__valor {
+  margin: 0;
+  letter-spacing: normal;
+  font-size: var(--panel-fila);
+  font-weight: 600;
+  line-height: var(--panel-alto);
+  color: var(--tinta);
+}
+
+@media (max-width: 760px) {
+  .metricas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .metricas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Con colores forzados la guía (una sombra) desaparece: va un borde del color del texto. */
+@media (forced-colors: active) {
+  .metricas__metrica {
+    border-left: 1px solid CanvasText;
+  }
+
+  /* El contorno de cada paso de la escalera también es una sombra. */
+  .paso {
+    border: 1px solid CanvasText;
+  }
+}
+
+/* ==== Momentos para revisar ============================================ */
+
+/* El índice del registro, adentro de su lámina: la hora en su columna y, al lado, el mismo ícono y el mismo
+   nombre que la fila, con el botón para ir a ella. */
+/* Hasta la tabla, el aire de un título de lámina a su contenido: los momentos son el índice del registro, no
+   otro bloque aparte. */
+.momentos {
+  margin: 0 0 var(--e4);
+}
+
+/* Tres columnas compartidas por todos los momentos (subgrid): la hora, el ícono con el nombre y el botón. Así
+   los botones forman una columna y no siguen el largo de cada nombre, pero esa columna se apoya en el nombre
+   más largo (a var(--e4)) y no en el borde: lejos del texto, el ojo no la relacionaba con su fila. La hora va
+   arriba, alineada con el primer renglón del nombre.
+   La hora y el nombre caen en las mismas verticales que la hora y «Qué pasó» del registro de abajo: la lista
+   arranca con el relleno de la primera celda (var(--e3)) y la columna de la hora mide lo que la del registro
+   (--columna-hora) menos ese relleno. Así el índice y la tabla se leen como una sola cosa. */
+.momentos__lista {
+  display: grid;
+  grid-template-columns: calc(var(--columna-hora) - var(--e3)) auto auto;
+  padding-inline-start: var(--e3);
+  justify-content: start;
+  /* Entre renglones, el doble de lo que el botón sobresale de cada uno (ver .momentos__ir): con menos, los
+     «Ver en el registro» seguidos se pisaban y cada uno quedaba con menos de 24 px libres (WCAG 2.5.8). */
+  gap: calc(2 * var(--e1)) var(--e4);
+  max-width: var(--medida-panel);
+}
+
+.momentos__momento {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: start;
+  font-size: var(--panel-fila);
+  line-height: var(--panel-alto);
+}
+
+.momentos__hora {
+  color: var(--tinta-media);
+}
+
+.momentos__que {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e2);
+}
+
+/* El ícono centrado en el primer renglón del nombre (16 px sobre el renglón del panel). */
+.momentos__que > svg {
+  flex: none;
+  margin-top: calc((var(--panel-alto) - 16px) / 2);
+  color: var(--tinta-media);
+}
+
+/* El relleno del botón de texto lo bajaba medio renglón respecto de la hora y del nombre: se compensa para que
+   los tres compartan la línea. */
+.momentos__ir {
+  justify-self: start;
+  margin-block: calc(-1 * var(--e1));
+}
+
+/* Con el registro apilado, la hora de la fila mide lo que su texto (unos 55 px) más el relleno de la celda y la
+   separación de la grilla: 67 px de columna y var(--e2) de relleno dejan hora y nombre en las mismas verticales. */
+@media (max-width: 760px) {
+  .momentos__lista {
+    grid-template-columns: 67px auto auto;
+    padding-inline-start: var(--e2);
+  }
+}
+
+/* En un teléfono el botón va siempre en su propio renglón, debajo del nombre. */
+@media (max-width: 480px) {
+  .momentos__lista {
+    grid-template-columns: 67px minmax(0, 1fr);
+    row-gap: var(--e3);
+  }
+
+  .momentos__momento {
+    row-gap: 2px;
+  }
+
+  /* En su renglón, el texto del botón empieza donde el nombre del momento: el ancho del ícono, más su
+     separación, menos el relleno del botón. Pegado al borde de la columna quedaba en una línea propia, entre
+     el ícono y el nombre. */
+  .momentos__ir {
+    grid-column: 2;
+    margin-block: 0;
+    margin-inline-start: calc(16px + var(--e2) - var(--e2));
+  }
+}
+
+.momentos__titulo {
+  font-weight: 600;
+  color: var(--tinta);
 }

@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { sesionNumerada } from "../test/fabricas";
+import { conAnalisis, sesionNumerada } from "../test/fabricas";
 import { ListaSesiones } from "./ListaSesiones";
 
 const sesion = (id: number, started_at: string) =>
@@ -17,6 +17,13 @@ describe("ListaSesiones", () => {
       <ListaSesiones titulo="En curso" sesiones={[sesion(1, new Date().toISOString())]} total={80} onVerEventos={verEventos} />,
     );
     expect(recuento("En curso").getByText("1 de 80")).toBeInTheDocument();
+  });
+
+  it("la cuenta de la cabecera escribe los miles con punto, como «N de M sesiones» (H12)", () => {
+    render(
+      <ListaSesiones titulo="En curso" sesiones={[sesion(1, new Date().toISOString())]} total={1200} onVerEventos={verEventos} />,
+    );
+    expect(recuento("En curso").getByText("1 de 1.200")).toBeInTheDocument();
   });
 
   it("con la lista completa muestra solo el número", () => {
@@ -49,10 +56,10 @@ describe("ListaSesiones", () => {
 
   it("la columna «Análisis» dice el nivel en el árbol de accesibilidad, con el medidor oculto", () => {
     const conAlerta = sesionNumerada({
-      id: 1, student_name: "Ana", risk_level: "high", alerts_count: 1, alert_origins: ["event"], analysis_state: "analyzed",
+      id: 1, student_name: "Ana", ...conAnalisis("high", ["event"]),
     });
     const sinAlerta = sesionNumerada({
-      id: 2, student_name: "Bruno", risk_level: null, alerts_count: 0, alert_origins: [], analysis_state: "analyzed",
+      id: 2, student_name: "Bruno", ...conAnalisis(null, []),
     });
     const { container } = render(<ListaSesiones titulo="En curso" sesiones={[conAlerta, sinAlerta]} onVerEventos={verEventos} />);
 
@@ -60,7 +67,7 @@ describe("ListaSesiones", () => {
     const [, filaAna, filaBruno] = screen.getAllByRole("row");
     expect(within(filaAna).getByRole("cell", { name: /Riesgo alto/ })).toBeInTheDocument();
     expect(container.querySelector(".medidor")).toHaveAttribute("aria-hidden", "true");
-    expect(filaBruno.querySelector(".indicador--low, .indicador--medium, .indicador--high")).toBeNull();
+    expect(filaBruno.querySelector("[data-nivel]")).toBeNull();
     expect(within(filaBruno).getByText("Sin alertas")).toBeInTheDocument();
   });
 });

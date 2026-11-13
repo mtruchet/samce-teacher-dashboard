@@ -1,11 +1,17 @@
 /* El área privada.
 
-   El fondo es el segundo escalón de la escalera de superficies y cada bloque va
+   El fondo es el tercer escalón de la escalera de superficies y cada bloque va
    sobre una lámina blanca. Se separan por el escalón, sin una sola línea, que
-   es la regla del sistema. */
+   es la regla del sistema.
+
+   --sup-3 y no --sup-2 (13/11): la lámina de apoyo del registro es --sup-2, y sobre una página del mismo
+   escalón solo la recortaba el anillo; parecía un hueco sin fondo. Un escalón más abajo la despega. Solo en el
+   panel: la landing sigue alternando sus secciones sobre --sup-1 y --sup-2. Todo lo que va directo sobre la
+   página (migas, título, ficha, pulso, avisos y notas) se comprueba en pruebas-navegador/fondo-del-panel.spec.ts:
+   --tinta-suave queda en 4,51:1, el celeste de las migas en 4,95:1 y --tinta-media en 7,34:1. */
 
 body:has(.panel) {
-  background: var(--sup-2);
+  background: var(--sup-3);
 }
 
 .panel {
@@ -17,10 +23,27 @@ body:has(.panel) {
      debajo de la fila. */
   align-content: start;
   padding-block: var(--e10) var(--e16);
+  /* La letra y el renglón de base del panel. Sin esto, todo lo que no declaraba su tamaño heredaba los 19 px
+     y el interlineado de 30 de la landing (body), y cada pieza tenía que corregirlo por su cuenta. */
+  font-size: var(--panel-cuerpo);
+  line-height: var(--panel-alto);
 }
 
 .panel > * {
   min-width: 0;
+}
+
+/* La lista de un examen ocupa como mínimo la pantalla, como el detalle: al vaciarla con un filtro el pie no
+   sube a asomarse debajo de «Finalizadas». Antes dependía de que lo de arriba midiera justo lo suficiente, y
+   cualquier ajuste de unos píxeles en la lámina de control lo hacía asomar. */
+.panel:has(.panel__listas) {
+  min-height: calc(100dvh - var(--panel-barra));
+}
+
+/* La espera previa al detalle (entrando por su dirección) ocupa lo mismo que el detalle mientras carga
+   (`.detalle[aria-busy]`): el pie queda debajo de la pantalla desde el principio y no baja de golpe. */
+.panel--antes-del-detalle {
+  min-height: calc(100dvh - var(--panel-barra));
 }
 
 /* ==== El encabezado ==================================================== */
@@ -40,23 +63,52 @@ body:has(.panel) {
 
 .panel__curso {
   font-size: var(--panel-curso);
-  line-height: 1.2;
+  line-height: var(--panel-alto-curso);
   font-weight: 600;
   letter-spacing: var(--track-titulo);
   color: var(--tinta);
-  /* Un nombre de materia largo baja de renglón antes que empujar al pulso. */
-  max-width: 26ch;
+  /* Un nombre de materia largo baja de renglón antes que empujar al pulso. Con 26ch, un título de 36
+     caracteres («Segundo Parcial (réplica del campus)») se partía en dos con más de media lámina libre: el
+     tope es ahora 40ch, y nunca más que lo que deja el lugar del pulso (16rem, en .panel__titular). */
+  max-width: min(40ch, 100%);
   text-wrap: balance;
+}
+
+/* El título y la ficha de la sesión, en una columna. El lugar del pulso se reserva acá y no en el título: la
+   ficha tampoco puede meterse debajo del pulso. */
+.panel__titular {
+  min-width: 0;
+  max-width: calc(100% - 16rem);
+}
+
+/* Con la letra en su mínimo (24 px), un renglón de 35 deja un título partido en dos demasiado separado. */
+@media (max-width: 760px) {
+  .panel__curso {
+    /* 30 px con la letra predeterminada: en rem, como el renglón de más de 760. */
+    line-height: 1.875rem;
+  }
 }
 
 /* ==== Cuando un bloque no tiene filas =================================== */
 
+/* El aviso de página, fuera de toda lámina, cuando todavía no llegó nada del servidor. Va en la superficie de
+   las láminas con su anillo, como un aviso: en --sup-2 sobre la página (entonces también --sup-2) no tenía
+   borde ni fondo propio y el texto quedaba suelto entre el encabezado y el pie. */
 .panel__vacio {
   padding: var(--e5);
-  border-radius: max(0px, calc(var(--radio-panel) - var(--e5)));
-  background: var(--sup-2);
+  border-radius: var(--radio-ficha);
+  background: var(--sup-1);
+  box-shadow: var(--anillo);
   font-size: var(--panel-cuerpo);
   color: var(--tinta-media);
+}
+
+/* Con colores forzados el anillo desaparece: el contorno del sistema lo reemplaza, como en las láminas. */
+@media (forced-colors: active) {
+  .panel__vacio {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
 }
 
 /* ==== La señal de escucha ============================================== */
@@ -67,7 +119,7 @@ body:has(.panel) {
   align-items: center;
   gap: var(--e8);
   padding: var(--e10);
-  border-radius: var(--radio-panel);
+  border-radius: var(--radio-lamina);
   background: var(--sup-1);
   box-shadow: var(--anillo), var(--elev-2);
 }
@@ -123,10 +175,11 @@ body:has(.panel) {
   margin-bottom: var(--e3);
 }
 
-/* El bloque llena el ancho del panel; el párrafo se queda en una medida que
-   todavía se lee de un renglón al otro sin perder la línea. */
+/* El bloque llena el ancho del panel, y el párrafo usa la misma medida que el
+   resto del texto del panel (--medida-panel): el tope de la lámina ya lo deja
+   en un largo que se lee de un renglón al otro sin perder la línea. */
 .espera__bajada {
-  max-width: 92ch;
+  max-width: var(--medida-panel);
   font-size: var(--panel-cuerpo);
   line-height: 20px;
   color: var(--tinta-media);
@@ -141,7 +194,8 @@ body:has(.panel) {
     align-items: flex-start;
   }
 
-  .panel__curso {
+  .panel__curso,
+  .panel__titular {
     max-width: none;
   }
 
@@ -153,17 +207,28 @@ body:has(.panel) {
   }
 }
 
+/* Los grupos y «Ver más», con el mismo aire que separa las láminas del panel. Mientras la respuesta de la
+   vista pedida no llega, la lista que se ve es la anterior: se atenúa, y recién después de un instante (el
+   mismo token, como demora), así una respuesta rápida no hace parpadear nada. Al llegar vuelve de una vez.
+   Las tarjetas y los selectores cambian al momento, porque responden al clic. Con movimiento reducido el
+   token vale 0 y el cambio es directo. */
+.panel__listas {
+  display: grid;
+  gap: var(--e6);
+}
+
+/* 0,8 y no menos: mientras está atenuada, la lista se sigue leyendo y sus «Ver» se siguen usando (no es un
+   control inactivo), así que el texto tiene que cumplir el contraste mínimo (WCAG 1.4.3). Con 0,55 el texto
+   secundario quedaba en 2,7:1; 0,8 es la menor que lo deja en 4,5:1 o más. */
+.panel__listas[aria-busy="true"] {
+  opacity: 0.8;
+  transition: opacity var(--mov-estado) var(--curva) var(--mov-estado);
+}
+
+/* El botón es el secundario compartido (.boton-secundario, base.css); acá solo su lugar, centrado debajo. */
 .panel__ver-mas {
   display: block;
-  margin: 1.5rem auto 0;
-  padding: 0.6rem 1.4rem;
-  font: inherit;
-  font-weight: 600;
-  color: inherit;
-  background: transparent;
-  border: 1px solid currentColor;
-  border-radius: 6px;
-  cursor: pointer;
+  margin: var(--e6) auto 0;
 }
 
 /* El aviso de que la lista llegó al tope del servidor. Mismo tono que el aviso
@@ -172,5 +237,25 @@ body:has(.panel) {
 .panel__tope {
   margin: var(--e4) 0 0;
   font-size: var(--panel-cuerpo);
+  color: var(--tinta-media);
+}
+
+/* ==== La lámina de control de la evaluación ============================ */
+
+/* El resumen, la barra de filtros y el resultado: tres renglones en una sola lámina, separados por aire y
+   sin líneas. Sin filtro, el renglón del resultado va vacío pero ocupa su lugar: la lámina mide lo mismo con
+   o sin filtro, y la lista no baja ni sube al tocar una tarjeta. */
+.control {
+  display: grid;
+  gap: var(--e5);
+}
+
+/* Un grupo sin filas: una línea liviana dentro de su lámina, sin un bloque alto que parezca contenido. */
+.grupos__vacio {
+  margin: 0;
+  /* La letra de una fila de la tabla: el vacío ocupa el lugar de las filas y habla en su voz, no en la del
+     cuerpo. */
+  font-size: var(--panel-fila);
+  line-height: var(--panel-alto);
   color: var(--tinta-media);
 }

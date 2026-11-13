@@ -52,11 +52,19 @@ Un error habitual es usar la misma proporción entre todos los tamaños. Convien
 
 Para el texto grande de la página pública hay que **reducir el espaciado entre letras**, porque el espaciado por defecto, pensado para tamaños de lectura, queda suelto en titulares.
 
+### Medidas del texto
+
+El panel usa `--medida-panel` (62rem); `--medida` (68ch) es de la landing. Con la letra de 14 px del panel, 68ch daban unos 520 px, y las explicaciones del análisis saltaban de renglón a mitad de una lámina de unos 1030 px, con media lámina vacía. La medida del panel va en rem para que el borde derecho del texto sea el mismo con letra de 13, 14 o 19 px, y los párrafos largos llevan `text-wrap: pretty` para que el último renglón no quede con una palabra sola.
+
+El panel mide como máximo 1080 px (`--ancho-panel`); ese tope es lo que deja el texto en un largo legible. Ensanchar el panel obliga a volver a poner una medida en el texto.
+
+El título de la vista (el nombre del curso, del examen o del alumno) llega hasta 40ch y nunca ocupa el lugar del indicador «En vivo»: un nombre de examen de unos 36 caracteres entra en un renglón.
+
 ---
 
 ## 3. Color
 
-### El problema del semáforo
+### Por qué no verde, amarillo y rojo
 
 El impulso natural para tres niveles de riesgo es verde, amarillo y rojo. Es una mala idea por dos razones independientes.
 
@@ -83,6 +91,8 @@ Una escala de un solo tono que se intensifica, en lugar de tres colores distinto
 | Alto | Fondo saturado, texto claro, borde marcado | Círculo con anillo | Baja |
 
 Esto se lee como una progresión de intensidad, que es exactamente lo que un índice de integridad es. Y evita el gesto de "esto está mal" que carga el rojo.
+
+**Cómo quedó en el panel.** Todo lo que dice un nivel usa los tonos de las alertas (`--alerta-tono-*`), de frío y suave a cálido e intenso, asignados en un solo lugar (`src/styles/nivel.css`). El tono acompaña: el nivel va siempre con su palabra («Riesgo alto») y con un medidor de tres segmentos que se llenan de a uno. La guía del panel (`docs/panel-visual.md`) describe las piezas.
 
 **Color de marca:** el celeste institucional del Campus Virtual, `#008cb2`. No es una elección arbitraria ni genérica: es el color real de la casa. Da coherencia con el entorno del que el docente viene, y ancla el panel en la institución en lugar de en cualquier plantilla.
 
@@ -142,11 +152,88 @@ Sobre el fondo: los degradados suaves y las formas geométricas grandes son el r
 |---|---|---|
 | Tipografía | IBM Plex Sans | Roboto y Open Sans, por coherencia con el campus |
 | Color de marca | Celeste institucional `#008cb2` | Una paleta propia del producto |
-| Niveles de riesgo | Escala de intensidad de un tono | Semáforo tradicional, con sus problemas |
+| Niveles de riesgo | Escala de intensidad: los tonos de las alertas, con palabra y medidor | Verde, amarillo y rojo, con sus problemas |
 | Iconos | Phosphor | Tabler, si se prefiere trazo más fino |
-| Componentes | A definir | Escribir los estilos a mano |
+| Componentes | Escritos a mano con piezas compartidas | Una librería de componentes |
 
-La última es la que más conviene resolver antes de escribir pantallas, porque condiciona todo lo que venga después.
+La última se resolvió escribiendo los componentes a mano, con un juego chico de piezas compartidas (láminas, marca de nivel, apartados, botón de texto) que describe `docs/panel-visual.md`.
+
+---
+
+## 8. La armonía del panel
+
+Revisión de noviembre (Sprint 4): la lista, el detalle y el nivel de exámenes se armaron en momentos distintos y cada uno había resuelto por su cuenta la letra, el aire, los radios y los controles. Esta sección fija una sola receta por rol. Un cambio que no entre en ella se discute antes de escribirlo.
+
+### Escala por rol
+
+Siete pasos, dos pesos (400 y 600) y un interlineado múltiplo de 5. El 500 queda solo para la barra oscura y `.boton-secundario`; el 700 no se usa (lo vigila `src/estilos.test.ts`).
+
+| Rol | Letra / peso / interlineado | Dónde |
+|---|---|---|
+| Vista | `--panel-curso`, de 24 a 28 px / 600 / `--panel-alto-curso` 35 (30 bajo 760 px) | el título de la vista (`.panel__curso`) |
+| Cifra | `--panel-cifra`, de 20 a 24 px / 600 / `--panel-alto-cifra` 30 (25 bajo 760 px) | el número de las tarjetas del resumen |
+| Pieza | 17 / 600 / `--panel-alto-pieza` 25, con `--track-titulo` | título de lámina, nombre de la ficha de examen |
+| Frase | `--panel-frase` 15 / 600 / `--panel-alto` 20, con `--track-titulo` | la frase del veredicto: entre el título de su lámina y la bajada |
+| Cuerpo | 14 / 400 o 600 / `--panel-alto` 20 | título de apartado, el hecho y la lista del análisis, las migas |
+| Fila | 13 / 400 en tinta-media o 600 en tinta / 20 | celdas, rótulo del nivel, notas, métricas, ficha de la sesión, «N de M», vacíos, botón de texto |
+| Nota | 12 / 400 en tinta-media / 20 | horas, cuentas, encabezados del registro y etiquetas (estos dos en 600) |
+| Rótulo de columna | 11 / 600 / mayúsculas con `--track-rotulo` | solo los encabezados de la tabla de la lista (los rótulos de los filtros van en nota, 12 / 600, minúscula inicial) |
+
+**Excepción: el pie.** El pie es el de la landing y el panel lo comparte entero (`Pie.tsx`), así que conserva sus mayúsculas: los títulos de columna («El proyecto») y los rótulos («Autor 1», «Se registra solo») van en mayúsculas con `--track-rotulo`. No hay una variante del panel: cuando el pie estuvo escrito dos veces, ya se había despegado. Sus tintas siguen un solo criterio: blanco solo para el nombre del sistema; `--tinta-clara-media` para los títulos de columna y todo lo que se lee (nombres, frases, enlaces, la dirección); `--tinta-clara-suave` (4,72:1 sobre la pizarra) para los rótulos y la bajada. Cada renglón, en un múltiplo de 5: 25 para los enlaces, 20 para los renglones chicos y los títulos, 15 para los rótulos.
+
+El título de la vista le saca siempre 4 px a la cifra, a cualquier ancho. Los renglones de esos dos roles van en rem, como su letra (35 y 30 px con la letra predeterminada): si la persona agranda la letra del navegador, el renglón crece con ella y un título de dos renglones no se pisa. `.panel` declara la letra y el renglón de base (14/20): nada dentro del panel hereda los 19/30 de la landing.
+
+### Ritmo
+
+- Del encabezado al primer bloque: 32 px. En el detalle, la ficha de la sesión es parte del encabezado: va a `--e2` del nombre, y el análisis es la primera lámina.
+- Entre láminas: `--e6` (24 px), en la lista y en el detalle.
+- Del título de una lámina a su contenido: `--e4` (16 px). Del título de un apartado a su contenido: `--e3` (12 px); entre apartados, 32 px.
+- Relleno de lámina: `--e5`/`--e6` en escritorio; a los costados nunca menos de `--e4`. Margen de página en el teléfono: `--e4`.
+- Lo anidado nunca lleva más relleno que su contenedor.
+- El pie de una tabla («Ver más sesiones», «Mostrar 50 más»): `--e6` de aire y sin línea.
+- El texto detrás de una marca vertical arranca a marca + `--e3`.
+
+### Superficies
+
+Un rol, un radio. El peso de una lámina lo dan la sombra y el fondo, nunca el radio.
+
+| Rol | Fondo | Borde | Sombra | Radio |
+|---|---|---|---|---|
+| Página del panel | `--sup-3` (la landing sigue en `--sup-1`/`--sup-2`) | — | — | — |
+| Lámina (control, grupos, fichas de examen, espera) | `--sup-1` | `--anillo` | `--elev-2` | `--radio-lamina` 16 |
+| Lámina de lectura | `--sup-1` | `--anillo` | `--elev-1` | 16 |
+| Lámina de apoyo | `--sup-2` | `--anillo` | — | 16 |
+| Ficha de la sesión | ninguno: es un renglón de la cabecera, debajo del nombre y al ras de él | — | — | — |
+| Tarjeta (de nivel, de estado, de alerta) | tinte al 8 % o `--sup-2` | `--anillo`, más `--marca-tarjeta` si hay nivel | `--elev-1` al pasar el mouse | 12 |
+| Aviso y vacío de página | `--nivel-1-fondo`, o `--sup-1` en el vacío y en el aviso de captura del detalle | 1 px adentro (`--anillo` en los dos de `--sup-1`) | — | 12; 16 en el aviso de captura, que ocupa una fila de la pila de láminas |
+| Control (selector, búsqueda, `.boton-secundario`) | `--sup-1` | 1 px adentro en `--borde-control` (3,5:1) | — | `--radio-chip` 6 |
+| Etiqueta de estado | `--sup-3`; `--sup-1` en la ficha de la sesión, que va sobre la página | 1 px adentro en `--sup-4`, más un borde transparente | — | 6 |
+| Paso de la escalera | `--sup-2` | 1 px adentro en `--sup-4` | — | 6 |
+| Renglón con marca | transparente, o `--sup-3` si está destacado | `--marca-renglon` | — | 0 |
+| Métrica | transparente | guía de 2 px | — | 0 |
+| Botón de texto | transparente; `--sup-3` al pasar el mouse | — | — | 6 |
+
+`--radio-panel` (24 px) queda solo para la landing; ninguna pieza del panel lo usa ni deriva su radio de él.
+
+### Componentes únicos
+
+- **Control de 40 px:** la misma piel en los selectores, la búsqueda y `.boton-secundario`. El texto de los cuatro filtros arranca a `--e2` del borde: los selectores van sin la apariencia del navegador y su flecha es el `CaretDown` de 16 px del sistema de íconos.
+- **Etiqueta de estado:** una sola receta, la de `.detalle__estado`. «Entregó» en la lista es la misma etiqueta.
+- **Vacío dentro de una lámina:** un renglón de 13/20 en tinta-media, sin caja.
+- **Foco:** un solo anillo, `--anillo-foco`. Ninguna pieza lleva un contorno celeste propio; las filas del registro conservan el suyo, que marca la fila entera.
+- **Íconos de fila:** 16 px, trazo regular.
+- **Columna de la hora:** `--columna-hora` (96 px), compartida por el registro y «Momentos para revisar».
+
+### Vetos
+
+- No se sube el tinte del 8 % de las tarjetas ni el del 14 % del medidor.
+- Nada de `--tinta-suave` sobre `--sup-4`. Sobre la página (`--sup-3`) da 4,51:1: el mínimo justo, así que lo que va directo sobre la página prefiere `--tinta-media` (7,34:1).
+- Sin texto sobre los tonos del nivel.
+- No se le quita relleno vertical al botón de texto ni al desplegable.
+- Nada por debajo de 11 px.
+- Todo contorno hecho con sombra lleva su regla de colores forzados.
+- Sin modo oscuro parcial.
+- El relleno lateral de una lámina no baja de `--e4`.
 
 ---
 
@@ -206,3 +293,27 @@ argumento es el respeto, esto no es opcional.
 
 **Anillo de foco de dos capas**, con la capa interior del color de la superficie para que se
 recorte contra cualquier fondo, incluido el oscuro.
+
+---
+
+## Lista de control de accesibilidad
+
+Lo que el panel tiene que cumplir en cada pantalla. Si un cambio rompe alguna, se corrige antes de entrar.
+
+- **R1.** Anillo `:focus-visible` de dos capas, que ningún `box-shadow` pisa.
+- **R2.** `outline: 2px solid transparent`, nunca `none`.
+- **R3.** El orden de Tab sigue al de lectura, sin `tabindex` positivos.
+- **R4.** Nada enfocado queda debajo de la barra fija.
+- **R5.** Las regiones vivas hablan solo por una acción del docente o por una novedad real.
+- **R6.** Un anuncio repetido se relee, con `<span key>`.
+- **R7.** Cada `status` lleva solo su frase.
+- **R8.** Un h1, h2 por sección y h3 dentro, sin saltos.
+- **R9.** A 390 px no hay desplazamiento lateral, y los niveles van en un renglón.
+- **R10.** En colores forzados se ven el foco, el medidor, la tarjeta elegida y los bordes de los controles.
+- **R11.** El nivel nunca va solo por color: palabra, número y medidor.
+- **R12.** Contraste de 4,5:1 en la tinta y de 3:1 en los bordes y en el segmento lleno contra el vacío, sobre el fondo real.
+- **R13.** Objetivos de 24×24 como mínimo.
+- **R14.** `aria-pressed` en las tarjetas, y «Quitar filtros» visible con un filtro activo.
+- **R15.** `prefers-reduced-motion` sin transiciones.
+
+R1, R4, R9, R10 y R13 solo se pueden comprobar en un navegador: las verifica `npm run test:navegador` (`pruebas-navegador/a11y.spec.ts`, Chromium a 390 y 1280 px, con el backend simulado), que también corre en la CI.

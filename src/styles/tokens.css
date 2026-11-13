@@ -40,7 +40,9 @@
 
   --tinta-clara: #ffffff;
   --tinta-clara-media: rgb(255 255 255 / 78%);
-  --tinta-clara-suave: rgb(255 255 255 / 58%);
+  /* 62 % y no 58 %: sobre la pizarra del pie, el texto chico daba 4,34:1, debajo del 4,5:1 de WCAG 1.4.3.
+     Con 62 % da 4,72:1. */
+  --tinta-clara-suave: rgb(255 255 255 / 62%);
 
   /* ---- Guías verticales. Las horizontales están vedadas. ---------------- */
   --guia: rgb(17 76 94 / 8%);
@@ -78,15 +80,21 @@
   --alerta-tono-medium: #987016; /* 4,32:1 */
   --alerta-tono-high: #ad5a0f; /* 4,75:1 */
 
-  /* ---- El semáforo del resumen de la evaluación (Sprint 4) ---------------- */
-  /* Solo en las tarjetas del resumen, arriba de la lista: rojo para riesgo alto, amarillo para medio y verde
-     para bajo, para ver de un vistazo cómo está el examen. Es una excepción a «la ausencia de semáforo» que
-     pidió el equipo (a confirmar). Como los --alerta-tono-*, son trazos y rellenos, nunca texto: el número y
-     el rótulo van en --tinta, con el medidor al lado. Piden 3:1 sobre --sup-1; se comprueba en
-     AnalisisSesion.contraste.test.ts. */
-  --semaforo-rojo: #c62828; /* 5,62:1 sobre --sup-1 */
-  --semaforo-amarillo: #c27c0e; /* 3,40:1 */
-  --semaforo-verde: #2e7d32; /* 5,13:1 */
+  /* ---- La marca del nivel ------------------------------------------------- */
+  /* Dos anchos y nada más: el de las tarjetas (la de la alerta y las del resumen) y el de los renglones (la
+     celda «Análisis» de la lista, el historial y la fila destacada del registro). */
+  --marca-tarjeta: 4px;
+  --marca-renglon: 3px;
+
+  /* ---- El anillo de foco -------------------------------------------------- */
+  /* Uno solo en todo el panel, de dos capas: la interior separa del fondo y la exterior es el celeste de la
+     acción. Lo usa :focus-visible en base.css, y cada regla de componente que necesita sumarle su propia
+     sombra lo repite con este token, nunca con los valores escritos a mano. */
+  --anillo-foco: 0 0 0 2px var(--sup-1), 0 0 0 4px var(--celeste);
+  /* El mismo anillo sobre las superficies oscuras (la barra, el pie y el bloque de decisiones de la portada):
+     el celeste sobre la pizarra daba 2,43:1, debajo del 3:1 que pide WCAG 1.4.11 para el foco. Por fuera va
+     el blanco (9,5:1), separado por la misma pizarra. */
+  --anillo-foco-oscuro: 0 0 0 2px var(--sup-5), 0 0 0 4px var(--tinta-clara);
 
   /* ---- El veredicto sin alertas ------------------------------------------ */
   /* Un verde suave solo en el cuadro del ícono de «No hay alertas para revisar» (ronda 3), para que se distinga de
@@ -140,6 +148,12 @@
   --e20: 80px;
 
   /* ---- Radios: anidados, exterior = interior + padding ------------------- */
+  /* Un rol, un radio (docs/sistema-visual.md, «Superficies»):
+     - chip: controles (selectores, búsqueda, botones), etiquetas de estado y pasos de la escalera;
+     - ficha: tarjetas (de nivel, de estado, de alerta), avisos y el vacío de página;
+     - lámina: todas las láminas del panel, las tres de peso, las fichas de examen, la espera y el aviso de
+       captura del detalle, que ocupa una fila entera de la pila de láminas;
+     - panel: solo la landing. En el panel una lámina pesa más o menos por la sombra y el fondo, no por el radio. */
   --radio-chip: 6px;
   --radio-ficha: 12px;
   --radio-lamina: 16px;
@@ -184,9 +198,41 @@
   --panel-nota: 12px;
   --panel-rotulo: 11px;
   --panel-pieza: 17px;
-  --panel-curso: clamp(1.375rem, 1.2rem + 0.85vw, 1.75rem);
+  /* La frase del veredicto («Hay 2 alertas para revisar.»), de 15 px y en el renglón del cuerpo (20). Con los
+     17 de una pieza empataba con «Análisis de la sesión», el título de su propia lámina, y las dos se leían como
+     títulos del mismo nivel. A 15 queda entre el título (17) y la bajada (13): se lee primero que todo lo de la
+     lámina, pero debajo de su título. */
+  --panel-frase: 15px;
+  /* El número de las tarjetas del resumen, de 20 a 24 px. Con 28 fijo empataba o le ganaba al título de la
+     vista: el h1 (--panel-curso, de 24 a 28 px) le saca siempre 4 px, a cualquier ancho. */
+  --panel-cifra: clamp(1.25rem, 1rem + 0.85vw, 1.5rem);
+  --panel-curso: clamp(1.5rem, 1.3rem + 0.85vw, 1.75rem);
+
+  /* Los interlineados del panel, todos múltiplos de 5: el cuerpo, la fila y la nota van en 20; el título de
+     una lámina en 25; la cifra del resumen en 30 y el título de la vista en 35 (los dos bajan 5 px por debajo
+     de 760, en su hoja). Con un número por rol, dos textos del mismo rol no quedan con renglones distintos.
+     La cifra y el título de la vista tienen la letra en rem, así que su renglón también: con la letra
+     predeterminada dan los mismos 30 y 35 px, y si la persona agranda la letra del navegador el renglón crece
+     con ella (en px fijos, un título de dos renglones se pisaba). */
+  --panel-alto: 20px;
+  --panel-alto-pieza: 25px;
+  --panel-alto-cifra: 1.875rem;
+  --panel-alto-curso: 2.1875rem;
+
+  /* Solo bordes de controles (selectores, búsqueda, botón secundario): 3,67:1 sobre --sup-1 y 3,52:1 sobre
+     --sup-2, por encima del 3:1 de WCAG 1.4.11. --sup-4 y --anillo daban 1,2:1: el control no se distinguía. */
+  --borde-control: #748991;
+
+  /* El ancho de la columna de la hora, el mismo en el registro y en «Momentos para revisar»: las horas de los
+     dos caen en la misma vertical. */
+  --columna-hora: 96px;
 
   --ancho-panel: 1080px;
+  /* La medida del texto del panel. --medida (68ch) es de la landing: con la letra de 14 px del panel daba
+     unos 520 px, y las explicaciones saltaban de renglón a mitad de una lámina de 1030 px, con media lámina
+     vacía. Va en rem y no en ch para que el borde derecho sea el mismo con letra de 13, 14 o 19 px; el largo
+     legible a 1920 px lo pone --ancho-panel, que es el tope de la lámina. */
+  --medida-panel: 62rem;
 
   --panel-barra: 52px;
   --fila-curso: 40px;

@@ -1,26 +1,28 @@
 import { ESTADOS_SIN_ALERTAS, NIVELES } from "../lenguajeAlerta";
-import type { FiltrosSesiones, ResumenDeEvaluacion } from "../services/sesionesService";
-import { MedidorNivel } from "./MedidorNivel";
+import { cuantasSesiones, enCifras } from "../cifras";
+import { NIVELES_FILTRO, SIN_FILTROS, type FiltrosSesiones } from "../filtrosDeLaDireccion";
+import type { NivelDeRiesgo } from "../niveles";
+import type { ResumenDeEvaluacion } from "../services/sesionesService";
+import { RotuloNivel } from "./RotuloNivel";
 import "./ResumenEvaluacion.css";
 
-type Nivel = NonNullable<FiltrosSesiones["nivel"]>;
 type EstadoDeAnalisis = NonNullable<FiltrosSesiones["analisis"]>;
 
-/** Las tarjetas, en orden fijo: no depende de los números. Primero los niveles, después los estados. */
-const TARJETAS_DE_NIVEL: Array<{ nivel: Nivel; campo: keyof ResumenDeEvaluacion }> = [
-  { nivel: "high", campo: "risk_high" },
-  { nivel: "medium", campo: "risk_medium" },
-  { nivel: "low", campo: "risk_low" },
+/** El campo del resumen que cuenta cada nivel. */
+const CAMPO_DEL_NIVEL: Record<NivelDeRiesgo, keyof ResumenDeEvaluacion> = {
+  high: "risk_high",
+  medium: "risk_medium",
+  low: "risk_low",
+};
+
+/** Las tarjetas de estado, en orden fijo: no depende de los números. */
+const TARJETAS_DE_ESTADO: Array<{ analisis: EstadoDeAnalisis; rotulo: string }> = [
+  { analisis: "no_alerts", rotulo: ESTADOS_SIN_ALERTAS.analyzed },
+  { analisis: "not_analyzed", rotulo: ESTADOS_SIN_ALERTAS.not_analyzed },
+  { analisis: "insufficient_evidence", rotulo: ESTADOS_SIN_ALERTAS.insufficient_evidence },
+  { analisis: "unavailable", rotulo: ESTADOS_SIN_ALERTAS.unavailable },
 ];
 
-const TARJETAS_DE_ESTADO: Array<{ analisis: EstadoDeAnalisis; campo: keyof ResumenDeEvaluacion; rotulo: string }> = [
-  { analisis: "no_alerts", campo: "no_alerts", rotulo: ESTADOS_SIN_ALERTAS.analyzed },
-  { analisis: "not_analyzed", campo: "not_analyzed", rotulo: ESTADOS_SIN_ALERTAS.not_analyzed },
-  { analisis: "insufficient_evidence", campo: "insufficient_evidence", rotulo: ESTADOS_SIN_ALERTAS.insufficient_evidence },
-  { analisis: "unavailable", campo: "unavailable", rotulo: ESTADOS_SIN_ALERTAS.unavailable },
-];
-
-const sesiones = (n: number) => (n === 1 ? "1 sesión" : `${n} sesiones`);
 
 interface Props {
   resumen: ResumenDeEvaluacion;
@@ -36,64 +38,70 @@ interface Props {
  * sesión. Cuenta toda la evaluación, no la página ni el filtro.
  *
  * Son recuentos, no una lista ordenada ni un puesto uno: sin nombres, sin índice y sin promedios, y el
- * orden de las tarjetas es fijo. Cada tarjeta lleva a las sesiones que cuenta: al tocarla deja solo su
- * filtro (conserva el orden elegido), y al tocarla de nuevo vuelve a la evaluación completa.
+ * orden de las tarjetas es fijo. Va dentro de la lámina de control, sin lámina propia.
  *
- * Los niveles van en colores de semáforo (rojo, amarillo y verde), siempre con la palabra, el número y
- * el medidor al lado, para que no dependan solo del color. No es una región viva: los números cambian
- * en silencio con cada actualización.
+ * Cada tarjeta es un camino al mismo filtro que la barra:
+ * - queda marcada mientras su filtro está en la dirección, aunque haya otros (el selector de nivel y la
+ *   tarjeta se reflejan entre sí);
+ * - tocar una sin marcar deja solo su filtro y conserva el orden, así «N de M sesiones» coincide con el
+ *   número de la tarjeta;
+ * - tocar la marcada borra solo su filtro.
+ *
+ * El nombre de cada tarjeta empieza por lo que se lee en ella, el número y la palabra («10 Riesgo alto, 10
+ * sesiones»): quien la maneja con la voz dice lo que ve (WCAG 2.5.3), y con «Riesgo alto: 10 sesiones» el
+ * número visible quedaba al final.
+ *
+ * Los niveles llevan la marca de todo el panel (`RotuloNivel`, con los tonos de las alertas), siempre con la
+ * palabra y el número, para que no dependan solo del color. Los estados van en un renglón más liviano, sin
+ * marca ni tono. No es una región viva: los números cambian en silencio con cada actualización.
  */
 export function ResumenEvaluacion({ resumen, filtros, onFiltrar }: Props) {
-  const soloNivel = (nivel: Nivel) =>
-    filtros.nivel === nivel && !filtros.estado && !filtros.analisis && !filtros.q;
-  const soloEstado = (analisis: EstadoDeAnalisis) =>
-    filtros.analisis === analisis && !filtros.nivel && !filtros.estado && !filtros.q;
-  const limpio = { nivel: undefined, estado: undefined, analisis: undefined, q: undefined };
-
   return (
-    <section className="resumen" aria-labelledby="resumen-titulo">
-      <h2 id="resumen-titulo" className="resumen__titulo">
+    // Un div y no otra región: va adentro de la región «Resumen y filtros de la evaluación», y dos puntos de
+    // referencia casi iguales, uno dentro del otro, solo suman ruido. El h2 ya sirve para llegar por encabezados.
+    <div className="resumen">
+      <h2 id="resumen-titulo" className="lamina__titulo">
         Resumen de la evaluación
       </h2>
-      <div className="resumen__tarjetas">
-        {TARJETAS_DE_NIVEL.map(({ nivel, campo }) => {
-          const elegida = soloNivel(nivel);
+      <div className="resumen__tarjetas resumen__tarjetas--niveles">
+        {NIVELES_FILTRO.map((nivel) => {
+          const elegida = filtros.nivel === nivel;
+          const n = resumen[CAMPO_DEL_NIVEL[nivel]];
           return (
             <button
               key={nivel}
               type="button"
-              className={`resumen__tarjeta resumen__tarjeta--${nivel}`}
+              className={n === 0 ? "resumen__tarjeta resumen__tarjeta--cero" : "resumen__tarjeta"}
+              data-nivel={nivel}
               aria-pressed={elegida}
-              aria-label={`${NIVELES[nivel]}: ${sesiones(resumen[campo])}`}
-              onClick={() => onFiltrar(elegida ? limpio : { ...limpio, nivel })}
+              aria-label={`${enCifras(n)} ${NIVELES[nivel]}, ${cuantasSesiones(n)}`}
+              onClick={() => onFiltrar(elegida ? { nivel: undefined } : { ...SIN_FILTROS, nivel })}
             >
-              <span className="resumen__numero cifra">{resumen[campo]}</span>
-              <span className="resumen__rotulo">
-                <MedidorNivel nivel={nivel} />
-                {NIVELES[nivel]}
-              </span>
+              <span className="resumen__numero cifra">{enCifras(n)}</span>
+              <RotuloNivel nivel={nivel} />
             </button>
           );
         })}
       </div>
-      <div className="resumen__tarjetas">
-        {TARJETAS_DE_ESTADO.map(({ analisis, campo, rotulo }) => {
-          const elegida = soloEstado(analisis);
+      <div className="resumen__tarjetas resumen__tarjetas--estados">
+        {TARJETAS_DE_ESTADO.map(({ analisis, rotulo }) => {
+          const elegida = filtros.analisis === analisis;
+          const n = resumen[analisis];
           return (
             <button
               key={analisis}
               type="button"
               className="resumen__tarjeta resumen__tarjeta--estado"
               aria-pressed={elegida}
-              aria-label={`${rotulo}: ${sesiones(resumen[campo])}`}
-              onClick={() => onFiltrar(elegida ? limpio : { ...limpio, analisis })}
+              aria-label={`${enCifras(n)} ${rotulo}, ${cuantasSesiones(n)}`}
+              onClick={() => onFiltrar(elegida ? { analisis: undefined } : { ...SIN_FILTROS, analisis })}
             >
-              <span className="resumen__numero cifra">{resumen[campo]}</span>
+              <span className="resumen__numero cifra">{enCifras(n)}</span>
               <span className="resumen__rotulo">{rotulo}</span>
             </button>
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }

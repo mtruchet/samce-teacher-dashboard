@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { duracion } from "../cifras";
 
 /** Cada cuánto se revisa si cambió el minuto. */
 const REVISION = 10000;
@@ -26,14 +27,9 @@ function formatear(desde: Date, hasta: Date, cerrada: boolean) {
   // cosa y además falsa: lo que pasó es que duró poco.
   if (total < 60) return cerrada ? "menos de 1 min" : "recién";
 
-  const minutos = Math.floor(total / 60);
-  if (minutos < 60) return `${minutos} min`;
-
-  // «1 h 05» deja los minutos sin unidad y con un cero adelante, y así se lee
-  // como una hora del día, que es justo lo que la columna de al lado sí es.
-  const horas = Math.floor(minutos / 60);
-  const resto = minutos % 60;
-  return resto === 0 ? `${horas} h` : `${horas} h ${resto} min`;
+  // Sin «1 h 05», que se lee como una hora del día, justo lo que la columna
+  // de al lado sí es (ver duracion en cifras.ts).
+  return duracion(Math.floor(total / 60));
 }
 
 interface Props {

@@ -1,38 +1,17 @@
-.lista {
-  padding: var(--e5) var(--e6);
-  border-radius: var(--radio-panel);
-  background: var(--sup-1);
-  box-shadow: var(--anillo), var(--elev-2);
-}
-
+/* Cada grupo de sesiones es una .lamina (base.css), con su título y su cuenta en .lamina__titulo y
+   .lamina__cuenta: acá solo queda el aire entre el encabezado y la tabla. */
 .lista__encabezado {
-  display: flex;
-  align-items: baseline;
-  gap: var(--e3);
   margin-bottom: var(--e4);
 }
 
-.lista__titulo {
-  font-size: var(--panel-pieza);
-  font-weight: 600;
-  line-height: 25px;
-  letter-spacing: var(--track-titulo);
-  color: var(--tinta);
-}
+/* La tabla crece con la página, sin desplazamiento propio. Con un alto tope y desplazamiento adentro, la
+   última fila quedaba cortada bajo una sombra, el alto de la lámina cambiaba con cada filtro y la rueda del
+   ratón quedaba atrapada en la tabla. La barra del panel y el encabezado de columnas igual quedan siempre a
+   la vista (los dos son fijos contra la página), y el largo lo acota «Ver más sesiones», de 50 en 50.
 
-.lista__cuenta {
-  font-size: var(--panel-nota);
-  color: var(--tinta-media);
-}
-
-/* La lista larga hace scroll adentro, así la barra nunca se va de pantalla: la
-   misma información siempre en el mismo lugar es lo que permite que el ojo
-   aprenda dónde mirar. */
-.lista__marco {
-  max-height: min(52vh, 520px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
+   No lleva `overflow-x: auto`: el marco pasaría a ser un contenedor de desplazamiento y el encabezado
+   quedaría fijo contra él y no contra la página. Por encima de 760 px las columnas entran, y por debajo cada
+   fila se apila. Por eso .lista__marco no lleva reglas. */
 
 /* ==== La tabla ========================================================= */
 
@@ -43,7 +22,9 @@
 
 .tabla th {
   position: sticky;
-  top: 0;
+  /* Debajo de la barra del panel, que también es fija: ni la lámina ni el marco tienen desplazamiento propio,
+     así que el encabezado queda fijo contra la página. */
+  top: var(--panel-barra);
   z-index: 1;
   padding: 0 var(--e4) var(--e2);
   background: var(--sup-1);
@@ -54,6 +35,12 @@
   text-transform: uppercase;
   color: var(--tinta-media);
   white-space: nowrap;
+}
+
+/* Al volver con Mayús+Tab, el navegador deja lo enfocado justo debajo de la barra, donde ahora está el
+   encabezado fijo de columnas: el «Ver» de la fila quedaba tapado por él. Se le suma su alto. */
+.tabla tbody .boton-texto {
+  scroll-margin-top: var(--e8);
 }
 
 .tabla td {
@@ -96,35 +83,30 @@
   white-space: nowrap;
 }
 
-/* ==== Ver los eventos de una sesión ==================================== */
-
-/* Es un botón de texto: el docente ya está mirando una fila y lo único que
-   hace falta es entrar a ella. Sin caja ni relleno, para que treinta filas no
-   sean treinta botones gritando. Lleva el subrayado del enlace y el foco
-   visible, que es lo que lo hace alcanzable con teclado. */
-.tabla__accion {
-  padding: var(--e1) var(--e2);
-  border: 0;
-  border-radius: var(--radio-chip);
-  background: transparent;
-  font-family: inherit;
-  font-size: var(--panel-fila);
-  font-weight: 600;
-  color: var(--tinta);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: var(--tinta-tenue);
-  cursor: pointer;
+/* La columna «Análisis» lleva un ancho propio y puede partir el renglón. Con `nowrap` crecía hasta su texto
+   más largo, y ese texto cambia de un grupo a otro: «En curso», «Finalizadas» y la lista filtrada dibujaban
+   la columna en lugares distintos, y el ojo la perdía al pasar de una tabla a la otra. Debajo de 760 px la
+   regla de la fila apilada la vuelve a soltar. */
+.tabla th.tabla__analisis,
+.tabla td.tabla__analisis {
+  width: 40%;
+  white-space: normal;
 }
 
-.tabla__accion:hover {
-  background: var(--sup-3);
-  text-decoration-color: currentcolor;
+/* El rótulo «Análisis» arranca donde arranca el contenido de sus celdas (después del lugar de la marca de
+   nivel, que .indicador--sin-nivel también reserva), no 15 px antes. Debajo de 760 px el encabezado se oculta. */
+.tabla th.tabla__analisis {
+  padding-left: calc(var(--e4) + var(--marca-renglon) + var(--e3));
 }
 
-.tabla__accion:focus-visible {
-  outline: 2px solid var(--tinta);
-  outline-offset: 2px;
+/* ==== Ver una sesión ================================================== */
+
+/* «Ver» es el botón de texto compartido (.boton-texto, en base.css). Su relleno lo dejaba 8 px adentro del
+   borde de la columna, y la palabra no terminaba donde su rótulo «Eventos» ni donde la duración: el botón se
+   corre sobre el relleno de la celda lo mismo que su propio relleno, así el texto cae en la línea de la
+   columna sin achicar el área que se toca. */
+.tabla td.tabla__eventos .boton-texto {
+  margin-inline-end: calc(-1 * var(--e2));
 }
 
 /* ==== El alumno ======================================================== */
@@ -161,48 +143,152 @@
   color: var(--tinta);
 }
 
-/* La marca de una captura incompleta: está o no está, sin color de riesgo. */
+/* La marca de una captura incompleta: está o no está, sin color de riesgo. En un solo renglón: partida dentro
+   de su píldora quedaba un óvalo deformado entre el nombre y el intento. */
 .alumno__captura {
   display: inline-block;
   width: fit-content;
   margin-top: 2px;
-  padding: 1px 8px;
-  font-size: 0.75rem;
+  /* La misma receta que la etiqueta de estado del detalle (.detalle__estado): fondo un escalón abajo, borde
+     fino de sombra y un borde transparente que los colores forzados pintan. Antes llevaba un borde del color
+     del texto, el único de su tipo en el panel. */
+  padding: 1px var(--e2);
+  border: 1px solid transparent;
+  border-radius: var(--radio-chip);
+  background: var(--sup-3);
+  box-shadow: inset 0 0 0 1px var(--sup-4);
+  font-size: var(--panel-nota);
   font-weight: 600;
-  border: 1px solid currentColor;
-  border-radius: 999px;
+  color: var(--tinta);
+  white-space: nowrap;
 }
 
 @media (max-width: 760px) {
-  .lista {
-    padding-inline: var(--e4);
+  /* La fila se apila: a la izquierda el alumno; a la derecha «Ver» y, debajo, la duración; abajo el análisis,
+     alineado con el nombre, y a su derecha la hora de comienzo. Con la duración al lado del nombre, una
+     duración larga («197 h 21 min») dejaba al alumno sin lugar y la marca de captura se salía de su celda.
+     La hora antes se escondía acá, y con el navegador al 200 % (WCAG 1.4.10, el mismo ancho) el docente se
+     quedaba sin saber a qué hora empezó cada alumno: el transcurrido no lo dice. Las celdas siguen siendo
+     celdas de la tabla; los rótulos de columna quedan para los lectores de pantalla. */
+  .tabla,
+  .tabla tbody {
+    display: block;
   }
 
-  /* Los extremos del registro bajan a su propio renglón en vez de apretar el
-     título contra la cuenta. */
-  .lista__encabezado {
-    flex-wrap: wrap;
+  .tabla thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
-  /* La hora de comienzo se va: el transcurrido dice lo mismo y ocupa menos.
-     Va por su clase y no por su posición, porque el número de columna cambia
-     en cuanto se agrega una y la regla termina escondiendo otra cosa. */
-  .tabla th.tabla__hora,
-  .tabla td.tabla__hora {
-    display: none;
+  .tabla tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "alumno eventos"
+      "alumno tiempo"
+      "analisis hora";
+    align-items: center;
+    column-gap: var(--e2);
+    padding-block: var(--e2);
   }
 
-  .tabla th:not(:first-child),
+  /* El alumno y «Ver» arriba, a la altura del nombre, y la duración pegada debajo de «Ver»: con la marca de
+     captura o el intento, centradas en la fila alta quedaban sueltas. */
+  .tabla td:first-child,
+  .tabla td.tabla__eventos,
+  .tabla td.tabla__duracion {
+    align-self: start;
+  }
+
+  /* Sin `display`: como hijas de la grilla, las celdas ya se dibujan como bloques. */
+  .tabla td,
   .tabla td:not(:first-child) {
-    width: 96px;
+    width: auto;
+    height: auto;
+    padding: 0 var(--e1);
+  }
+
+  .tabla td:first-child {
+    grid-area: alumno;
+  }
+
+  .tabla td.tabla__duracion {
+    grid-area: tiempo;
+  }
+
+  .tabla td.tabla__eventos {
+    grid-area: eventos;
+  }
+
+  /* Un dato de apoyo, más chico y más suave que la duración, al pie de la fila y en el mismo borde que «Ver». */
+  .tabla td.tabla__hora {
+    grid-area: hora;
+    align-self: end;
+    padding-right: calc(var(--e1) + var(--e2));
+    font-size: var(--panel-nota);
+    color: var(--tinta-media);
+    white-space: nowrap;
+  }
+
+  /* Acá la celda tiene un relleno menor que el del botón: correrlo lo sacaría de la fila (y su anillo de foco,
+     del marco). En cambio la duración se aparta del borde lo mismo que la palabra «Ver», y las dos terminan en
+     la misma línea. */
+  .tabla td.tabla__eventos .boton-texto {
+    margin-inline-end: 0;
+  }
+
+  .tabla td.tabla__duracion {
+    padding-right: calc(var(--e1) + var(--e2));
+  }
+
+  /* El margen de la celda, el ícono (16 px) y su separación: el análisis empieza donde el nombre. */
+  .tabla td.tabla__analisis {
+    grid-area: analisis;
+    padding-left: calc(var(--e3) + 16px + var(--e3));
+    white-space: normal;
+  }
+
+  /* El ícono a la altura del nombre, no en el medio de la celda: con la marca y el intento debajo, centrado
+     quedaba suelto entre los renglones. */
+  .alumno {
+    align-items: flex-start;
+  }
+
+  .alumno svg {
+    margin-top: 1px;
   }
 
   /* Un nombre largo baja de renglón antes que empujar la tabla de costado. */
   .alumno__nombre {
     overflow-wrap: anywhere;
   }
+}
 
-  .lista__marco {
-    max-height: none;
+/* A 320 px (1280 al 400 %, WCAG 1.4.10) ni así entraba: la celda del alumno quedaba más angosta que el nombre
+   y la marca de captura, que se montaban sobre la duración. Ahí la duración baja a su propio renglón,
+   alineada con el nombre, y el alumno se queda con todo el ancho menos «Ver». La hora de comienzo comparte el
+   renglón de la duración, contra el borde derecho: en la columna de «Ver» la ensanchaba y le quitaba al nombre
+   el lugar que esto le da. El análisis va entero abajo. */
+@media (max-width: 360px) {
+  .tabla tbody tr {
+    grid-template-areas:
+      "alumno eventos"
+      "tiempo tiempo"
+      "analisis analisis";
+  }
+
+  .tabla td.tabla__hora {
+    grid-area: tiempo;
+    justify-self: end;
+    align-self: start;
+  }
+
+  .tabla td.tabla__duracion {
+    padding-left: calc(var(--e3) + 16px + var(--e3));
+    text-align: left;
   }
 }

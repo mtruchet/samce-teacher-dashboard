@@ -74,6 +74,26 @@ describe("traerEventos", () => {
     await expect(traerEventos(3, 7)).rejects.toBeInstanceOf(SesionVencida);
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it("un pedido cancelado por quien lo hizo se corta con un AbortError, que no es una sesión vencida", async () => {
+    // Un fetch que solo termina si se lo cancela, como el del navegador con la señal.
+    const fetch = vi.fn(
+      (_url: string, opciones: RequestInit) =>
+        new Promise<Response>((_, rechazar) => {
+          opciones.signal!.addEventListener("abort", () => rechazar(opciones.signal!.reason));
+        })
+    );
+    vi.stubGlobal("fetch", fetch);
+    const control = new AbortController();
+
+    const pedido = traerEventos(3, 7, 0, control.signal).catch((e: unknown) => e);
+    control.abort();
+    const error = await pedido;
+
+    expect(fetch.mock.calls[0][1].signal!.aborted).toBe(true);
+    expect(error).toMatchObject({ name: "AbortError" });
+    expect(error).not.toBeInstanceOf(SesionVencida);
+  });
 });
 
 // El backend manda un `moodle_user_id` negativo cuando no pudo descifrar la
@@ -120,7 +140,7 @@ describe("traerSesiones", () => {
     vi.stubGlobal("fetch", fetch);
 
     await traerSesiones(3, 50, { nivel: "high", estado: "finished", analisis: "not_analyzed", q: "Núñez", orden: "risk_level" });
-    await traerSesiones(3, 50, { orden: "started_at", q: "" });
+    await traerSesiones(3, 50, { orden: undefined, q: "" });
 
     const url = new URL(fetch.mock.calls[0][0]);
     expect(url.searchParams.get("risk_level")).toBe("high");
@@ -139,6 +159,15 @@ describe("traerSesiones", () => {
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta([])));
     expect(await traerSesiones(3)).toEqual({ sesiones: [], total: null, resumen: null });
+  });
+
+  it("un total que no es un número se toma como desconocido, así nunca se ve «NaN de 30»", async () => {
+    for (const raro of ["", "muchas", "-3", "2.5"]) {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta([], raro)));
+      expect((await traerSesiones(3)).total).toBeNull();
+    }
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta([], "0")));
+    expect((await traerSesiones(3)).total).toBe(0);
   });
 });
 

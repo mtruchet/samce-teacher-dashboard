@@ -28,6 +28,7 @@ Otros PRs (repo#número) que tienen que entrar antes o junto con éste, o "Nada"
 - [ ] `npm run lint` y `npx tsc --noEmit` limpios
 - [ ] `npm run build` compila
 - [ ] Visto en el navegador, en escritorio y en móvil, si cambia una pantalla
+- [ ] Si cambió el contrato, `src/test/contrato/` está al día
 
 Evidencia (salida, capturas, caso de prueba):
 

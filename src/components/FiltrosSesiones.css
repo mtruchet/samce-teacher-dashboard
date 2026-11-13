@@ -1,14 +1,10 @@
-/* La barra de filtros de la lista de sesiones (HU04). Controles nativos, con los tokens del panel:
-   sin líneas horizontales, con el anillo de las superficies, y sin el celeste, que se reserva para la
-   marca viva del pulso. */
+/* La barra de filtros de la lista de sesiones (HU04). Controles nativos, con los tokens del panel: sin
+   líneas horizontales y con el anillo de las superficies. No tiene lámina propia: va dentro de la lámina de
+   control de la evaluación, entre el resumen y el resultado del filtro. */
 .filtros {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--e3) var(--e4);
-  padding: var(--e4) var(--e5);
-  border-radius: var(--radio-panel);
-  background: var(--sup-1);
-  box-shadow: var(--anillo), var(--elev-2);
 }
 
 .filtros__campo {
@@ -17,46 +13,90 @@
   min-width: 0;
 }
 
+/* Los rótulos van en minúscula inicial, en el paso de nota y en 600, como las etiquetas del resto del panel.
+   Iban en mayúsculas espaciadas de 11 px, como los encabezados de la tabla de abajo, pero dentro de la lámina
+   de control eran lo único en mayúsculas y se leían como de otro sistema. Las mayúsculas quedan solo en los
+   encabezados de columna (docs/sistema-visual.md). */
 .filtros__campo label {
-  font-size: var(--panel-rotulo);
+  font-size: var(--panel-nota);
   font-weight: 600;
-  letter-spacing: var(--track-rotulo);
-  text-transform: uppercase;
   color: var(--tinta-media);
 }
 
 .filtros__campo select,
 .filtros__campo input {
   width: 100%;
-  min-height: 36px;
+  height: 40px;
   padding: 0 var(--e2);
   border: 0;
-  border-radius: var(--radio-ficha);
-  background: var(--sup-2);
-  box-shadow: var(--anillo);
+  /* La misma piel que .boton-secundario (base.css): un control del panel, una receta. El borde va en
+     --borde-control (3,67:1 sobre la lámina): con --anillo daba 1,2:1 y el selector no se distinguía del
+     fondo (WCAG 1.4.11). */
+  border-radius: var(--radio-chip);
+  background: var(--sup-1);
+  box-shadow: inset 0 0 0 1px var(--borde-control);
   font: inherit;
   font-size: var(--panel-fila);
   color: var(--tinta);
+}
+
+/* `.filtros__campo select` le gana por especificidad al anillo de base.css: esto repite el mismo anillo, sin
+   cambiarlo, encima del borde del control, para que el foco se vea y el borde no desaparezca. */
+.filtros__campo select:focus-visible,
+.filtros__campo input:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px var(--borde-control),
+    var(--anillo-foco);
+}
+
+/* Los selectores van sin la apariencia del navegador: Chromium les sumaba unos 4 px de relleno propio y su
+   texto arrancaba más adentro que el de la búsqueda, así que la fila de filtros no tenía una vertical
+   interior. Sin ella, los cuatro textos arrancan a var(--e2) del borde y la flecha nativa se repone con la
+   del sistema de íconos, a la misma distancia del borde derecho. */
+.filtros__selector {
+  position: relative;
+  display: grid;
+}
+
+.filtros__campo select {
+  appearance: none;
+  padding-right: calc(var(--e2) + 16px + var(--e2));
+  cursor: pointer;
+}
+
+.filtros__selector > svg {
+  position: absolute;
+  top: calc(50% - 8px);
+  right: var(--e2);
+  color: var(--tinta-media);
+  pointer-events: none;
 }
 
 .filtros__campo input::placeholder {
   color: var(--tinta-suave);
 }
 
-/* «N de M sesiones», el estado vacío con un filtro y su botón. */
-.filtros-resultado {
-  font-size: var(--panel-nota);
-  color: var(--tinta-media);
-}
-
 /* A 390 px los controles bajan de a dos por renglón y la búsqueda ocupa uno entero. */
 @media (max-width: 760px) {
   .filtros {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding-inline: var(--e4);
   }
 
-  .filtros__campo--busqueda {
+  /* La búsqueda y el orden, a todo lo ancho: el orden solo en la columna izquierda dejaba un hueco a su lado. */
+  .filtros__campo--busqueda,
+  .filtros__campo--orden {
     grid-column: 1 / -1;
+  }
+}
+
+/* Con colores forzados (Windows) el anillo de las superficies desaparece y el control quedaba sin borde. */
+@media (forced-colors: active) {
+  .filtros__campo select,
+  .filtros__campo input {
+    border: 1px solid ButtonText;
+  }
+
+  .filtros__selector > svg {
+    color: ButtonText;
   }
 }

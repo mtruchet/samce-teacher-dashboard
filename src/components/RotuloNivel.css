@@ -1,0 +1,57 @@
+/* La marca del nivel: el medidor, la palabra y, si hay, el complemento. La palabra va en --tinta y sin cortar
+   («Riesgo medio» nunca queda partido en dos renglones); el complemento, en --tinta-media. */
+.rotulo-nivel {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--e1);
+  min-width: 0;
+}
+
+.rotulo-nivel__nivel {
+  font-weight: 600;
+  color: var(--tinta);
+  white-space: nowrap;
+}
+
+/* La línea vertical fina entre el nivel y el complemento es del complemento, sin ningún carácter en el texto:
+   si el complemento no entra en el renglón, baja entero, con la línea al principio, y el nivel nunca queda con
+   una barra suelta al final. */
+.rotulo-nivel__complemento {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+  padding-left: var(--e1);
+  color: var(--tinta-media);
+}
+
+.rotulo-nivel__complemento::before {
+  content: "";
+  flex: none;
+  align-self: stretch;
+  width: 1px;
+  min-height: 1.1em;
+  background: var(--tinta-suave);
+  opacity: 0.5;
+}
+
+/* En un teléfono el complemento va siempre en su propio renglón, debajo del nivel y sin la línea. */
+@media (max-width: 480px) {
+  .rotulo-nivel__complemento {
+    flex-basis: 100%;
+    padding-left: 0;
+  }
+
+  .rotulo-nivel__complemento::before {
+    content: none;
+  }
+}
+
+/* Con colores forzados la línea toma el color del texto del sistema. */
+@media (forced-colors: active) {
+  .rotulo-nivel__complemento::before {
+    background: CanvasText;
+    opacity: 1;
+    forced-color-adjust: none;
+  }
+}

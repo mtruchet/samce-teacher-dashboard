@@ -37,3 +37,21 @@
   color: var(--nivel-2-tinta);
   font-weight: 500;
 }
+
+/* La tira es decorativa (va oculta para los lectores de pantalla): «En vivo, se actualiza en N s» ya dice
+   que el canal está vivo. Con colores forzados igual se dibuja, con la marca viva en el color de resalte
+   del sistema. */
+@media (forced-colors: active) {
+  .enlace__marca {
+    background: GrayText;
+    forced-color-adjust: none;
+  }
+
+  .enlace__marca--viva {
+    background: Highlight;
+  }
+
+  .enlace--sin-conexion .enlace__marca--viva {
+    background: GrayText;
+  }
+}

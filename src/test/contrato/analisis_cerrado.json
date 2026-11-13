@@ -1,0 +1,49 @@
+{
+  "state": "analyzed",
+  "reason": null,
+  "calculated_at": "2026-10-23T12:41:05Z",
+  "alerts": [
+    {
+      "origin": "model",
+      "level": "high",
+      "explanation": "Este examen se desarrolló de una forma muy distinta a lo que suele verse en una evaluación.\nLo que más se notó:\n• Pasó a otra ventana 11 veces.\n• En total, estuvo unos 8 minutos fuera de la ventana del examen, de los 28 que duró.\n• La vez más larga fue de 45 segundos.",
+      "level_since": "2026-10-23T12:30:00Z",
+      "created_at": "2026-10-23T12:20:00Z",
+      "updated_at": "2026-10-23T12:41:05Z"
+    },
+    {
+      "origin": "event",
+      "level": "medium",
+      "explanation": "A las 09:35, en la pregunta 3, pegó de una sola vez un texto largo en una respuesta que todavía estaba vacía, algo poco común en un examen.",
+      "level_since": "2026-10-23T12:35:00Z",
+      "created_at": "2026-10-23T12:35:00Z",
+      "updated_at": "2026-10-23T12:35:00Z"
+    }
+  ],
+  "alert_history": [
+    {
+      "origin": "model",
+      "level": "medium",
+      "explanation": "Este examen se desarrolló de una forma un poco distinta a lo que suele verse en una evaluación.\nLo que más se notó:\n• Pasó a otra ventana 4 veces.\n• En general, se tomó más tiempo que la mayoría para responder.",
+      "recorded_at": "2026-10-23T12:20:00Z",
+      "carried_over": true
+    },
+    {
+      "origin": "model",
+      "level": "high",
+      "explanation": "Este examen se desarrolló de una forma muy distinta a lo que suele verse en una evaluación.\nLo que más se notó:\n• Pasó a otra ventana 11 veces.\n• En total, estuvo unos 8 minutos fuera de la ventana del examen, de los 28 que duró.\n• La vez más larga fue de 45 segundos.",
+      "recorded_at": "2026-10-23T12:30:00Z",
+      "carried_over": false
+    }
+  ],
+  "metrics": {
+    "outside_time_ratio": 0.29,
+    "outside_longest_s": 45,
+    "typing_rate_median_per_s": 2.46,
+    "largest_paste_chars": 1241,
+    "pasted_chars_ratio": 0.41,
+    "mouse_idle_longest_s": 93,
+    "question_time_median_s": null,
+    "silence_longest_s": 61
+  }
+}

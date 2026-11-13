@@ -1,8 +1,10 @@
-/* La pantalla de una sesión: la línea de datos, los avisos y el registro,
-   uno abajo del otro. */
+/* La pantalla de una sesión: el aviso de captura, el análisis y el registro, uno abajo del otro. La ficha de
+   la sesión ya no es parte de la pila: va en la cabecera, debajo del nombre (FichaSesion.css). */
+/* Entre lámina y lámina, var(--e6): el mismo paso que separa los grupos de la lista, para que las dos
+   pantallas respiren igual. */
 .detalle {
   display: grid;
-  gap: var(--e4);
+  gap: var(--e6);
 }
 
 /* Un hijo de la grilla no se achica por debajo de su contenido más ancho si no
@@ -12,95 +14,64 @@
   min-width: 0;
 }
 
-/* La ficha de la sesión, arriba de la pila: una sola fila de datos en una
-   lámina liviana. No repite el nombre del alumno, que ya está en el título de
-   la pantalla y en las migas: lleva lo que allá no entra. El estado va primero
-   y con peso porque es lo que cambia solo mientras la pantalla está abierta. */
-.detalle__sesion {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  /* Los datos se separan con aire y no con un carácter: un separador dibujado
-     compite con el texto y hay que leerlo para descartarlo. */
-  gap: var(--e2) var(--e6);
-  padding: var(--e3) var(--e6);
-  border-radius: var(--radio-ficha);
-  background: var(--sup-1);
-  box-shadow: var(--anillo);
-  font-size: var(--panel-cuerpo);
-  color: var(--tinta-media);
-}
-
-.detalle__dato {
-  white-space: nowrap;
+/* Mientras se espera el análisis, el detalle llega hasta el fondo de la pantalla: si no, el pie se asomaba
+   debajo de «Cargando el análisis…» y volvía a bajar cuando llegaba todo. Con `align-content: start`: si no,
+   la grilla repartía el alto de sobra entre sus filas, la ficha se estiraba y todo volvía a subir al llegar el
+   análisis. */
+.detalle[aria-busy="true"],
+.detalle--llenando {
+  min-height: calc(100dvh - var(--panel-barra));
+  align-content: start;
 }
 
 /* Hasta dónde llega el registro. Pesa como la cuenta de al lado: es una
    precisión sobre lo que se está mirando, no el asunto de la lámina. */
+/* La cuenta y sus extremos, pegados como una sola frase: el hueco del encabezado separa el título de lo que
+   lo acompaña, no la cuenta de su precisión. No se parte: si no entra al lado del título, baja entera. */
+.detalle__cuenta {
+  font-size: var(--panel-nota);
+  white-space: nowrap;
+}
+
+/* El lugar de la cuenta mientras los eventos no llegan: mide lo mismo y no se ve. */
+.detalle__cuenta--reservada {
+  visibility: hidden;
+}
+
 .detalle__extremos {
-  /* Pegado a la cuenta, como una sola frase: el hueco del encabezado separa
-     el título de lo que lo acompaña, no la cuenta de su precisión. */
-  margin-left: calc(-1 * var(--e3));
   font-size: var(--panel-nota);
   color: var(--tinta-media);
 }
 
-/* El celeste en su rol de siempre, que es marcar estado activo, y nunca
-   decoración. Mientras el alumno rinde el estado es celeste, y cuando entregó
-   pasa a tinta: el cambio de color dice que algo cambió, no que algo esté mal.
-   En minúscula inicial y sin espaciado: se lee como una palabra, no como un
-   sello. */
-/* El estado, como una etiqueta (ronda 3): en negrita suelta, «Entregó» solo se leía como estado si uno ya
-   lo sabía. */
-.detalle__estado {
-  flex: none;
-  align-self: center;
-  padding: 2px var(--e3);
-  border-radius: var(--radio-chip);
-  background: var(--sup-3);
-  box-shadow: inset 0 0 0 1px var(--sup-4);
-  font-weight: 600;
-  color: var(--tinta);
-}
-
-.detalle__estado--vivo {
-  color: var(--celeste-hondo);
-}
-
-/* El registro, en segundo plano: un escalón más abajo que la lámina del
-   análisis, con el anillo para que no se pierda contra el fondo. El título
-   tiene el mismo tamaño que «Análisis de la sesión», porque las dos son
-   secciones del mismo nivel, y la cuenta se lee sin esfuerzo. */
-.lista.detalle__registro {
-  background: var(--sup-2);
-  box-shadow: var(--anillo);
-}
-
-.detalle__registro .lista__titulo {
-  margin: 0;
-  font-size: var(--panel-pieza);
-  line-height: 1.25;
-  letter-spacing: normal;
-}
-
-.detalle__registro .lista__cuenta {
-  font-size: var(--panel-nota);
+/* El registro, en segundo plano (`.lamina--apoyo`): un escalón más abajo que
+   la lámina del análisis, con el anillo para que no se pierda contra el
+   fondo. El título es el mismo `.lamina__titulo` de «Análisis de la sesión»,
+   porque las dos son secciones del mismo nivel. */
+.detalle__encabezado {
+  margin-bottom: var(--e4);
 }
 
 /* Los dos avisos de la vista de eventos. Comparten la forma del vacío del
    panel y se separan entre sí por superficie, que es como este sistema separa:
    el que espera se apoya en la lámina y el que avisa de un problema sube un
    escalón, sin línea ni borde de color. */
-.detalle__cargando,
 .detalle__aviso {
   padding: var(--e4) var(--e5);
-  border-radius: max(0px, calc(var(--radio-panel) - var(--e5)));
+  border-radius: var(--radio-ficha);
   font-size: var(--panel-cuerpo);
   color: var(--tinta-media);
 }
 
-.detalle__cargando {
-  background: var(--sup-2);
+/* La espera y el vacío del registro, como un renglón suelto: con la caja de antes eran --sup-2 sobre la lámina
+   --sup-2, una caja que no se veía y solo corría el texto hacia adentro. El vacío de la página (Panel.css)
+   sí lleva caja, porque va sobre la página y no adentro de una lámina. */
+.detalle__cargando,
+.lamina--apoyo .panel__vacio {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  font-size: var(--panel-fila);
+  color: var(--tinta-media);
 }
 
 .detalle__aviso {
@@ -110,39 +81,50 @@
   color: var(--nivel-1-tinta);
 }
 
-/* La explicación de una captura incompleta. */
+/* La explicación de una captura incompleta, en una caja propia (13/11): suelta, con una marca de renglón, se
+   leía como una nota al pie entre la cabecera y el análisis, y es lo que dice cuánto se puede confiar en todo lo
+   de abajo. Va como el vacío de página (Panel.css), porque también va sobre la página y no adentro de una lámina:
+   --sup-1 con el anillo y el radio de una ficha, sin sombra (no es una lámina). --sup-1 y no --sup-3: la página
+   del panel es --sup-3, y la caja no se habría visto; sobre --sup-1, --tinta-media da 8,1:1 y --tinta 16,1:1.
+   Con el radio de una lámina y no el de una ficha: ocupa una fila entera de la pila de láminas, y con 12 px las
+   esquinas cambiaban de una fila a la siguiente. El peso sigue siendo menor (sin sombra, sin título).
+   La marca de renglón se va: con caja, una segunda señal sobra. El texto arranca donde el de las láminas
+   (relleno de --e6, --e4 en el teléfono). */
 .detalle__captura {
-  margin: 0 0 0.75rem;
-  padding: 0.6rem 0.9rem;
-  border-left: 3px solid currentColor;
+  margin: 0;
+  padding: var(--e4) var(--e6);
+  border-radius: var(--radio-lamina);
+  background: var(--sup-1);
+  box-shadow: var(--anillo);
   font-size: var(--panel-fila);
+  line-height: var(--panel-alto);
+  color: var(--tinta-media);
+}
+
+/* Con colores forzados el anillo desaparece: el contorno del sistema lo reemplaza, como en las láminas. */
+@media (forced-colors: active) {
+  .detalle__captura {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+}
+
+/* Lo corto en la tinta del texto, como el estado de la ficha: es lo que hay que leer; el detalle lo explica. */
+.detalle__captura strong {
+  font-weight: 600;
+  color: var(--tinta);
 }
 
 @media (max-width: 760px) {
-  /* La ficha sigue al ras del contenido de la lámina, que acá se angosta. */
-  .detalle__sesion {
+  /* El aviso de captura sigue al ras del contenido de la lámina, que acá se angosta. */
+  .detalle__captura {
     padding-inline: var(--e4);
   }
 }
 
 @media (max-width: 640px) {
-  /* La ficha se parte en dos renglones: el estado arriba, los datos abajo. */
-  .detalle__estado {
+  /* En un teléfono la cuenta entera, con sus extremos, va en su propio renglón debajo del título. */
+  .detalle__cuenta {
     flex-basis: 100%;
-  }
-
-  .detalle__sesion {
-    gap: var(--e1) var(--e4);
-  }
-
-  /* En un teléfono los extremos no entran al lado de la cuenta: bajan a su
-     propio renglón, y sin el punto, que al comienzo de una línea no une nada. */
-  .detalle__extremos {
-    flex-basis: 100%;
-    margin-left: 0;
-  }
-
-  .detalle__punto {
-    display: none;
   }
 }

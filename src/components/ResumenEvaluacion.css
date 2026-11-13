@@ -1,88 +1,251 @@
-/* El resumen de la evaluación (HU03). Siete tarjetas en dos renglones de sentido: los tres niveles de
-   riesgo, en colores de semáforo, y los cuatro estados del análisis de las sesiones sin alertas, en
-   tinta neutra. El número y el rótulo van siempre en --tinta: el color está en el borde, el medidor y
-   un fondo suave, nunca en el texto. */
+/* El resumen de la evaluación (HU03), dentro de la lámina de control: el título y siete tarjetas en dos
+   renglones de sentido.
+   - Los tres niveles de riesgo llevan la marca de todo el panel: el borde de tarjeta y un fondo suave en el
+     tono de las alertas (--tono, que pone `data-nivel` en styles/nivel.css), y RotuloNivel.
+   - Los cuatro estados del análisis van en un renglón más liviano: sin marca ni tono, en la superficie de
+     segundo plano.
+   El número y la palabra van siempre en --tinta: el color está en el borde, el medidor y el fondo, nunca en
+   el texto.
+   A lo ancho, los tres niveles ocupan toda la lámina en tres columnas iguales, y los cuatro estados van debajo
+   en un renglón compacto, con el número y la palabra en una línea. Antes los niveles ocupaban tres de las
+   cuatro columnas de los filtros (3 + 4 con el mismo ancho de celda) y la cuarta quedaba vacía: el bloque se
+   veía cojo, y las tarjetas de estado, del mismo tamaño que las de nivel, competían con ellas. */
 .resumen {
   display: grid;
   gap: var(--e3);
-  padding: var(--e4) var(--e5);
-  border-radius: var(--radio-panel);
-  background: var(--sup-1);
-  box-shadow: var(--anillo), var(--elev-2);
 }
 
-.resumen__titulo {
-  font-size: var(--panel-pieza);
-  font-weight: 600;
-  line-height: 25px;
-  letter-spacing: var(--track-titulo);
-  color: var(--tinta);
+/* Del título de una lámina a su contenido van siempre 16 px: el título trae 4 px de margen propio y la
+   grilla suma los 12 de su espacio entre renglones. Sin esto el resumen quedaba 4 px más apretado que la
+   lista y el detalle. */
+.resumen > .lamina__titulo {
+  margin-bottom: var(--e1);
 }
 
 .resumen__tarjetas {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--e3);
+  /* El mismo espacio entre columnas que .filtros (FiltrosSesiones.css). */
+  gap: var(--e3) var(--e4);
+}
+
+.resumen__tarjetas--niveles {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.resumen__tarjetas--estados {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .resumen__tarjeta {
   display: grid;
   gap: var(--e1);
+  align-content: start;
   justify-items: start;
   padding: var(--e3) var(--e4);
   border: 0;
-  border-left: 4px solid var(--tono, var(--tinta-suave));
   border-radius: var(--radio-ficha);
-  background: color-mix(in srgb, var(--tono, var(--tinta-suave)) 8%, var(--sup-1));
-  box-shadow: var(--anillo);
   font: inherit;
   text-align: left;
   color: var(--tinta);
   cursor: pointer;
+  transition: box-shadow var(--mov-estado) var(--curva);
 }
 
-.resumen__tarjeta--high {
-  --tono: var(--semaforo-rojo);
+.resumen__tarjeta[data-nivel] {
+  border-left: var(--marca-tarjeta) solid var(--tono);
+  background: color-mix(in srgb, var(--tono) 8%, var(--sup-1));
+  box-shadow: var(--anillo);
 }
 
-.resumen__tarjeta--medium {
-  --tono: var(--semaforo-amarillo);
+/* Un nivel sin sesiones pesa menos, para que los tonos más llamativos no marquen cifras vacías y la tarjeta
+   que sí tiene sesiones se distinga: sin el fondo teñido (lleva el de las tarjetas de estado; con el de la
+   lámina quedaba un hueco blanco, más claro que las tarjetas con sesiones), con el borde apagado y con el
+   medidor en gris (lleno en el tono, seguía siendo lo más llamativo de la tarjeta). Conserva el medidor, la
+   palabra y el número, y sigue siendo un botón. */
+.resumen__tarjeta--cero[data-nivel] {
+  border-left-color: var(--sup-4);
+  background: var(--sup-2);
 }
 
-.resumen__tarjeta--low {
-  --tono: var(--semaforo-verde);
+.resumen__tarjeta--cero .medidor__segmento {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--sup-4);
 }
 
-/* La tarjeta del filtro vigente: un anillo del mismo tono, además de aria-pressed. */
+.resumen__tarjeta--cero .medidor__segmento--lleno {
+  background: var(--sup-4);
+}
+
+/* Las de estado son el segundo plano del resumen: el número y la palabra en un renglón, el número en el paso
+   de pieza y no en el de cifra, menos relleno y la superficie de segundo plano. Siguen siendo botones de
+   24 px o más de alto. */
+.resumen__tarjeta--estado {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: var(--e2);
+  padding: var(--e2) var(--e3);
+  background: var(--sup-2);
+  box-shadow: var(--anillo);
+}
+
+.resumen__tarjeta--estado .resumen__numero {
+  font-size: var(--panel-pieza);
+  line-height: var(--panel-alto-pieza);
+}
+
+.resumen__tarjeta:hover {
+  box-shadow: var(--anillo), var(--elev-1);
+}
+
+/* La tarjeta del filtro vigente: un anillo interior (del tono, o de la tinta en los estados), además de
+   aria-pressed. */
 .resumen__tarjeta[aria-pressed="true"] {
   box-shadow: inset 0 0 0 2px var(--tono, var(--tinta-media));
 }
 
+/* El anillo de foco de base.css, que las reglas de arriba pisan por especificidad: se repite con el mismo
+   token, y la elegida suma su anillo interior. Sin transición: el foco aparece de una vez, como en el resto
+   del panel (la transición de la sombra es solo para el paso del mouse). */
+.resumen__tarjeta:focus-visible {
+  box-shadow: var(--anillo-foco);
+  transition: none;
+}
+
+.resumen__tarjeta[aria-pressed="true"]:focus-visible {
+  box-shadow:
+    inset 0 0 0 2px var(--tono, var(--tinta-media)),
+    var(--anillo-foco);
+}
+
 .resumen__numero {
-  font-size: 28px;
+  font-size: var(--panel-cifra);
   font-weight: 600;
-  line-height: 1.1;
+  line-height: var(--panel-alto-cifra);
+  letter-spacing: var(--track-titulo);
+}
+
+.resumen__tarjeta .rotulo-nivel {
+  font-size: var(--panel-fila);
 }
 
 .resumen__rotulo {
-  display: inline-flex;
-  align-items: center;
   font-size: var(--panel-fila);
-  font-weight: 600;
-}
-
-.resumen__tarjeta--estado .resumen__rotulo {
-  font-weight: 400;
   color: var(--tinta-media);
 }
 
-/* A 390 px, dos columnas, sin desplazar la página de costado. */
+/* A menos de 760 px: los tres niveles en un renglón, con el número arriba, el medidor y la palabra entera
+   debajo; los cuatro estados de a dos. Ninguna tarjeta queda sola en un renglón. */
 @media (max-width: 760px) {
-  .resumen {
-    padding-inline: var(--e4);
+  .resumen__tarjetas {
+    gap: var(--e2);
   }
 
-  .resumen__tarjetas {
+  .resumen__tarjetas--niveles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Los estados, de a dos como los controles de la barra que tienen debajo, y con su mismo espacio entre
+     columnas: con uno más angosto, la segunda columna de tarjetas y la de selectores quedaban corridas. */
+  .resumen__tarjetas--estados {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--e4);
+  }
+
+  .resumen__tarjeta {
+    padding: var(--e2) var(--e3) var(--e2) var(--e2);
+  }
+
+  .resumen__tarjeta--estado {
+    padding: var(--e2);
+  }
+
+  .resumen__tarjeta .rotulo-nivel {
+    font-size: var(--panel-nota);
+  }
+
+  /* La cifra baja a 20 px: el renglón, con ella, de 30 a 25. */
+  .resumen__numero {
+    /* 25 px con la letra predeterminada: en rem, como el renglón de más de 760. */
+    line-height: 1.5625rem;
+  }
+}
+
+/* Con colores forzados las sombras desaparecen:
+   - todas las tarjetas llevan un borde del sistema, para que se sigan viendo como botones, y las de nivel
+     conservan su borde de 4 px a la izquierda;
+   - la elegida se marca con un borde más grueso del color de selección, adentro, y resta del relleno lo que el
+     borde suma: sin eso, la tarjeta tocada crecía 4 px y empujaba todo lo de abajo;
+   - el foco es el contorno de base.css, afuera, así la elegida con foco se distingue de la elegida sin él. */
+@media (forced-colors: active) {
+  .resumen__tarjeta {
+    border: 1px solid ButtonText;
+  }
+
+  .resumen__tarjeta[data-nivel] {
+    border-left: var(--marca-tarjeta) solid ButtonText;
+  }
+
+  .resumen__tarjeta[aria-pressed="true"] {
+    border: 3px solid Highlight;
+    padding: calc(var(--e3) - 2px) calc(var(--e4) - 2px);
+  }
+
+  /* Las de estado: el borde de 1 px, y el de 3 px de la elegida, se descuentan de su relleno, así tocarla no
+     la agranda. */
+  .resumen__tarjeta--estado {
+    padding: calc(var(--e2) - 1px) calc(var(--e3) - 1px);
+  }
+
+  .resumen__tarjeta--estado[aria-pressed="true"] {
+    padding: calc(var(--e2) - 3px) calc(var(--e3) - 3px);
+  }
+
+  /* El borde izquierdo de las de nivel no cambia de ancho: ese lado conserva su relleno. */
+  .resumen__tarjeta[data-nivel][aria-pressed="true"] {
+    border-left-width: var(--marca-tarjeta);
+    padding-left: var(--e4);
+  }
+
+  @media (max-width: 760px) {
+    .resumen__tarjeta[aria-pressed="true"] {
+      padding: calc(var(--e2) - 2px) calc(var(--e3) - 2px) calc(var(--e2) - 2px) calc(var(--e2) - 2px);
+    }
+
+    .resumen__tarjeta[data-nivel][aria-pressed="true"] {
+      padding-left: var(--e2);
+    }
+
+    .resumen__tarjeta--estado {
+      padding: calc(var(--e2) - 1px);
+    }
+
+    .resumen__tarjeta--estado[aria-pressed="true"] {
+      padding: calc(var(--e2) - 3px);
+    }
+  }
+
+  /* El medidor apagado de una tarjeta en cero vuelve al del resto: el gris no existe en colores forzados. */
+  .resumen__tarjeta--cero .medidor__segmento--lleno {
+    background: CanvasText;
+  }
+
+  .resumen__tarjeta:focus-visible {
+    outline: 3px solid CanvasText;
+    outline-offset: 2px;
+  }
+}
+
+/* A 320 px (1280 al 400 %, WCAG 1.4.10) tres tarjetas por renglón dejaban unos 80 px para «Riesgo medio» y
+   el medidor, que no entraban. Ahí cada nivel ocupa su renglón: el número a la izquierda y el medidor con la
+   palabra a su lado, centrados en la tarjeta. */
+@media (max-width: 360px) {
+  .resumen__tarjetas--niveles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .resumen__tarjeta[data-nivel] {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--e3);
   }
 }

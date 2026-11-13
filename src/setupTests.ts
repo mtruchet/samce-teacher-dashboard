@@ -14,3 +14,7 @@ configure({ asyncUtilTimeout: 3000 });
 afterEach(() => {
   cleanup();
 });
+
+// jsdom no desplaza la página: sin esto, cada cambio de vista del panel (que la sube antes de enfocar el h1)
+// llenaba la salida de «Not implemented: window.scrollTo».
+window.scrollTo = () => {};

@@ -1,11 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { Sesion } from "../services/sesionesService";
-import { sesionNumerada } from "../test/fabricas";
+import { conAnalisis, sesionNumerada } from "../test/fabricas";
+import { choquesConLasListas } from "../test/lenguaje";
 import { AvisoAlertas } from "./AvisoAlertas";
 
+/** Una sesión del examen con su análisis coherente: con nivel, una alerta; sin nivel, ninguna. */
 const sesion = (id: number, risk_level: Sesion["risk_level"], student_name = `Alumno ${id}`) =>
-  sesionNumerada({ id, student_name, risk_level, analysis_state: "analyzed" });
+  sesionNumerada({ id, student_name, ...conAnalisis(risk_level ?? null) });
 
 const region = () => screen.getByRole("status");
 
@@ -36,6 +38,26 @@ describe("AvisoAlertas", () => {
     expect(region()).toHaveTextContent("Nueva alerta en la sesión de Ana Gómez: riesgo alto.");
   });
 
+  it("no anuncia una bajada de nivel (H02)", () => {
+    const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, "high", "Ana Gómez")]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "low", "Ana Gómez")]} clave="3" />);
+    expect(region()).toHaveTextContent("");
+  });
+
+  it("las frases del anuncio pasan las listas de las rondas", () => {
+    const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, null, "Ana Gómez"), sesion(2, null)]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "high", "Ana Gómez"), sesion(2, null)]} clave="3" />);
+    const una = region().textContent ?? "";
+    rerender(<AvisoAlertas sesiones={[sesion(1, "high", "Ana Gómez"), sesion(2, "low")]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "high", "Ana Gómez"), sesion(2, "low")]} clave="4" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "high", "Ana Gómez"), sesion(2, null), sesion(3, null)]} clave="4" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "high", "Ana Gómez"), sesion(2, "low"), sesion(3, "medium")]} clave="4" />);
+    const varias = region().textContent ?? "";
+    expect(una).toBe("Nueva alerta en la sesión de Ana Gómez: riesgo alto.");
+    expect(varias).toBe("Nuevas alertas en 2 sesiones.");
+    expect(choquesConLasListas([una, varias])).toEqual([]);
+  });
+
   it("con varias en la misma vuelta dice cuántas", () => {
     const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, null), sesion(2, null)]} clave="3" />);
     rerender(<AvisoAlertas sesiones={[sesion(1, "low"), sesion(2, "high")]} clave="3" />);
@@ -59,5 +81,24 @@ describe("AvisoAlertas", () => {
     const { rerender } = render(<AvisoAlertas sesiones={viejas} clave="3" />);
     rerender(<AvisoAlertas sesiones={[...viejas]} clave="3" />);
     expect(region()).toHaveTextContent("");
+  });
+
+  it("un segundo anuncio con el mismo texto va en un nodo nuevo, para que el lector lo lea", () => {
+    const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, null), sesion(2, null), sesion(3, null), sesion(4, null)]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "low"), sesion(2, "low"), sesion(3, null), sesion(4, null)]} clave="3" />);
+    const primero = region().firstElementChild;
+    expect(primero).toHaveTextContent("Nuevas alertas en 2 sesiones.");
+    rerender(<AvisoAlertas sesiones={[sesion(1, "low"), sesion(2, "low"), sesion(3, "low"), sesion(4, "low")]} clave="3" />);
+    const segundo = region().firstElementChild;
+    expect(segundo).toHaveTextContent("Nuevas alertas en 2 sesiones.");
+    expect(segundo).not.toBe(primero);
+  });
+
+  it("una vuelta sin novedades no vuelve a escribir el anuncio", () => {
+    const { rerender } = render(<AvisoAlertas sesiones={[sesion(1, null)]} clave="3" />);
+    rerender(<AvisoAlertas sesiones={[sesion(1, "medium")]} clave="3" />);
+    const antes = region().firstElementChild;
+    rerender(<AvisoAlertas sesiones={[sesion(1, "medium")]} clave="3" />);
+    expect(region().firstElementChild).toBe(antes);
   });
 });

@@ -1,17 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { enCifras } from "../cifras";
+import { claveDelPedido, hayFiltro as hayFiltroEn, leerFiltros } from "../filtrosDeLaDireccion";
 import { Broadcast, Examen, Materia } from "../iconos";
 import { clearSession, esPanelGeneral, getStoredSession } from "../services/authService";
 import {
   CADENCIA_MS,
   SESIONES_POR_PAGINA,
   SESIONES_TOPE,
-  SesionVencida,
-  traerExamenes,
-  traerSesiones,
   type ExamenMonitoreado,
-  type FiltrosSesiones as FiltrosDeLista,
-  type ResumenDeEvaluacion,
   type SesionDeExamen,
   type SesionNumerada,
   nombreDeAlumno,
@@ -19,15 +16,23 @@ import {
 import { Arranque } from "../components/Arranque";
 import { BarraPanel } from "../components/BarraPanel";
 import { DetalleSesion } from "../components/DetalleSesion";
+import { FichaSesion } from "../components/FichaSesion";
 import { Fichas, type Ficha } from "../components/Fichas";
 import { AvisoAlertas } from "../components/AvisoAlertas";
-import { FiltrosSesiones } from "../components/FiltrosSesiones";
+import { AnuncioVivo } from "../components/AnuncioVivo";
+import { useAnuncio } from "../components/useAnuncio";
+import { FiltrosSesiones, type ControlBusqueda } from "../components/FiltrosSesiones";
+import { GruposDeSesiones } from "../components/GruposDeSesiones";
+import { ResultadoDelFiltro } from "../components/ResultadoDelFiltro";
+import { textoDelResultado } from "../components/textoDelResultado";
 import { ResumenEvaluacion } from "../components/ResumenEvaluacion";
-import { ListaSesiones } from "../components/ListaSesiones";
 import { Migas, type Escalon } from "../components/Migas";
 import { PulsoEnlace, type EstadoEnlace } from "../components/PulsoEnlace";
 import { Pie } from "../components/Pie";
 import { SinSesion } from "./SinSesion";
+import { useFiltrosDeLaDireccion } from "./useFiltrosDeLaDireccion";
+import { useSesionesDelExamen } from "./useSesionesDelExamen";
+import { seSigueConsultando } from "../seguimiento";
 import { API_CONFIG } from "../config/api.config";
 import "./Panel.css";
 
@@ -45,6 +50,9 @@ import "./Panel.css";
  * entrar. Cuando se entra desde un curso puntual ese escalón ya está resuelto
  * por el propio enlace, y el recorrido arranca en los exámenes.
  *
+ * Arriba de la lista, una sola lámina de control: el resumen de la evaluación, la barra de filtros y, con un
+ * filtro, «N de M sesiones» y «Quitar filtros». Los filtros viven en la dirección (`filtrosDeLaDireccion.ts`).
+ *
  * La columna «Análisis» de la lista dice el nivel de riesgo de cada sesión, con
  * su marca, o el estado de su análisis si no tiene alertas («Sin alertas», «Sin
  * analizar», «No se pudo analizar» o «Análisis no disponible»). Nunca el índice
@@ -52,33 +60,38 @@ import "./Panel.css";
  * frase corta (`AvisoAlertas`), sin releer la lista.
  */
 
-/** Cómo se llama cada filtro de la lista en la dirección de la página. */
-const PARAMETRO_DE: Record<keyof FiltrosDeLista, string> = {
-  nivel: "nivel",
-  estado: "estado",
-  analisis: "analisis",
-  q: "q",
-  orden: "orden",
-};
-const PARAMETROS_DE_FILTRO = Object.values(PARAMETRO_DE);
+/**
+ * Cada cuánto se pregunta por la lista mientras el docente lee una sesión que ya no se consulta (cerrada hace
+ * rato, sin aviso pendiente). De esa sesión no va a cambiar nada, y la lista de atrás no se ve: con la de cinco
+ * segundos se descargaba la lista entera doce veces por minuto para nada. Al volver a la lista, se pregunta en
+ * el momento y se retoma la de cinco segundos.
+ */
+const CADENCIA_QUIETA_MS = 30_000;
 
-const NIVELES_VALIDOS = ["high", "medium", "low"] as const;
-const ESTADOS_VALIDOS = ["open", "finished"] as const;
-const ANALISIS_VALIDOS = ["no_alerts", "not_analyzed", "insufficient_evidence", "unavailable"] as const;
+/**
+ * Cuánto espera el anuncio del resultado de una búsqueda a que el docente termine de escribir (ver el efecto
+ * del anuncio, en el panel).
+ */
+const ESPERA_DEL_ANUNCIO_MS = 900;
 
-function uno<T extends string>(valor: string | null, validos: readonly T[]): T | undefined {
-  return validos.find((v) => v === valor);
+/** El título del documento fuera de una vista con nombre, el mismo de index.html. */
+const TITULO_DEL_PANEL = "SAMCE — Panel Docente";
+
+/**
+ * Si el «Ver» de una fila se ve entero: debajo de la barra del panel y del encabezado fijo de columnas de su
+ * tabla, y por encima del borde inferior de la pantalla.
+ */
+function aLaVista(ver: HTMLElement): boolean {
+  const r = ver.getBoundingClientRect();
+  const barra = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--panel-barra")) || 0;
+  const columnas = ver.closest("table")?.querySelector("thead")?.getBoundingClientRect().height ?? 0;
+  return r.top >= barra + columnas && r.bottom <= window.innerHeight;
 }
 
-/** Los filtros que dice la dirección. Un valor que no se conoce (escrito a mano) se ignora. */
-function leerFiltros(parametros: URLSearchParams): FiltrosDeLista {
-  return {
-    nivel: uno(parametros.get("nivel"), NIVELES_VALIDOS),
-    estado: uno(parametros.get("estado"), ESTADOS_VALIDOS),
-    analisis: uno(parametros.get("analisis"), ANALISIS_VALIDOS),
-    q: parametros.get("q")?.trim().slice(0, 100) || undefined,
-    orden: parametros.get("orden") === "risk_level" ? "risk_level" : undefined,
-  };
+/** Lleva el «Ver» al centro de la pantalla, de una vez y sin deslizar. */
+function centrar(ver: HTMLElement) {
+  const r = ver.getBoundingClientRect();
+  window.scrollTo({ top: window.scrollY + r.top + r.height / 2 - window.innerHeight / 2, behavior: "instant" });
 }
 
 /**
@@ -140,20 +153,13 @@ export function Panel() {
 
   // Los filtros de la lista (HU04) también viven en la dirección: sobreviven a la actualización
   // automática, al botón Atrás y a la vuelta por las migas, y un enlace copiado abre la misma vista.
-  const filtros: FiltrosDeLista = useMemo(() => leerFiltros(parametros), [parametros]);
-  const claveFiltros = PARAMETROS_DE_FILTRO.map((p) => parametros.get(p) ?? "").join("|");
-  const hayFiltro = Boolean(filtros.nivel || filtros.estado || filtros.analisis || filtros.q);
+  const { filtros, claveFiltros, hayFiltro, aplicarFiltros, quitarFiltros, conservarFiltros } =
+    useFiltrosDeLaDireccion();
+  // Lo que de verdad se le pide al backend, como texto (ver `claveDelPedido`). Los filtros siguen en la
+  // dirección y vuelven al volver a la lista. Como es texto, abrir o cerrar una sesión sin filtros no cambia
+  // la consulta y no vuelve a pedir la lista.
+  const clavePedido = claveDelPedido(filtros, Boolean(sesionElegida));
 
-  const [examenes, setExamenes] = useState<ExamenMonitoreado[]>([]);
-  // Solo las sesiones del examen que se está mirando, con el examen del que
-  // son: las de los demás no se piden.
-  const [cargadas, setCargadas] = useState<{
-    examenId: number;
-    lista: SesionDeExamen[];
-    /** Cuántas cumplen el filtro en toda la evaluación (X-Total-Count); null con un backend viejo. */
-    total: number | null;
-    resumen: ResumenDeEvaluacion | null;
-  } | null>(null);
   // Cuántas «páginas» de 50 sesiones se pidieron, y de qué examen. Al cambiar
   // de examen (o volver a entrar a uno) vuelve a 1 en el mismo render, con el
   // ajuste de estado durante el render que React admite para esto: hacerlo
@@ -161,14 +167,13 @@ export function Panel() {
   // descartaba y se rehacía enseguida.
   // Un cambio de filtro también vuelve a la primera página.
   const vistaDeLista = `${examenElegido}|${claveFiltros}`;
-  const [paginasDe, setPaginasDe] = useState({ examen: vistaDeLista, n: 1 });
-  if (paginasDe.examen !== vistaDeLista) setPaginasDe({ examen: vistaDeLista, n: 1 });
-  const paginas = paginasDe.examen === vistaDeLista ? paginasDe.n : 1;
+  const [paginasDe, setPaginasDe] = useState({ vista: vistaDeLista, n: 1 });
+  if (paginasDe.vista !== vistaDeLista) setPaginasDe({ vista: vistaDeLista, n: 1 });
+  const paginas = paginasDe.vista === vistaDeLista ? paginasDe.n : 1;
   const pedirOtraPagina = useCallback(
-    () => setPaginasDe({ examen: vistaDeLista, n: paginas + 1 }),
+    () => setPaginasDe({ vista: vistaDeLista, n: paginas + 1 }),
     [vistaDeLista, paginas]
   );
-  const [enlace, setEnlace] = useState<EstadoEnlace>("vivo");
   // Cómo está el registro que se está mirando: si se sigue pidiendo y si la
   // última consulta falló. Lo avisa `DetalleSesion`, que es quien pregunta y
   // decide cuándo deja de hacerlo. Se guarda de qué sesión es, para que al
@@ -176,103 +181,20 @@ export function Panel() {
   const [registro, setRegistro] = useState<{ sesion: string | null; sigue: boolean; fallo: boolean } | null>(
     null
   );
-  const [marca, setMarca] = useState(0);
-  const [vencida, setVencida] = useState(false);
-  // Si alguna consulta llegó bien. Sin esto, una primera consulta fallida
-  // dejaba la lista de exámenes vacía y la pantalla afirmaba «todavía no hay
-  // ningún examen en curso», cuando lo único que se sabía es que el servidor
-  // no había contestado.
-  const [recibido, setRecibido] = useState(false);
+  // Si se está leyendo una sesión que ya no se consulta: la lista se pide más espaciada (`CADENCIA_QUIETA_MS`).
+  // Se decide más abajo, con la sesión ya identificada, y se ajusta en el mismo render.
+  const [ritmoQuieto, setRitmoQuieto] = useState(false);
+  // El ciclo de consultas: los exámenes y las sesiones del examen elegido (`useSesionesDelExamen`).
+  const { examenes, cargadas, alDia, enlace, marca, recibido, vencida, vencer } = useSesionesDelExamen(
+    examenElegido,
+    clavePedido,
+    paginas,
+    ritmoQuieto ? CADENCIA_QUIETA_MS : CADENCIA_MS
+  );
   // Mientras no llegó nada y la primera consulta no falló.
   const cargando = !recibido && enlace === "vivo";
 
   const general = ingreso ? esPanelGeneral(ingreso) : false;
-
-  // El token dejó de valer: no se arregla reintentando.
-  const vencer = useCallback(() => {
-    clearSession();
-    setVencida(true);
-  }, []);
-
-  /**
-   * Cuál es la consulta que vale. Sube con cada pedido, y el que vuelve con un
-   * número viejo se descarta sin tocar la pantalla.
-   *
-   * Hacen falta dos llamadas al servidor y el docente puede cambiar de examen
-   * entre una y la otra, o mientras el refresco de los cinco segundos está en
-   * vuelo. Sin esto, la respuesta que llega tarde pisa la lista con las
-   * sesiones del examen anterior, y como también pisa `cargadas`, la pantalla
-   * queda convencida de que esas son las del examen que se está mirando.
-   */
-  const pedido = useRef(0);
-
-  const consultar = useCallback(async () => {
-    const mio = ++pedido.current;
-    try {
-      const lista = await traerExamenes();
-      if (mio !== pedido.current) return;
-
-      // Las sesiones se piden solo del examen que la dirección tiene elegido, y
-      // solo si es de uno de los cursos del docente (la lista ya viene filtrada
-      // por el backend según su token).
-      const elegido = examenElegido ? lista.find((e) => String(e.id) === examenElegido) : undefined;
-      // Con una sesión abierta en el detalle se pide sin filtrar: si la sesión dejara de cumplir el
-      // filtro (el alumno entrega con «En curso»), saldría de la respuesta y el detalle se quedaría
-      // con una copia vieja. Los filtros siguen en la dirección y vuelven al volver a la lista.
-      const delPedido: FiltrosDeLista = sesionElegida ? { orden: filtros.orden } : filtros;
-      const respuesta = elegido ? await traerSesiones(elegido.id, paginas * SESIONES_POR_PAGINA, delPedido) : null;
-      const delElegido = respuesta && elegido ? respuesta.sesiones.map((s) => ({ ...s, examenId: elegido.id })) : [];
-
-      if (mio !== pedido.current) return;
-
-      setExamenes(lista);
-      setRecibido(true);
-      setCargadas(
-        elegido && respuesta
-          ? { examenId: elegido.id, lista: delElegido, total: respuesta.total, resumen: respuesta.resumen }
-          : null
-      );
-      setEnlace("vivo");
-      setMarca((m) => m + 1);
-    } catch (error) {
-      // Que el token haya vencido no es un problema de red, y tratarlo como
-      // tal es lo peor que puede hacer el panel: se queda mostrando «sin
-      // conexión, reintentando» encima de una lista que ya no se actualiza,
-      // mientras puede haber alumnos rindiendo de los que no se entera.
-      if (mio !== pedido.current) return;
-
-      if (error instanceof SesionVencida) {
-        vencer();
-        return;
-      }
-
-      // Cualquier otro fallo sí se reintenta, y se conserva lo último que
-      // llegó. Seguir mostrándolo como si fuera de ahora sería mentir, así que
-      // el estado del canal lo dice.
-      setEnlace("sin-conexion");
-    }
-  }, [examenElegido, sesionElegida, filtros, paginas, vencer]);
-
-  useEffect(() => {
-    if (vencida) return;
-
-    // La próxima consulta se programa recién cuando termina la anterior. Con un
-    // intervalo fijo, un servidor que tardaba más de cinco segundos recibía un
-    // pedido nuevo antes de contestar el anterior, cada respuesta llegaba ya
-    // descartada por vieja, y el panel seguía diciendo «En vivo» sin mostrar
-    // nada nuevo.
-    let activo = true;
-    let proxima: number | undefined;
-    const ciclo = async () => {
-      await consultar();
-      if (activo) proxima = window.setTimeout(ciclo, CADENCIA_MS);
-    };
-    void ciclo();
-    return () => {
-      activo = false;
-      window.clearTimeout(proxima);
-    };
-  }, [consultar, vencida]);
 
   // `reemplazar` es para cuando el panel corrige la dirección solo, sin que el
   // docente haya hecho nada: esa corrección no puede quedar en el historial,
@@ -287,39 +209,9 @@ export function Panel() {
       // Los filtros se conservan mientras no cambie el examen (la miga del examen, la vuelta del
       // detalle, la corrección de la dirección). Otra evaluación abre sin filtros y con el orden
       // predeterminado: la elección no se guarda como preferencia.
-      if (destino.examen && destino.examen === examenElegido) {
-        for (const p of PARAMETROS_DE_FILTRO) {
-          const valor = parametros.get(p);
-          if (valor) siguiente.set(p, valor);
-        }
-      }
-      setParametros(siguiente, { replace: reemplazar });
+      setParametros(conservarFiltros(siguiente), { replace: reemplazar });
     },
-    [setParametros, parametros, examenElegido]
-  );
-
-  /**
-   * Escribe en la dirección lo que cambió de los filtros, con la misma función para la barra y para
-   * las tarjetas del resumen. Lo predeterminado no se escribe. Queda en el historial, así «Atrás»
-   * vuelve a la vista anterior.
-   */
-  const aplicarFiltros = useCallback(
-    (parciales: Partial<FiltrosDeLista>) => {
-      const siguiente = new URLSearchParams(parametros);
-      siguiente.delete("sesion");
-      const nuevos: FiltrosDeLista = { ...filtros, ...parciales };
-      for (const [clave, valor] of Object.entries(PARAMETRO_DE)) {
-        const v = nuevos[clave as keyof FiltrosDeLista];
-        if (v && !(clave === "orden" && v === "started_at")) siguiente.set(valor, v);
-        else siguiente.delete(valor);
-      }
-      setParametros(siguiente);
-    },
-    [parametros, filtros, setParametros]
-  );
-  const quitarFiltros = useCallback(
-    () => aplicarFiltros({ nivel: undefined, estado: undefined, analisis: undefined, q: undefined }),
-    [aplicarFiltros]
+    [setParametros, conservarFiltros]
   );
 
   function salir() {
@@ -327,12 +219,32 @@ export function Panel() {
     navigate("/", { replace: true });
   }
 
+  // Dónde estaba la página al abrir una sesión desde la lista, para volver al mismo lugar.
+  const lugar = useRef<{ sesion: string; y: number } | null>(null);
+  // El lugar de la página lo decide el panel (ver el efecto del foco, abajo). Con la restauración del
+  // navegador, al volver con Atrás la página llegaba al lugar guardado y un instante después el navegador la
+  // corría a la altura que había anotado él, unos píxeles más abajo.
+  useEffect(() => {
+    const antes = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    return () => {
+      window.history.scrollRestoration = antes;
+    };
+  }, []);
+
   function verEventos(s: SesionNumerada) {
+    lugar.current = { sesion: String(s.id), y: window.scrollY };
     // El estado del registro anterior no vale para este: si quedara, la
     // cabecera mostraría un instante «Intento terminado» de la otra visita.
     setRegistro(null);
     irA({ curso: cursoElegido, examen: examenElegido, sesion: String(s.id) });
   }
+
+  // Estable mientras no cambie la sesión: el detalle no se vuelve a dibujar si no cambió nada (`mismaSesion`).
+  const alConsultarElRegistro = useCallback(
+    (sigue: boolean, fallo: boolean) => setRegistro({ sesion: sesionElegida, sigue, fallo }),
+    [sesionElegida]
+  );
 
   // Salen del token y no de los exámenes: así aparecen también los cursos donde
   // todavía nadie rindió, que son la mayoría fuera de la época de parciales.
@@ -405,9 +317,118 @@ export function Panel() {
     : delEsteExamen.length >= totalDelExamen
       ? numerarIntentos(delEsteExamen)
       : delEsteExamen.map((s) => ({ ...s, intento: 1, intentos: 1 }));
+  // La lista se dibuja con la vista de la respuesta que se muestra, no con la de la dirección. Entre que el
+  // docente toca una tarjeta y llega la respuesta, la lista sigue siendo la anterior entera: sin esto, la
+  // tarjeta quedaba marcada sobre las filas sin filtrar, los grupos se armaban como si estuvieran filtradas y
+  // «Ver más sesiones» aparecía o desaparecía con un total que no era el de esas filas.
+  const claveMostrada = cargadas ? cargadas.vista.slice(cargadas.vista.indexOf("|") + 1) : clavePedido;
+  const conFiltroMostrado = hayFiltroEn(leerFiltros(new URLSearchParams(claveMostrada))) && !sesionElegida;
   // Con un filtro, el total que vale es el que dice el backend para el filtro, no el del examen.
   const conFiltro = hayFiltro && !sesionElegida;
-  const totalDeLaVista = conFiltro && cargadas?.total != null ? cargadas.total : totalDelExamen;
+  // «N de M» vale solo si la respuesta es del pedido de esta vista. Al volver del detalle (que pide sin
+  // filtrar) la última respuesta es de todo el examen, y mostrar su total daba «M de M» hasta la siguiente.
+  const respuestaDelFiltro = conFiltro && cargadas?.vista === vistaDeLista && cargadas.total != null;
+  const totalDeLaVista = respuestaDelFiltro ? cargadas.total! : totalDelExamen;
+  const totalMostrado = conFiltroMostrado && cargadas?.total != null ? cargadas.total : totalDelExamen;
+  // M de «N de M sesiones» (D3) sale del resumen de la misma respuesta que N y las siete tarjetas, así los
+  // tres números son del mismo momento. Los recuentos de la ficha del examen quedan para un backend sin resumen.
+  const totalDeLaEvaluacion = cargadas?.resumen?.total ?? totalDelExamen;
+  // «N de M sesiones» se ve siempre al día, pero se anuncia una sola vez por vista y solo cuando la vista
+  // vino de una acción del docente (la barra, una tarjeta). Dos referencias, cada una con su caso:
+  // - `porAccion` se prende con la acción y se apaga al anunciar: abrir un enlace que ya trae un filtro, o
+  //   volver con Atrás o del detalle, llegan sin acción y no se anuncian.
+  // - `vistaAnunciada` es la vista de la última respuesta atendida: el refresco de la misma vista (aunque
+  //   cambie la cifra) no se vuelve a atender, ni para anunciar ni para vaciar.
+  // Una vista nueva sin acción, o la lista sin filtro, vacían la región: si conservara la frase de antes, quien
+  // recorre la página con el lector encontraría una cifra que ya no es la de la pantalla. Cada anuncio va en
+  // un nodo nuevo, así volver a un filtro con la misma cifra también se lee. Va en un efecto, no en el render.
+  //
+  // `porAccion` también dice de dónde vino la acción. La búsqueda se pide sola mientras el docente escribe, y
+  // cada pausa corta daba un resultado intermedio («3 de 30», «1 de 30») que el lector leía encima del
+  // siguiente. Su anuncio espera `ESPERA_DEL_ANUNCIO_MS` y se descarta si antes llega otra vista; el de las
+  // tarjetas y los selectores sigue siendo inmediato. Lo que se ve no espera nada.
+  const [anuncioFiltro, anunciarFiltro, silenciarFiltro] = useAnuncio();
+  const porAccion = useRef<false | "control" | "busqueda">(false);
+  const vistaAnunciada = useRef("");
+  const anuncioEnEspera = useRef<{ vista: string; temporizador: number } | null>(null);
+  const cuantasDelFiltro = respuestaDelFiltro ? cargadas.total! : null;
+  useEffect(() => {
+    // El anuncio que esperaba es de otra vista: ya no es lo que hay en pantalla.
+    if (anuncioEnEspera.current && (!conFiltro || anuncioEnEspera.current.vista !== vistaDeLista)) {
+      window.clearTimeout(anuncioEnEspera.current.temporizador);
+      anuncioEnEspera.current = null;
+    }
+    if (!conFiltro) {
+      vistaAnunciada.current = "";
+      porAccion.current = false;
+      silenciarFiltro();
+      return;
+    }
+    if (cuantasDelFiltro === null || vistaAnunciada.current === vistaDeLista) return;
+    // La cifra que vino de la memoria de la vista es de antes: se anuncia la de la respuesta nueva.
+    if (!alDia) return;
+    vistaAnunciada.current = vistaDeLista;
+    const origen = porAccion.current;
+    if (!origen) {
+      silenciarFiltro();
+      return;
+    }
+    porAccion.current = false;
+    const texto = textoDelResultado(cuantasDelFiltro, totalDeLaEvaluacion);
+    if (origen !== "busqueda") {
+      anunciarFiltro(texto);
+      return;
+    }
+    const vista = vistaDeLista;
+    anuncioEnEspera.current = {
+      vista,
+      temporizador: window.setTimeout(() => {
+        anuncioEnEspera.current = null;
+        anunciarFiltro(texto);
+      }, ESPERA_DEL_ANUNCIO_MS),
+    };
+  }, [conFiltro, cuantasDelFiltro, vistaDeLista, totalDeLaEvaluacion, alDia, anunciarFiltro, silenciarFiltro]);
+  useEffect(() => () => window.clearTimeout(anuncioEnEspera.current?.temporizador), []);
+
+  /**
+   * Un cambio de filtro del docente: si la dirección cambió, la vista que viene se anuncia. Lo que manda la
+   * búsqueda trae solo `q`; las tarjetas, aunque la borren, traen también los demás filtros.
+   */
+  const filtrar = useCallback(
+    (parciales: Parameters<typeof aplicarFiltros>[0]) => {
+      const soloBusqueda = Object.keys(parciales).every((clave) => clave === "q");
+      if (aplicarFiltros(parciales)) porAccion.current = soloBusqueda ? "busqueda" : "control";
+    },
+    [aplicarFiltros]
+  );
+
+  // «Quitar filtros» desaparece con el renglón de resultado, y el foco quedaba en el cuerpo de la página: se
+  // lleva al primer control de la barra, que siempre existe (WCAG 2.4.3).
+  const selectorDeNivel = useRef<HTMLSelectElement>(null);
+  // Una tarjeta o «Quitar filtros» borran la búsqueda, pero la que el docente estaba tecleando todavía no
+  // llegó a la dirección: hay que descartarla, o la espera la suma después y el resultado deja de coincidir
+  // con el número de la tarjeta.
+  const busqueda = useRef<ControlBusqueda>(null);
+  // Si el campo de búsqueda dice algo que la lista todavía no buscó (lo avisa `FiltrosSesiones`).
+  const [busquedaEnEspera, setBusquedaEnEspera] = useState(false);
+  const filtrarDesdeElResumen = useCallback(
+    (parciales: Parameters<typeof aplicarFiltros>[0]) => {
+      if ("q" in parciales) busqueda.current?.cancelarBusqueda();
+      filtrar(parciales);
+    },
+    [filtrar]
+  );
+  const quitar = useCallback(() => {
+    busqueda.current?.cancelarBusqueda();
+    porAccion.current = false;
+    quitarFiltros();
+    // Sin deslizar: con el desplazamiento suave de la página, el foco la arrastraba hasta el selector y, si la
+    // lista crecía en medio del recorrido, la hacía saltar un cuadro cientos de píxeles. El selector está en la
+    // misma lámina que el botón, así que casi siempre ya está a la vista.
+    const selector = selectorDeNivel.current;
+    selector?.focus({ preventScroll: true });
+    selector?.scrollIntoView?.({ block: "nearest", behavior: "instant" });
+  }, [quitarFiltros]);
 
   // La sesión se busca entre las del examen, que son las que el backend
   // devolvió para este docente. Una dirección con una sesión que no está ahí
@@ -493,6 +514,9 @@ export function Panel() {
           : undefined,
     });
   }
+  const quieto = nivel === "eventos" && sesionMostrada !== undefined && !seSigueConsultando(sesionMostrada);
+  if (quieto !== ritmoQuieto) setRitmoQuieto(quieto);
+
   const nombreDelAlumno = sesionMostrada ? nombreDeAlumno(sesionMostrada) : "";
   if (nivel === "eventos") {
     escalones.push({ nombre: nombreDelAlumno });
@@ -507,11 +531,97 @@ export function Panel() {
           ? nombreDelAlumno
           : nombreExamenActual;
 
+  // El título del documento dice la vista, como el h1: con uno solo para todo el panel, el lector de
+  // pantalla no anunciaba el paso de la lista al detalle, y las pestañas no se distinguían.
+  useEffect(() => {
+    document.title = titulo ? `${titulo} — SAMCE` : TITULO_DEL_PANEL;
+  }, [titulo]);
+  useEffect(() => () => void (document.title = TITULO_DEL_PANEL), []);
+
+  // El foco acompaña el cambio de vista (WCAG 2.4.3): toda vista nueva que viene de una acción del docente
+  // (abrir una sesión, tocar una miga, elegir un examen) empieza arriba, con el foco en el h1, así el lector la
+  // anuncia y el teclado sigue desde ahí; el botón que la abrió ya no existe y el foco quedaba en el cuerpo de
+  // la página. Al volver del detalle a la lista (Atrás, la miga), en cambio, va al «Ver» de la sesión de la
+  // que salió, para no perder el lugar en una lista larga; sin ese botón (un filtro la dejó afuera), al h1.
+  // Solo en el cambio, nunca en la primera carga ni con el refresco ni al filtrar.
+  //
+  // La página se sube antes de enfocar: si el docente había bajado por la lista, el primer dibujo del detalle es
+  // más corto y el navegador recortaba el desplazamiento en vez de llevarlo a cero; el h1 ya se veía, así que
+  // el foco no lo movía, y las migas quedaban debajo de la barra.
+  const titular = useRef<HTMLHeadingElement>(null);
+  const anterior = useRef<{ clave: string; nivel: string; sesion: string | null } | null>(null);
+  const listo = !(cargando || esperandoSesiones) && recibido;
+  // La sesión cuenta solo en el detalle: mientras se busca una sesión que no llegó, la vista sigue siendo la
+  // lista y no es una vista nueva.
+  const claveDeLaVista = [nivel, cursoElegido, examenElegido, nivel === "eventos" ? sesionElegida : ""].join("|");
+  // Va antes de pintar (efecto de diseño): con un efecto común, el primer cuadro de la lista se pintaba arriba
+  // de todo y recién el siguiente volvía al lugar, y se veía el salto.
+  useLayoutEffect(() => {
+    if (!listo) return;
+    const antes = anterior.current;
+    anterior.current = { clave: claveDeLaVista, nivel, sesion: sesionElegida };
+    if (!antes || antes.clave === claveDeLaVista) return;
+    if (nivel === "sesiones" && antes.nivel === "eventos") {
+      const ver = antes.sesion
+        ? document.querySelector<HTMLButtonElement>(`button[data-sesion="${CSS.escape(antes.sesion)}"]`)
+        : null;
+      if (ver) {
+        // Vuelve al mismo lugar en que estaba la página al abrir la sesión, de una vez. Antes el foco movía la
+        // página hasta el «Ver», y con el desplazamiento suave de la página se la veía deslizarse sola
+        // cientos de píxeles. Si se volvió por otro camino (un enlace, la recarga), el «Ver» va al centro.
+        const alMismoLugar = lugar.current?.sesion === antes.sesion;
+        if (alMismoLugar) window.scrollTo({ top: lugar.current!.y, behavior: "instant" });
+        // Si la página se estaba deslizando cuando se abrió la sesión (Tab y Enter seguidos, o un lector de
+        // pantalla que activa el botón sin mover la página), la altura guardada es de mitad de camino y el
+        // «Ver» quedaría fuera de la pantalla o debajo de la barra y el encabezado de columnas: en ese caso se
+        // lo centra, como cuando se vuelve por otro camino.
+        if (!alMismoLugar || !aLaVista(ver)) centrar(ver);
+        ver.focus({ preventScroll: true });
+        lugar.current = null;
+        return;
+      }
+    }
+    window.scrollTo({ top: 0, behavior: "instant" });
+    titular.current?.focus({ preventScroll: true });
+  }, [listo, claveDeLaVista, nivel, sesionElegida]);
+
+  // El «Ver» que tenía el foco, para no perderlo con la actualización automática. Cuando una sesión pasa de «En
+  // curso» a «Finalizadas» (el alumno entregó), su fila se dibuja de nuevo en la otra tabla, el botón enfocado
+  // desaparece y el foco caía al cuerpo de la página: con el teclado o el lector, el docente perdía el lugar sin
+  // haber hecho nada. Después de cada dibujo, si eso pasó, el foco va al «Ver» de la misma sesión en su lugar
+  // nuevo, sin mover la página.
+  //
+  // Solo si el botón ya no está en la página: si sigue ahí y el foco está en el cuerpo, fue el docente el que
+  // hizo clic en un lugar vacío, y no hay que devolvérselo.
+  const verEnfocado = useRef<HTMLElement | null>(null);
+  const vistaDelFoco = useRef<string | undefined>(undefined);
+  const vistaMostrada = cargadas?.vista;
+  useLayoutEffect(() => {
+    const otraVista = vistaDelFoco.current !== vistaMostrada;
+    vistaDelFoco.current = vistaMostrada;
+    const ver = verEnfocado.current;
+    if (!ver || ver.isConnected || document.activeElement !== document.body) return;
+    const nuevo = document.querySelector<HTMLButtonElement>(`button[data-sesion="${CSS.escape(ver.dataset.sesion ?? "")}"]`);
+    if (!nuevo) {
+      verEnfocado.current = null;
+      return;
+    }
+    // Si llegó otra vista (la respuesta filtrada después de haber vuelto del detalle por la miga), la lista se
+    // acortó y el «Ver» puede haber quedado debajo del encabezado fijo o fuera de la pantalla: se lo centra antes
+    // de enfocarlo. Con la actualización automática de la misma vista la página no se mueve: el docente no hizo
+    // nada, y moverle la página es peor que dejarle el foco donde la fila fue a parar.
+    if (otraVista && !aLaVista(nuevo)) centrar(nuevo);
+    nuevo.focus({ preventScroll: true });
+  });
+
   // Sin sesión no hay nada que supervisar: se explica y se lo devuelve al
   // campus, igual que a quien llega de un favorito viejo.
   if (vencida) return <SinSesion motivo="vencida" />;
 
   const enCurso = delExamen.filter((s) => s.status === "open");
+  // La lista que se ve no es todavía la de la vista pedida (un filtro recién tocado, la vuelta del detalle).
+  // También mientras la búsqueda espera que el docente deje de escribir: el campo ya dice otra cosa.
+  const pendiente = nivel === "sesiones" && recibido && !sesionesAjenas && (!alDia || busquedaEnEspera);
   const finalizadas = delExamen.filter((s) => s.status !== "open");
 
   // La pantalla de escucha es para cuando no hay absolutamente nada que
@@ -527,12 +637,16 @@ export function Panel() {
   // quieto: prometer «se actualiza» sería falso aunque la última consulta
   // hubiera fallado, y el aviso del registro ya explica cómo volver a pedirlo.
   // Y un registro que se sigue consultando pero no contesta no puede decir
-  // «En vivo» encima del aviso de que no se pudo actualizar.
+  // «En vivo» encima del aviso de que no se pudo actualizar. Antes de que el
+  // registro avise, se decide con lo que ya se sabe de la sesión: si no, al
+  // entrar a una sesión cerrada hace rato decía «En vivo» hasta la primera
+  // respuesta, y en un teléfono el pulso que desaparecía subía todo 35 px.
   const delRegistro = nivel === "eventos" && registro?.sesion === sesionElegida ? registro : null;
+  const registroQuieto = delRegistro ? !delRegistro.sigue : quieto;
   const estadoPulso: EstadoEnlace =
     enlace !== "vivo"
       ? enlace
-      : delRegistro && !delRegistro.sigue
+      : registroQuieto
         ? "quieto"
         : delRegistro?.fallo
           ? "sin-conexion"
@@ -557,7 +671,18 @@ export function Panel() {
         onSalir={salir}
       />
 
-      <main className="marco marco--panel panel" id="sesiones">
+      <main
+        // Entrando por la dirección de una sesión (un enlace, la recarga), la espera ocupa la pantalla como la
+        // va a ocupar el detalle: si no, el pie se veía a media altura y bajaba de golpe al aparecer el detalle.
+        className={`marco marco--panel panel${
+          (cargando || esperandoSesiones) && sesionElegida ? " panel--antes-del-detalle" : ""
+        }`}
+        id="sesiones"
+        onFocus={(e) => {
+          const enfocado = e.target as HTMLElement;
+          verEnfocado.current = enfocado.dataset.sesion ? enfocado : null;
+        }}
+      >
         {cargando || esperandoSesiones ? (
           // El mismo pulso que ya estaba girando antes de que React montara. Un
           // dibujo nuevo acá se leería como que algo terminó y algo distinto
@@ -572,7 +697,15 @@ export function Panel() {
                 {/* El salto a todos sus cursos vive en el encabezado de la
                     barra, que es donde se lo busca y donde está en los dos
                     modos. Acá abajo repetía lo mismo dos veces en pantalla. */}
-                <h1 className="panel__curso">{titulo}</h1>
+                {/* El título y, en el detalle, la ficha de la sesión, en una sola columna: la ficha va debajo del
+                    nombre y al ras de él, y el pulso queda a la derecha, a la altura del título. En un teléfono
+                    el pulso baja después de la ficha: el nombre y sus datos se leen juntos. */}
+                <div className="panel__titular">
+                  {/* tabIndex -1: recibe el foco al abrir una sesión, sin ser una parada del tabulador. */}
+                  <h1 className="panel__curso" ref={titular} tabIndex={-1}>{titulo}</h1>
+                  {/* Con la misma condición que el detalle de abajo: la ficha no aparece sin su registro. */}
+                  {recibido && nivel === "eventos" && sesionMostrada ? <FichaSesion sesion={sesionMostrada} /> : null}
+                </div>
                 {/* Qué estado muestra y en qué orden se decide está junto a
                     `estadoPulso`, arriba. */}
                 <PulsoEnlace estado={estadoPulso} marca={marca} />
@@ -621,7 +754,7 @@ export function Panel() {
               <DetalleSesion
                 key={sesionMostrada.id}
                 sesion={sesionMostrada}
-                onConsulta={(sigue, fallo) => setRegistro({ sesion: sesionElegida, sigue, fallo })}
+                onConsulta={alConsultarElRegistro}
                 onVencida={vencer}
               />
             ) : sesionesAjenas ? (
@@ -630,89 +763,73 @@ export function Panel() {
               </p>
             ) : (
               <>
-                {/* El recuento de cada grupo es el del examen, no el de las filas
-                    cargadas: con la lista paginada, contar filas daba un número
-                    distinto del de la ficha del examen. */}
                 {/* La memoria del anuncio se vacía con el examen y con los filtros: una
-                    sesión que entra a la lista por un filtro no es una alerta nueva. */}
-                <AvisoAlertas sesiones={delExamen} clave={vistaDeLista} />
-                {/* El resumen de la evaluación cuenta todas sus sesiones, y cada tarjeta filtra la
-                    lista con la misma función que la barra. Con un backend sin el resumen no se dibuja. */}
-                {cargadas?.resumen ? (
-                  <ResumenEvaluacion resumen={cargadas.resumen} filtros={filtros} onFiltrar={aplicarFiltros} />
-                ) : null}
-                <FiltrosSesiones filtros={filtros} onCambio={aplicarFiltros} />
-                {/* Con un filtro, «N de M sesiones» en una región que solo contiene la frase. */}
-                <p className="filtros-resultado" role="status" aria-atomic="true">
-                  {conFiltro && cargadas?.total != null ? `${cargadas.total} de ${totalDelExamen} sesiones` : ""}
-                </p>
-                {conFiltro && cargadas?.total === 0 ? (
-                  <div className="panel__vacio">
-                    <p>Ninguna sesión coincide con el filtro.</p>
-                    <button type="button" className="panel__ver-mas" onClick={quitarFiltros}>
-                      Quitar filtros
+                    sesión que entra a la lista por un filtro no es una alerta nueva. La clave es
+                    la de la respuesta que se está mostrando y no la de la dirección: con la de
+                    la dirección, al quitar un filtro se memorizaba la lista vieja con la clave
+                    nueva y la respuesta sin filtro anunciaba como nuevas las alertas que el
+                    filtro ocultaba (HU04_T02, P14). */}
+                <AvisoAlertas sesiones={delExamen} clave={cargadas?.vista ?? ""} />
+                {/* Una sola lámina de control: el resumen de la evaluación (con un backend sin el resumen
+                    no se dibuja), la barra y el renglón del resultado, que está siempre (vacío sin filtro) para
+                    que la lámina mida lo mismo con o sin filtro. Cada tarjeta filtra con la misma función que la
+                    barra. */}
+                <section className="lamina control" aria-label="Resumen y filtros de la evaluación">
+                  {cargadas?.resumen ? (
+                    <ResumenEvaluacion resumen={cargadas.resumen} filtros={filtros} onFiltrar={filtrarDesdeElResumen} />
+                  ) : null}
+                  <FiltrosSesiones
+                    filtros={filtros}
+                    onCambio={filtrar}
+                    nivelRef={selectorDeNivel}
+                    controlRef={busqueda}
+                    onEspera={setBusquedaEnEspera}
+                  />
+                  <ResultadoDelFiltro
+                    conFiltro={conFiltro}
+                    cuantas={cuantasDelFiltro}
+                    deCuantas={totalDeLaEvaluacion}
+                    onQuitar={quitar}
+                  />
+                  <AnuncioVivo aviso={anuncioFiltro} etiqueta="Resultado del filtro" />
+                </section>
+
+                {/* Los grupos y «Ver más» son de la respuesta que se muestra. Mientras la de la vista pedida
+                    no llega, se atenúan y se marcan como ocupados (aria-busy). No van inertes: el foco que
+                    estaba en un «Ver» caería al cuerpo de la página, y las filas que se ven son sesiones
+                    reales de una misma respuesta. */}
+                <div className="panel__listas" aria-busy={pendiente || undefined}>
+                  <GruposDeSesiones
+                    enCurso={enCurso}
+                    finalizadas={finalizadas}
+                    conFiltro={conFiltroMostrado}
+                    todasCargadas={delExamen.length >= totalMostrado}
+                    recuento={{ enCurso: recuento.enCurso, finalizadas: totalFinalizadas }}
+                    vista={cargadas?.vista}
+                    onVerEventos={verEventos}
+                  />
+
+                  {/* «Ver más» solo si el examen tiene más sesiones de las que se ven, y
+                      mientras el backend pueda devolver más (tope por pedido). El total sale
+                      de los recuentos del examen, no de si la última página vino llena: eso
+                      era una suposición, y con el tope exacto de 1000 dejaba el botón sin
+                      traer nada, o lo escondía aunque quedaran sesiones por ver. */}
+                  {delExamen.length < totalMostrado && paginas * SESIONES_POR_PAGINA < SESIONES_TOPE ? (
+                    <button
+                      type="button"
+                      className="boton-secundario panel__ver-mas"
+                      onClick={pedirOtraPagina}
+                    >
+                      Ver más sesiones
                     </button>
-                  </div>
-                ) : conFiltro ? (
-                  <>
-                    {/* Con un filtro, cada grupo cuenta sus filas cargadas y un grupo vacío no
-                        se dibuja: el recuento del examen dejaría de coincidir con las filas. */}
-                    {enCurso.length > 0 ? (
-                      <ListaSesiones titulo="En curso" sesiones={enCurso} total={enCurso.length} onVerEventos={verEventos} />
-                    ) : null}
-                    {finalizadas.length > 0 ? (
-                      <ListaSesiones
-                        titulo="Finalizadas"
-                        sesiones={finalizadas}
-                        total={finalizadas.length}
-                        cerradas
-                        onVerEventos={verEventos}
-                      />
-                    ) : null}
-                  </>
-                ) : (
-                  <>
-                    <ListaSesiones
-                      titulo="En curso"
-                      sesiones={enCurso}
-                      total={recuento.enCurso}
-                      vacio={<p className="panel__vacio">No hay sesiones de examen vigentes.</p>}
-                      onVerEventos={verEventos}
-                    />
-
-                    {finalizadas.length > 0 || totalFinalizadas > 0 ? (
-                      <ListaSesiones
-                        titulo="Finalizadas"
-                        sesiones={finalizadas}
-                        total={totalFinalizadas}
-                        cerradas
-                        vacio={<p className="panel__vacio">Se ven con «Ver más sesiones».</p>}
-                        onVerEventos={verEventos}
-                      />
-                    ) : null}
-                  </>
-                )}
-
-                {/* «Ver más» solo si el examen tiene más sesiones de las que se ven, y
-                    mientras el backend pueda devolver más (tope por pedido). El total sale
-                    de los recuentos del examen, no de si la última página vino llena: eso
-                    era una suposición, y con el tope exacto de 1000 dejaba el botón sin
-                    traer nada, o lo escondía aunque quedaran sesiones por ver. */}
-                {delExamen.length < totalDeLaVista && paginas * SESIONES_POR_PAGINA < SESIONES_TOPE ? (
-                  <button
-                    type="button"
-                    className="panel__ver-mas"
-                    onClick={pedirOtraPagina}
-                  >
-                    Ver más sesiones
-                  </button>
-                ) : null}
+                  ) : null}
+                </div>
                 {/* Llegó el tope del backend: no hay forma de traer más desde esta
                     pantalla, y ofrecer un botón que no trae nada es peor que decirlo. */}
                 {totalDelExamen > SESIONES_TOPE && delExamen.length >= SESIONES_TOPE ? (
                   <p className="panel__tope" role="status">
-                    Se muestran las {SESIONES_TOPE.toLocaleString("es-AR")} sesiones más recientes
-                    de {totalDelExamen.toLocaleString("es-AR")}.
+                    Se muestran las {enCifras(SESIONES_TOPE)} sesiones más recientes
+                    de {enCifras(totalDelExamen)}.
                   </p>
                 ) : null}
               </>
