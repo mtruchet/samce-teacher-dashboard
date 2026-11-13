@@ -1,8 +1,10 @@
 /* La pantalla de una sesión: la línea de datos, los avisos y el registro,
    uno abajo del otro. */
+/* Entre lámina y lámina, var(--e6): el mismo paso que separa los grupos de la lista, para que las dos
+   pantallas respiren igual. */
 .detalle {
   display: grid;
-  gap: var(--e4);
+  gap: var(--e6);
 }
 
 /* Un hijo de la grilla no se achica por debajo de su contenido más ancho si no
@@ -37,7 +39,8 @@
   border-radius: var(--radio-ficha);
   background: var(--sup-1);
   box-shadow: var(--anillo);
-  font-size: var(--panel-cuerpo);
+  /* La letra de una fila: son datos sueltos, como los de una fila de la lista, no una frase para leer. */
+  font-size: var(--panel-fila);
   color: var(--tinta-media);
 }
 
@@ -50,6 +53,7 @@
 /* La cuenta y sus extremos, pegados como una sola frase: el hueco del encabezado separa el título de lo que
    lo acompaña, no la cuenta de su precisión. No se parte: si no entra al lado del título, baja entera. */
 .detalle__cuenta {
+  font-size: var(--panel-nota);
   white-space: nowrap;
 }
 
@@ -99,7 +103,6 @@
    panel y se separan entre sí por superficie, que es como este sistema separa:
    el que espera se apoya en la lámina y el que avisa de un problema sube un
    escalón, sin línea ni borde de color. */
-.detalle__cargando,
 .detalle__aviso {
   padding: var(--e4) var(--e5);
   border-radius: var(--radio-ficha);
@@ -107,8 +110,16 @@
   color: var(--tinta-media);
 }
 
-.detalle__cargando {
-  background: var(--sup-2);
+/* La espera y el vacío del registro, como un renglón suelto: con la caja de antes eran --sup-2 sobre la lámina
+   --sup-2, una caja que no se veía y solo corría el texto hacia adentro. El vacío de la página (Panel.css)
+   sí lleva caja, porque va sobre la página y no adentro de una lámina. */
+.detalle__cargando,
+.lamina--apoyo .panel__vacio {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  font-size: var(--panel-fila);
+  color: var(--tinta-media);
 }
 
 .detalle__aviso {
@@ -118,12 +129,21 @@
   color: var(--nivel-1-tinta);
 }
 
-/* La explicación de una captura incompleta. */
+/* La explicación de una captura incompleta: suelta entre la ficha y el análisis, sin caja, con la marca de
+   renglón en --tinta-suave (4,78:1 contra la página). El texto arranca donde el de las láminas (la marca más su
+   relleno suman var(--e6)), y el aire de arriba y de abajo es el de la pila, no un margen propio. */
 .detalle__captura {
-  margin: 0 0 0.75rem;
-  padding: 0.6rem 0.9rem;
-  border-left: 3px solid currentColor;
+  margin: 0;
+  padding: var(--e2) 0 var(--e2) calc(var(--e6) - var(--marca-renglon));
+  border-left: var(--marca-renglon) solid var(--tinta-suave);
   font-size: var(--panel-fila);
+  color: var(--tinta-media);
+}
+
+/* Lo corto en la tinta del texto, como el estado de la ficha: es lo que hay que leer; el detalle lo explica. */
+.detalle__captura strong {
+  font-weight: 600;
+  color: var(--tinta);
 }
 
 @media (max-width: 760px) {
@@ -131,15 +151,19 @@
   .detalle__sesion {
     padding-inline: var(--e4);
   }
+
+  /* El aviso de captura, también. */
+  .detalle__captura {
+    padding-left: calc(var(--e4) - var(--marca-renglon));
+  }
 }
 
 @media (max-width: 640px) {
-  /* La ficha se parte en dos renglones: el estado arriba, los datos abajo. */
-  .detalle__estado {
-    flex-basis: 100%;
-  }
-
+  /* La ficha se apila: el estado arriba y cada dato en su renglón. En grilla y no con el estado al 100 % del
+     flex: así «Entregó» conserva el ancho de su texto y no se estira como una barra de lado a lado. */
   .detalle__sesion {
+    display: grid;
+    justify-items: start;
     gap: var(--e1) var(--e4);
   }
 

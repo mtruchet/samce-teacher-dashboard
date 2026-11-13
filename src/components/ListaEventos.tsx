@@ -250,7 +250,7 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
                   // renglón que lo contiene.
                   <tr key={entrada.clave} className="eventos__hueco">
                     <td colSpan={3}>
-                      <Silencio size={18} aria-hidden="true" />
+                      <Silencio size={16} aria-hidden="true" />
                       sin eventos recibidos entre {horaCorta(entrada.desde)} y{" "}
                       {horaCorta(entrada.hasta)}
                     </td>

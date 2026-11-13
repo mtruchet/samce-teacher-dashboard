@@ -114,21 +114,34 @@
   text-wrap: pretty;
 }
 
-/* La explicación que repite la vigente queda plegada: se abre si hace falta, sin leer dos veces lo mismo. */
+/* La explicación que repite la vigente queda plegada: se abre si hace falta, sin leer dos veces lo mismo.
+   «Ver la explicación» se viste como el botón de texto del panel (en --tinta, con el subrayado tenue que se
+   afirma al pasar o enfocar) y conserva el triángulo nativo, que dice que se despliega ahí mismo. En
+   --tinta-media y sin subrayado no se leía como algo que se puede tocar. */
 .historial__plegado > summary {
   width: fit-content;
-  padding: 2px var(--e2);
+  padding: var(--e1) var(--e2);
   margin-left: calc(-1 * var(--e2));
   border-radius: var(--radio-chip);
   font-size: var(--panel-fila);
   font-weight: 600;
-  color: var(--tinta-media);
+  color: var(--tinta);
+  text-decoration: underline;
+  text-decoration-color: var(--tinta-tenue);
+  text-underline-offset: 3px;
   cursor: pointer;
-  transition: background-color var(--mov-estado) var(--curva);
+  transition:
+    background-color var(--mov-estado) var(--curva),
+    text-decoration-color var(--mov-estado) var(--curva);
 }
 
 .historial__plegado > summary:hover {
   background: var(--sup-3);
+}
+
+.historial__plegado > summary:hover,
+.historial__plegado > summary:focus-visible {
+  text-decoration-color: currentcolor;
 }
 
 .historial__plegado[open] > summary {
@@ -156,21 +169,29 @@
 
 .metricas__metrica {
   display: grid;
-  align-content: start;
+  /* El valor va al pie de la métrica y el rótulo se apoya sobre él: si un rótulo ocupa dos renglones, los
+     valores de la misma fila siguen en una sola línea, que es como se comparan. */
+  grid-template-rows: 1fr auto;
   gap: var(--e1);
-  padding-left: var(--e3);
+  /* El texto arranca donde el del historial, que lleva la marca de nivel (3 px) más var(--e3): la guía sigue
+     en 2 px para no confundirse con esa marca, y la diferencia va al relleno. */
+  padding-left: calc(var(--e3) + var(--marca-renglon));
   box-shadow: inset 2px 0 0 var(--guia);
 }
 
+/* El rótulo acompaña y el valor manda: el rótulo en tinta media, el valor en la tinta del texto y con peso. Los
+   dos con la letra de una fila, como los datos de la ficha de la sesión. */
 .metricas__rotulo {
+  align-self: end;
   font-size: var(--panel-fila);
   line-height: var(--panel-alto);
-  color: var(--tinta);
+  color: var(--tinta-media);
 }
 
 .metricas__valor {
   margin: 0;
-  font-size: var(--panel-cuerpo);
+  letter-spacing: normal;
+  font-size: var(--panel-fila);
   font-weight: 600;
   line-height: var(--panel-alto);
   color: var(--tinta);
@@ -204,17 +225,23 @@
 
 /* El índice del registro, adentro de su lámina: la hora en su columna y, al lado, el mismo ícono y el mismo
    nombre que la fila, con el botón para ir a ella. */
+/* Hasta la tabla, el aire de un título de lámina a su contenido: los momentos son el índice del registro, no
+   otro bloque aparte. */
 .momentos {
-  margin: 0 0 var(--e6);
+  margin: 0 0 var(--e4);
 }
 
 /* Tres columnas compartidas por todos los momentos (subgrid): la hora, el ícono con el nombre y el botón. Así
    los botones forman una columna y no siguen el largo de cada nombre, pero esa columna se apoya en el nombre
    más largo (a var(--e4)) y no en el borde: lejos del texto, el ojo no la relacionaba con su fila. La hora va
-   arriba, alineada con el primer renglón del nombre. */
+   arriba, alineada con el primer renglón del nombre.
+   La hora y el nombre caen en las mismas verticales que la hora y «Qué pasó» del registro de abajo: la lista
+   arranca con el relleno de la primera celda (var(--e3)) y la columna de la hora mide lo que la del registro
+   (--columna-hora) menos ese relleno. Así el índice y la tabla se leen como una sola cosa. */
 .momentos__lista {
   display: grid;
-  grid-template-columns: auto auto auto;
+  grid-template-columns: calc(var(--columna-hora) - var(--e3)) auto auto;
+  padding-inline-start: var(--e3);
   justify-content: start;
   /* Entre renglones, el doble de lo que el botón sobresale de cada uno (ver .momentos__ir): con menos, los
      «Ver en el registro» seguidos se pisaban y cada uno quedaba con menos de 24 px libres (WCAG 2.5.8). */
@@ -255,10 +282,19 @@
   margin-block: calc(-1 * var(--e1));
 }
 
+/* Con el registro apilado, la hora de la fila mide lo que su texto (unos 55 px) más el relleno de la celda y la
+   separación de la grilla: 67 px de columna y var(--e2) de relleno dejan hora y nombre en las mismas verticales. */
+@media (max-width: 760px) {
+  .momentos__lista {
+    grid-template-columns: 67px auto auto;
+    padding-inline-start: var(--e2);
+  }
+}
+
 /* En un teléfono el botón va siempre en su propio renglón, debajo del nombre. */
 @media (max-width: 480px) {
   .momentos__lista {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: 67px minmax(0, 1fr);
     row-gap: var(--e3);
   }
 

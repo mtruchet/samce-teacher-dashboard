@@ -4,9 +4,10 @@
 
    Los textos de lectura van en los pasos del sitio y no en los del panel: son frases que el
    docente lee enteras, no datos de una tabla. */
+/* Del título a lo de adentro, var(--e4): el mismo aire que en todas las láminas. */
 .analisis {
   display: grid;
-  gap: var(--e5);
+  gap: var(--e4);
 }
 
 .analisis__encabezado {
@@ -24,10 +25,11 @@
   color: var(--tinta-media);
 }
 
+/* «Cargando el análisis…»: el mismo vacío de renglón que el del registro. */
 .analisis__estado {
   margin: 0;
-  font-size: var(--panel-nota);
-  color: var(--tinta);
+  font-size: var(--panel-fila);
+  color: var(--tinta-media);
 }
 
 .analisis__aviso {
@@ -83,19 +85,22 @@
   color: var(--veredicto-bien-tinta);
 }
 
-/* El primer renglón queda a la altura del centro del cuadro del ícono, y la bajada sigue debajo. */
+/* El primer renglón queda centrado contra el cuadro del ícono (56 px), y la bajada sigue debajo. La cuenta sale
+   del interlineado de la frase y no de un número suelto: si cambia la escala, se sigue centrando. */
 .veredicto__texto {
   display: grid;
   gap: var(--e1);
   max-width: var(--medida-panel);
-  padding-top: 13px;
+  padding-top: calc((56px - var(--panel-alto-pieza)) / 2);
 }
 
+/* La frase lleva la receta de una pieza, la misma que el título de una lámina: 17 px, 600, 25 de renglón. */
 .veredicto__frase {
   margin: 0;
   font-size: var(--panel-pieza);
   font-weight: 600;
-  line-height: 1.35;
+  line-height: var(--panel-alto-pieza);
+  letter-spacing: var(--track-titulo);
   color: var(--tinta);
 }
 
@@ -125,10 +130,14 @@
 .analisis__alerta {
   display: grid;
   gap: var(--e4);
-  padding: var(--e6);
+  /* Una tarjeta adentro de la lámina no lleva más relleno que la lámina (var(--e6) a los lados): con el mismo,
+     la caja de adentro pesaba como la de afuera. */
+  padding: var(--e5);
   border-left: var(--marca-tarjeta) solid var(--tono);
   border-radius: var(--radio-ficha);
   background: var(--fondo, var(--sup-2));
+  /* El anillo de toda tarjeta: sin él, era la única del panel que se apoyaba solo en su fondo. */
+  box-shadow: var(--anillo);
   color: var(--tinta);
 }
 
@@ -231,6 +240,15 @@
 @media (max-width: 760px) {
   .analisis__alerta {
     padding: var(--e4);
+  }
+}
+
+/* Con colores forzados el anillo de la tarjeta desaparece: va un contorno del sistema hacia adentro (no ocupa
+   lugar), y la marca de nivel de la izquierda sigue siendo el borde, que el sistema pinta solo. */
+@media (forced-colors: active) {
+  .analisis__alerta {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
   }
 }
 

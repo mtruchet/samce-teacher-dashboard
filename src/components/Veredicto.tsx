@@ -6,7 +6,7 @@ export function Veredicto({ veredicto }: { veredicto: DatosDelVeredicto }) {
   return (
     <div className={veredicto.tono ? `veredicto veredicto--${veredicto.tono}` : "veredicto"}>
       <span className="veredicto__icono" aria-hidden="true">
-        <Icono size={28} />
+        <Icono size={36} />
       </span>
       <div className="veredicto__texto">
         <p className="veredicto__frase">{veredicto.frase}</p>
