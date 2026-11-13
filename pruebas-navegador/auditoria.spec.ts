@@ -177,20 +177,6 @@ test("A6: el marco del registro, que no se desplaza, no es una parada del tabula
   expect(enfocado).not.toContain("eventos__marco");
 });
 
-test("V7: la tabla con desplazamiento interno lleva la sombra que avisa que siguen filas abajo", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: ALTO });
-  await abrir(page, VISTAS.lista);
-  const marco = page.locator(".lista__marco").last();
-  const { desplaza, adjunto, imagen } = await marco.evaluate((m) => ({
-    desplaza: m.scrollHeight > m.clientHeight,
-    adjunto: getComputedStyle(m).backgroundAttachment,
-    imagen: getComputedStyle(m).backgroundImage,
-  }));
-  expect(desplaza).toBe(true);
-  expect(adjunto).toBe("local, scroll");
-  expect(imagen.match(/linear-gradient/g)).toHaveLength(2);
-});
-
 test("V6, VR1-05: una tarjeta de nivel sin sesiones va sin el fondo teñido, con el fondo de los estados y el medidor apagado", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: ALTO });
   await abrir(page, VISTAS.lista);
@@ -344,7 +330,7 @@ test("A11Y-R1-01: a 1280 px, los «Ver en el registro» seguidos no se pisan y c
   }
 });
 
-test("A11Y-R1-03: al avanzar con Tab por la lista desplazable, el anillo del «Ver» no queda cortado al pie", async ({ page }) => {
+test("A11Y-R1-03: al avanzar con Tab por la lista, el anillo del «Ver» no queda cortado al pie", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 });
   await abrir(page, VISTAS.lista);
   const marco = page.locator(".lista__marco").last();

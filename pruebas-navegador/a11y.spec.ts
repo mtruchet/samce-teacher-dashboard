@@ -248,6 +248,89 @@ for (const ancho of ANCHOS) {
 }
 
 /**
+ * La tabla de sesiones crece con la página, sin desplazamiento propio (problema 1 del 13/11): con un alto tope,
+ * la última fila quedaba cortada bajo una sombra y la rueda del ratón quedaba atrapada adentro. El encabezado
+ * de columnas sigue a la vista, fijo debajo de la barra del panel.
+ */
+for (const ancho of [1280, 1440] as const) {
+  test(`a ${ancho} px, la tabla de sesiones no se desplaza adentro y ninguna fila queda cortada`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: 900 });
+    await abrir(page, VISTAS.lista);
+    const marcos = await page.evaluate(() =>
+      [...document.querySelectorAll(".lista__marco")].map((m) => {
+        const pie = m.getBoundingClientRect().bottom;
+        const cortadas = [...m.querySelectorAll("tbody tr")].filter((tr) => tr.getBoundingClientRect().bottom > pie + 0.5);
+        return { alto: m.clientHeight, contenido: m.scrollHeight, cortadas: cortadas.length };
+      })
+    );
+    expect(marcos.length).toBe(2);
+    for (const m of marcos) {
+      expect(m.contenido, JSON.stringify(m)).toBe(m.alto);
+      expect(m.cortadas).toBe(0);
+    }
+  });
+}
+
+test("a 1280 px, a mitad de la tabla el encabezado de columnas queda fijo debajo de la barra", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await abrir(page, VISTAS.lista);
+  const tabla = page.locator(".lista__marco").last();
+  const { arriba, alto } = await tabla.evaluate((m) => {
+    const r = m.getBoundingClientRect();
+    return { arriba: r.top + window.scrollY, alto: r.height };
+  });
+  expect(alto).toBeGreaterThan(500);
+  await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), arriba + alto / 2);
+  const th = tabla.locator("th", { hasText: "Alumno" });
+  const top = await th.evaluate((e) => e.getBoundingClientRect().top);
+  expect(Math.abs(top - 52)).toBeLessThanOrEqual(1);
+});
+
+test("a 1280 px, la rueda del ratón sobre la tabla desplaza la página", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await abrir(page, VISTAS.lista);
+  const tabla = page.locator(".lista__marco").last();
+  await tabla.evaluate((m) => window.scrollTo({ top: m.getBoundingClientRect().top + window.scrollY - 200, behavior: "instant" }));
+  const antes = await page.evaluate(() => window.scrollY);
+  const caja = (await tabla.boundingBox())!;
+  await page.mouse.move(caja.x + caja.width / 2, Math.min(caja.y + 100, 800));
+  await page.mouse.wheel(0, 3000);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(antes);
+});
+
+test("a 1280 px, tabulando por los «Ver» hacia adelante y hacia atrás, ninguno queda tapado por la barra ni por el encabezado de columnas", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 });
+  await abrir(page, VISTAS.lista);
+  const ver = page.getByRole("button", { name: /^Ver la sesión de/ });
+  const total = await ver.count();
+  const tapados: string[] = [];
+  const medir = async (sentido: string) => {
+    await desplazamientoQuieto(page);
+    const medida = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement;
+      if (!el.matches("button[data-sesion]")) return null;
+      const r = el.getBoundingClientRect();
+      const barra = document.querySelector(".barra")!.getBoundingClientRect().bottom;
+      // El encabezado de la tabla de lo enfocado, que es el que puede quedar fijo encima.
+      const th = el.closest("table")!.querySelector("th")!.getBoundingClientRect().bottom;
+      return { tapado: r.top < Math.max(barra, th) - 0.5 || r.bottom > window.innerHeight + 0.5, que: `${el.getAttribute("aria-label")} ${Math.round(r.top)} (barra ${Math.round(barra)}, encabezado ${Math.round(th)})` };
+    });
+    if (medida?.tapado) tapados.push(`${sentido}: ${medida.que}`);
+  };
+  await ver.first().focus();
+  for (let i = 1; i < total; i++) {
+    await page.keyboard.press("Tab");
+    await medir("adelante");
+  }
+  await ver.last().focus();
+  for (let i = 1; i < total; i++) {
+    await page.keyboard.press("Shift+Tab");
+    await medir("atrás");
+  }
+  expect(tapados).toEqual([]);
+});
+
+/**
  * Los roles del árbol de accesibilidad real de Chromium (por CDP), no los que calcula Playwright desde el DOM:
  * un `display: grid` puede hacer que el navegador descarte la semántica de tabla, y `ariaSnapshot()` no lo ve.
  */

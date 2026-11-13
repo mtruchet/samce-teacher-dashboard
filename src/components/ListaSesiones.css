@@ -4,25 +4,14 @@
   margin-bottom: var(--e4);
 }
 
-/* La lista larga hace scroll adentro, así la barra nunca se va de pantalla: la
-   misma información siempre en el mismo lugar es lo que permite que el ojo
-   aprenda dónde mirar. */
-.lista__marco {
-  max-height: min(52vh, 520px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  /* Al volver con Mayús+Tab, el encabezado fijo de la tabla (25 px) tapaba el «Ver» de la fila de arriba. */
-  scroll-padding-top: var(--e10);
-  /* Y al avanzar con Tab, el «Ver» de la fila de abajo quedaba al ras del pie: el marco le cortaba el borde
-     inferior del anillo de foco, justo debajo de la sombra. */
-  scroll-padding-bottom: var(--e4);
-  /* Una sombra al pie mientras quedan filas abajo: la fila cortada a la mitad (y un trozo suelto de su marca
-     de nivel) no decía que la tabla seguía. La primera capa se mueve con el contenido y tapa la sombra al
-     llegar al final; la segunda queda fija al pie del marco. Las dos van detrás de las filas. */
-  background:
-    linear-gradient(transparent, var(--sup-1) 60%) 0 100% / 100% var(--e8) no-repeat local,
-    linear-gradient(transparent, color-mix(in srgb, var(--tinta) 14%, transparent)) 0 100% / 100% var(--e4) no-repeat scroll;
-}
+/* La tabla crece con la página, sin desplazamiento propio. Con un alto tope y desplazamiento adentro, la
+   última fila quedaba cortada bajo una sombra, el alto de la lámina cambiaba con cada filtro y la rueda del
+   ratón quedaba atrapada en la tabla. La barra del panel y el encabezado de columnas igual quedan siempre a
+   la vista (los dos son fijos contra la página), y el largo lo acota «Ver más sesiones», de 50 en 50.
+
+   No lleva `overflow-x: auto`: el marco pasaría a ser un contenedor de desplazamiento y el encabezado
+   quedaría fijo contra él y no contra la página. Por encima de 760 px las columnas entran, y por debajo cada
+   fila se apila. Por eso .lista__marco no lleva reglas. */
 
 /* ==== La tabla ========================================================= */
 
@@ -33,7 +22,9 @@
 
 .tabla th {
   position: sticky;
-  top: 0;
+  /* Debajo de la barra del panel, que también es fija: ni la lámina ni el marco tienen desplazamiento propio,
+     así que el encabezado queda fijo contra la página. */
+  top: var(--panel-barra);
   z-index: 1;
   padding: 0 var(--e4) var(--e2);
   background: var(--sup-1);
@@ -44,6 +35,12 @@
   text-transform: uppercase;
   color: var(--tinta-media);
   white-space: nowrap;
+}
+
+/* Al volver con Mayús+Tab, el navegador deja lo enfocado justo debajo de la barra, donde ahora está el
+   encabezado fijo de columnas: el «Ver» de la fila quedaba tapado por él. Se le suma su alto. */
+.tabla tbody .boton-texto {
+  scroll-margin-top: var(--e8);
 }
 
 .tabla td {
@@ -259,10 +256,6 @@
   /* Un nombre largo baja de renglón antes que empujar la tabla de costado. */
   .alumno__nombre {
     overflow-wrap: anywhere;
-  }
-
-  .lista__marco {
-    max-height: none;
   }
 }
 
