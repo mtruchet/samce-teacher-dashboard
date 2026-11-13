@@ -159,12 +159,18 @@ export class SesionVencida extends Error {
   }
 }
 
-async function pedir<T>(ruta: string): Promise<T> {
-  return (await (await pedirRespuesta(ruta)).json()) as T;
+async function pedir<T>(ruta: string, senal?: AbortSignal): Promise<T> {
+  return (await (await pedirRespuesta(ruta, senal)).json()) as T;
 }
 
-/** El pedido con el token, el plazo y el manejo del token vencido; devuelve la respuesta entera. */
-async function pedirRespuesta(ruta: string): Promise<Response> {
+/**
+ * El pedido con el token, el plazo y el manejo del token vencido; devuelve la respuesta entera.
+ *
+ * `senal` es la de quien pidió: cuando su respuesta ya no le sirve a nadie (se cambió de vista, se cerró el
+ * detalle), la cancela y el pedido se corta en vez de terminar de descargarse para tirarlo. Se combina con el
+ * plazo, que sigue valiendo. El corte rechaza con un AbortError, que quien pidió ya descarta por viejo.
+ */
+async function pedirRespuesta(ruta: string, senal?: AbortSignal): Promise<Response> {
   const sesion = getStoredSession();
   if (!sesion) {
     throw new SesionVencida();
@@ -172,7 +178,7 @@ async function pedirRespuesta(ruta: string): Promise<Response> {
 
   const respuesta = await fetch(`${API_CONFIG.BASE_URL}${ruta}`, {
     headers: { Authorization: `Bearer ${sesion.token}` },
-    signal: AbortSignal.timeout(PLAZO),
+    signal: senal ? AbortSignal.any([senal, AbortSignal.timeout(PLAZO)]) : AbortSignal.timeout(PLAZO),
   });
 
   if (respuesta.status === 401) {
@@ -208,8 +214,8 @@ export interface SesionNumerada extends SesionDeExamen {
   intentos: number;
 }
 
-export function traerExamenes(): Promise<ExamenMonitoreado[]> {
-  return pedir<ExamenMonitoreado[]>(API_CONFIG.ENDPOINTS.MONITORED_QUIZZES);
+export function traerExamenes(senal?: AbortSignal): Promise<ExamenMonitoreado[]> {
+  return pedir<ExamenMonitoreado[]>(API_CONFIG.ENDPOINTS.MONITORED_QUIZZES, senal);
 }
 
 /** Cuántas sesiones se muestran por vez en la lista de un examen. */
@@ -242,7 +248,8 @@ function totalDeLaCabecera(valor: string | null): number | null {
 export async function traerSesiones(
   examenId: number,
   limite = SESIONES_POR_PAGINA,
-  filtros: PedidoDeSesiones = {}
+  filtros: PedidoDeSesiones = {},
+  senal?: AbortSignal
 ): Promise<PaginaDeSesiones> {
   // Nunca por encima del tope del backend: pedir de más no trae de más, y lo
   // único que consigue es que la cuenta del panel no cierre.
@@ -253,7 +260,10 @@ export async function traerSesiones(
   if (filtros.q) consulta.set("q", filtros.q);
   if (filtros.orden) consulta.set("sort", filtros.orden);
 
-  const respuesta = await pedirRespuesta(`${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?${consulta}`);
+  const respuesta = await pedirRespuesta(
+    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions?${consulta}`,
+    senal
+  );
   const cuerpo = (await respuesta.json()) as Sesion[] | { sessions: Sesion[]; summary: ResumenDeEvaluacion };
   const total = totalDeLaCabecera(respuesta.headers.get("X-Total-Count"));
   // Lectura tolerante: un backend sin el resumen devuelve el arreglo de siempre.
@@ -295,7 +305,12 @@ export interface PaginaDeSesiones {
  * todo lo que ya mostró. El examen tiene que ser del que salió la sesión: el
  * backend lo verifica, y responde 404 si la sesión es de otro examen.
  */
-export function traerEventos(examenId: number, sesionId: number, despuesDeId = 0): Promise<Evento[]> {
+export function traerEventos(
+  examenId: number,
+  sesionId: number,
+  despuesDeId = 0,
+  senal?: AbortSignal
+): Promise<Evento[]> {
   // after_id se manda siempre, aun en cero: es lo que pide el orden de llegada.
   const consulta = new URLSearchParams({
     limit: String(EVENTOS_POR_PAGINA),
@@ -303,7 +318,8 @@ export function traerEventos(examenId: number, sesionId: number, despuesDeId = 0
   });
 
   return pedir<Evento[]>(
-    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions/${sesionId}/events?${consulta}`
+    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions/${sesionId}/events?${consulta}`,
+    senal
   );
 }
 
@@ -368,9 +384,10 @@ export interface Analisis {
 }
 
 /** El análisis de una sesión: su estado, el último cálculo y las alertas vigentes. */
-export function traerAnalisis(examenId: number, sesionId: number): Promise<Analisis> {
+export function traerAnalisis(examenId: number, sesionId: number, senal?: AbortSignal): Promise<Analisis> {
   return pedir<Analisis>(
-    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions/${sesionId}/analysis`
+    `${API_CONFIG.ENDPOINTS.MONITORED_QUIZZES}/${examenId}/sessions/${sesionId}/analysis`,
+    senal
   );
 }
 

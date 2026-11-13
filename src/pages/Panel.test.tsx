@@ -85,7 +85,7 @@ describe("El pulso del panel en el registro de un intento", () => {
     montar("/panel?examen=1&sesion=55");
     await esperar();
 
-    expect(sesionesService.traerSesiones).toHaveBeenLastCalledWith(1, 2 * sesionesService.SESIONES_POR_PAGINA, expect.anything());
+    expect(sesionesService.traerSesiones).toHaveBeenLastCalledWith(1, 2 * sesionesService.SESIONES_POR_PAGINA, expect.anything(), expect.any(AbortSignal));
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Carla Ruiz");
   });
 
@@ -236,14 +236,14 @@ describe("Las páginas de sesiones de un examen", () => {
     await esperar();
     fireEvent.click(screen.getByRole("button", { name: "Ver más sesiones" }));
     await esperar();
-    expect(traer).toHaveBeenLastCalledWith(1, 100, expect.anything());
+    expect(traer).toHaveBeenLastCalledWith(1, 100, expect.anything(), expect.any(AbortSignal));
 
     fireEvent.click(screen.getByRole("button", { name: "Sistemas de Información II" }));
     await esperar();
     fireEvent.click(screen.getByRole("button", { name: /Primer Parcial/ }));
     await esperar();
 
-    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.anything());
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.anything(), expect.any(AbortSignal));
   });
 
   // Con el número de páginas reiniciado por un efecto, el cambio de examen
@@ -259,15 +259,15 @@ describe("Las páginas de sesiones de un examen", () => {
     await esperar();
     fireEvent.click(screen.getByRole("button", { name: "Ver más sesiones" }));
     await esperar();
-    expect(traer).toHaveBeenLastCalledWith(1, 100, expect.anything());
+    expect(traer).toHaveBeenLastCalledWith(1, 100, expect.anything(), expect.any(AbortSignal));
 
     const examenesAntes = vi.mocked(sesionesService.traerExamenes).mock.calls.length;
     fireEvent.click(screen.getByRole("button", { name: "Atrás del navegador" }));
     await esperar();
 
     expect(vi.mocked(sesionesService.traerExamenes).mock.calls.length).toBe(examenesAntes + 1);
-    expect(traer).not.toHaveBeenCalledWith(2, 100, expect.anything());
-    expect(traer).toHaveBeenLastCalledWith(2, 50, expect.anything());
+    expect(traer).not.toHaveBeenCalledWith(2, 100, expect.anything(), expect.any(AbortSignal));
+    expect(traer).toHaveBeenLastCalledWith(2, 50, expect.anything(), expect.any(AbortSignal));
   });
 });
 
@@ -293,7 +293,7 @@ describe("Los dos pedidos de la lista salen a la vez", () => {
     montar("/panel?examen=1&nivel=high");
     await esperar();
     // La lista de exámenes todavía no contestó, y las sesiones ya se pidieron, con el filtro de la dirección.
-    expect(traer).toHaveBeenCalledWith(1, 50, expect.objectContaining({ nivel: "high" }));
+    expect(traer).toHaveBeenCalledWith(1, 50, expect.objectContaining({ nivel: "high" }), expect.any(AbortSignal));
 
     contestarExamenes([EXAMEN]);
     await esperar();

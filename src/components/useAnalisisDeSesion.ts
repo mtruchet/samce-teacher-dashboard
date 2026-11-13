@@ -65,10 +65,12 @@ export function useAnalisisDeSesion(sesion: SesionNumerada, onVencida: () => voi
   useEffect(() => {
     let vigente = true;
     let proxima: number | undefined;
+    // Al salir de la sesión, el pedido en vuelo se cancela: su respuesta ya no se iba a mostrar.
+    const control = new AbortController();
 
     const ciclo = async () => {
       try {
-        const respuesta = await traerAnalisis(examenId, sesionId);
+        const respuesta = await traerAnalisis(examenId, sesionId, control.signal);
         if (!vigente) return;
         setAnalisis(respuesta);
         setSinConexion(false);
@@ -87,6 +89,7 @@ export function useAnalisisDeSesion(sesion: SesionNumerada, onVencida: () => voi
     return () => {
       vigente = false;
       window.clearTimeout(proxima);
+      control.abort();
     };
   }, [examenId, sesionId, abierta, cierre]);
 

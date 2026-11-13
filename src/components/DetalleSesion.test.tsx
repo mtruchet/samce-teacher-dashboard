@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as sesionesService from "../services/sesionesService";
 import { alerta, analisis, esperar, evento, sesionNumerada } from "../test/fabricas";
 import { horaCorta, horaExacta } from "../eventos";
+import { ingresar } from "../test/panel";
 import { DetalleSesion } from "./DetalleSesion";
 
 const SESION = sesionNumerada();
@@ -29,7 +30,7 @@ describe("DetalleSesion", () => {
     render(<DetalleSesion sesion={SESION} onVencida={nada} />);
     await esperar();
 
-    expect(sesionesService.traerEventos).toHaveBeenCalledWith(3, 7, 0);
+    expect(sesionesService.traerEventos).toHaveBeenCalledWith(3, 7, 0, expect.any(AbortSignal));
     const filas = screen.getAllByRole("row").slice(1);
     expect(filas).toHaveLength(2);
     expect(filas[0]).toHaveTextContent("Pegó");
@@ -59,7 +60,7 @@ describe("DetalleSesion", () => {
     expect(registro).not.toBeNull();
     expect(registro).not.toContainElement(apartado);
     expect(registro).not.toHaveTextContent("Se pegó un bloque de 4.370 caracteres.");
-    expect(sesionesService.traerAnalisis).toHaveBeenCalledWith(3, 7);
+    expect(sesionesService.traerAnalisis).toHaveBeenCalledWith(3, 7, expect.any(AbortSignal));
   });
 
   it("pide por orden de llegada y muestra el evento tardío donde llegó", async () => {
@@ -77,7 +78,7 @@ describe("DetalleSesion", () => {
     ]);
     await esperar(5000);
 
-    expect(traer).toHaveBeenLastCalledWith(3, 7, 2);
+    expect(traer).toHaveBeenLastCalledWith(3, 7, 2, expect.any(AbortSignal));
     const filas = screen.getAllByRole("row").slice(1);
     expect(filas).toHaveLength(3);
     // Se ordena con la misma hora que se muestra, la de llegada: el tardío queda
@@ -111,7 +112,7 @@ describe("DetalleSesion", () => {
     await esperar(5000);
 
     // La segunda vez pide después del último que ya tenía, y agrega a lo mostrado.
-    expect(traer).toHaveBeenLastCalledWith(3, 7, 11);
+    expect(traer).toHaveBeenLastCalledWith(3, 7, 11, expect.any(AbortSignal));
     expect(screen.getAllByRole("row")).toHaveLength(4);
     expect(screen.getByText("El mouse salió del área del examen")).toBeInTheDocument();
   });
@@ -147,7 +148,7 @@ describe("DetalleSesion", () => {
     await esperar();
 
     // No volvió a pedir desde cero: pidió después del último que ya tenía.
-    expect(traer).toHaveBeenLastCalledWith(3, 7, 2);
+    expect(traer).toHaveBeenLastCalledWith(3, 7, 2, expect.any(AbortSignal));
     expect(traer).toHaveBeenCalledTimes(2);
     expect(screen.getAllByRole("row").slice(1)).toHaveLength(3);
 
@@ -302,7 +303,7 @@ describe("DetalleSesion", () => {
     render(<DetalleSesion sesion={SESION} onVencida={nada} />);
     await esperar();
 
-    expect(traer).toHaveBeenNthCalledWith(2, 3, 7, sesionesService.EVENTOS_POR_PAGINA);
+    expect(traer).toHaveBeenNthCalledWith(2, 3, 7, sesionesService.EVENTOS_POR_PAGINA, expect.any(AbortSignal));
     expect(screen.getByText("El mouse salió del área del examen")).toBeInTheDocument();
   });
 
@@ -536,7 +537,7 @@ describe("DetalleSesion", () => {
     rerender(<DetalleSesion key={8} sesion={{ ...SESION, id: 8 }} onVencida={nada} />);
     await esperar();
 
-    expect(traer).toHaveBeenLastCalledWith(3, 8, 0);
+    expect(traer).toHaveBeenLastCalledWith(3, 8, 0, expect.any(AbortSignal));
     expect(screen.queryByText("Pasó a otra ventana")).not.toBeInTheDocument();
     expect(screen.getByText("El mouse entró en el área del examen")).toBeInTheDocument();
   });
@@ -786,5 +787,27 @@ describe("DetalleSesion, el orden de llegada", () => {
     await esperar(100);
     expect(titulo()).not.toBeNull();
     expect(within(screen.getByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
+  });
+
+  it("al cerrar la sesión con el registro todavía en camino, el pedido se cancela y no se avisa un corte", async () => {
+    ingresar();
+    // El pedido de verdad, con un fetch que no contesta: solo termina si se lo cancela.
+    const fetch = vi.fn(
+      (_url: string, opciones: RequestInit) =>
+        new Promise<Response>((_, rechazar) => {
+          opciones.signal!.addEventListener("abort", () => rechazar(opciones.signal!.reason));
+        })
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    const { unmount } = render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    unmount();
+    await esperar();
+
+    expect(fetch.mock.calls[0][1].signal!.aborted).toBe(true);
+    expect(screen.queryByText(/No se pudo actualizar/)).toBeNull();
+    sessionStorage.clear();
   });
 });

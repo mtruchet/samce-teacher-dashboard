@@ -78,7 +78,7 @@ export function useSesionesDelExamen(
   // Solo del examen que se está mirando, y con un tope de ocho vistas: más que eso es memoria que no se usa.
   const porVista = useRef(new Map<string, SesionesCargadas>());
 
-  const consultar = useCallback(async () => {
+  const consultar = useCallback(async (senal?: AbortSignal) => {
     const mio = ++pedido.current;
     try {
       // Los dos pedidos salen a la vez. Uno detrás del otro, cada vista nueva esperaba dos viajes al servidor,
@@ -87,9 +87,9 @@ export function useSesionesDelExamen(
       const idPedido = examenElegido && /^\d+$/.test(examenElegido) ? Number(examenElegido) : null;
       const delPedido = leerFiltros(new URLSearchParams(clavePedido));
       const [lista, respuesta] = await Promise.all([
-        traerExamenes(),
+        traerExamenes(senal),
         idPedido !== null
-          ? traerSesiones(idPedido, paginas * SESIONES_POR_PAGINA, delPedido).catch((error: unknown) => {
+          ? traerSesiones(idPedido, paginas * SESIONES_POR_PAGINA, delPedido, senal).catch((error: unknown) => {
               // El token vencido vale para los dos pedidos y se atiende abajo. Cualquier otro fallo se guarda
               // hasta saber si el examen es del docente: de un examen ajeno, el rechazo es lo esperable.
               if (error instanceof SesionVencida) throw error;
@@ -136,7 +136,8 @@ export function useSesionesDelExamen(
       // tal es lo peor que puede hacer el panel: se queda mostrando «sin
       // conexión, reintentando» encima de una lista que ya no se actualiza,
       // mientras puede haber alumnos rindiendo de los que no se entera.
-      if (mio !== pedido.current) return;
+      // Un pedido cancelado es uno cuya respuesta ya no le servía a nadie: no es un corte.
+      if (mio !== pedido.current || senal?.aborted) return;
 
       if (error instanceof SesionVencida) {
         vencer();
@@ -167,9 +168,13 @@ export function useSesionesDelExamen(
     let activo = true;
     let enVuelo = false;
     let proxima: number | undefined;
+    // Al rearmarse el ciclo (otro examen, otro filtro, otra página) o al salir del panel, el pedido en vuelo se
+    // cancela: su respuesta se iba a descartar igual, y descargar la lista entera para tirarla es tiempo y datos
+    // del docente, y trabajo del servidor.
+    const control = new AbortController();
     const ciclo = async () => {
       enVuelo = true;
-      await consultar();
+      await consultar(control.signal);
       enVuelo = false;
       if (activo) proxima = window.setTimeout(ciclo, ritmo.current);
     };
@@ -187,6 +192,7 @@ export function useSesionesDelExamen(
       activo = false;
       reprogramar.current = null;
       window.clearTimeout(proxima);
+      control.abort();
     };
   }, [consultar, vencida]);
 

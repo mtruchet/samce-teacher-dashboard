@@ -165,6 +165,9 @@ function DetalleSesionSinMemo({ sesion, onVencida, onConsulta }: Props) {
   useEffect(() => {
     let vigente = true;
     let proxima: number | undefined;
+    // Al salir de la sesión, o al rearmarse el ciclo, el pedido en vuelo se cancela: con un registro largo son
+    // varias páginas que se terminaban de descargar para tirarlas.
+    const control = new AbortController();
 
     async function consultar() {
       try {
@@ -177,7 +180,7 @@ function DetalleSesionSinMemo({ sesion, onVencida, onConsulta }: Props) {
         let cursor = ultimo.current;
         let quedaban = false;
         for (let pagina = 0; pagina < PAGINAS_MAXIMAS; pagina++) {
-          const lote = await traerEventos(examenId, sesionId, cursor);
+          const lote = await traerEventos(examenId, sesionId, cursor, control.signal);
           if (!vigente) return;
           nuevos.push(...lote);
           // El cursor es el `id` (orden de llegada) y no el `seq` (que arma el
@@ -250,6 +253,7 @@ function DetalleSesionSinMemo({ sesion, onVencida, onConsulta }: Props) {
     return () => {
       vigente = false;
       window.clearTimeout(proxima);
+      control.abort();
     };
   }, [examenId, sesionId, abierta, cierre, captura]);
 

@@ -59,7 +59,7 @@ describe("AnalisisSesion", () => {
     render(<AnalisisSesion sesion={sesionNumerada()} onVencida={nada} />);
     await esperar();
 
-    expect(traer).toHaveBeenCalledWith(3, 7);
+    expect(traer).toHaveBeenCalledWith(3, 7, expect.any(AbortSignal));
     expect(screen.getByRole("heading", { name: "Análisis de la sesión" })).toBeInTheDocument();
   });
 

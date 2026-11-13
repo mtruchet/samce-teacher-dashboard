@@ -43,7 +43,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     montar("/panel?examen=1&nivel=high&estado=open&q=bru&orden=risk_level");
     await esperar();
     const pedido = { nivel: "high", estado: "open", analisis: undefined, q: "bru", orden: "risk_level" };
-    expect(traer).toHaveBeenLastCalledWith(1, 50, pedido);
+    expect(traer).toHaveBeenLastCalledWith(1, 50, pedido, expect.any(AbortSignal));
 
     await esperar(CADENCIA);
     await esperar(CADENCIA);
@@ -62,7 +62,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     // Un enlace escrito a mano con los dos: los dos se leen, y el que manda es el que se elige después.
     fireEvent.change(screen.getByLabelText("Nivel de riesgo"), { target: { value: "low" } });
     await esperar();
-    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "low", analisis: undefined }));
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "low", analisis: undefined }), expect.any(AbortSignal));
     expect(direccion().get("analisis")).toBeNull();
   });
 
@@ -127,7 +127,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     fireEvent.click(screen.getByRole("button", { name: /Segundo Parcial/ }));
     await esperar();
     expect(direccion().toString()).toBe("examen=2");
-    expect(traer).toHaveBeenLastCalledWith(2, 50, expect.objectContaining({ nivel: undefined, orden: undefined }));
+    expect(traer).toHaveBeenLastCalledWith(2, 50, expect.objectContaining({ nivel: undefined, orden: undefined }), expect.any(AbortSignal));
   });
 
   it("«Ver más sesiones» cuenta con el total del filtro, no con el del examen", async () => {
@@ -148,7 +148,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     expect(screen.getByRole("button", { name: "Ver más sesiones" })).toHaveClass("boton-secundario");
     fireEvent.click(screen.getByRole("button", { name: "Ver más sesiones" }));
     await esperar();
-    expect(traer).toHaveBeenLastCalledWith(1, 100, expect.objectContaining({ estado: "finished" }));
+    expect(traer).toHaveBeenLastCalledWith(1, 100, expect.objectContaining({ estado: "finished" }), expect.any(AbortSignal));
   });
 
   it("con un filtro, «intento 2 de 3» sale del backend aunque los otros intentos no estén en la lista", async () => {
@@ -196,7 +196,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     fireEvent.change(campo, { target: { value: "Juan " } });
     await esperar(400);
     expect(direccion().get("q")).toBe("Juan");
-    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ q: "Juan" }));
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ q: "Juan" }), expect.any(AbortSignal));
     expect(campo).toHaveValue("Juan ");
 
     // El docente sigue escribiendo «Juan Pérez» sin perder el espacio.
@@ -215,7 +215,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     await esperar(400);
     expect(direccion().toString()).toBe("examen=1&nivel=high&q=Ana");
     expect(screen.getByLabelText("Nivel de riesgo")).toHaveValue("high");
-    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "high", q: "Ana" }));
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "high", q: "Ana" }), expect.any(AbortSignal));
   });
 
   it("si la búsqueda se borra desde afuera, lo que se estaba por buscar ya no se escribe", async () => {
@@ -239,11 +239,11 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     await esperar();
     expect(direccion().get("orden")).toBe("risk_level");
     await esperar(CADENCIA);
-    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ orden: "risk_level" }));
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ orden: "risk_level" }), expect.any(AbortSignal));
 
     fireEvent.click(screen.getByRole("button", { name: "Ver más sesiones" }));
     await esperar();
-    expect(traer).toHaveBeenLastCalledWith(1, 100, expect.objectContaining({ orden: "risk_level" }));
+    expect(traer).toHaveBeenLastCalledWith(1, 100, expect.objectContaining({ orden: "risk_level" }), expect.any(AbortSignal));
     // Ordenar no es filtrar: el renglón de resultado queda vacío.
     expectRenglonVacio();
   });
@@ -263,7 +263,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     const traer = simularSesiones([rindiendo]);
     montar("/panel?examen=1&sesion=6&nivel=high&estado=finished&orden=risk_level");
     await esperar();
-    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: undefined, estado: undefined, orden: "risk_level" }));
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: undefined, estado: undefined, orden: "risk_level" }), expect.any(AbortSignal));
   });
 
   it("«N de M» se anuncia una vez por vista: el refresco cambia la cifra a la vista sin volver a anunciarla", async () => {
@@ -336,7 +336,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     fireEvent.click(screen.getByRole("button", { name: "Quitar filtros" }));
     await esperar();
     expect(direccion().toString()).toBe("examen=1&orden=risk_level");
-    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: undefined, q: undefined, orden: "risk_level" }));
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: undefined, q: undefined, orden: "risk_level" }), expect.any(AbortSignal));
   });
 
   it("sin filtro el renglón de resultado está vacío en su lugar, dentro de la lámina de control", async () => {

@@ -74,6 +74,26 @@ describe("traerEventos", () => {
     await expect(traerEventos(3, 7)).rejects.toBeInstanceOf(SesionVencida);
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it("un pedido cancelado por quien lo hizo se corta con un AbortError, que no es una sesión vencida", async () => {
+    // Un fetch que solo termina si se lo cancela, como el del navegador con la señal.
+    const fetch = vi.fn(
+      (_url: string, opciones: RequestInit) =>
+        new Promise<Response>((_, rechazar) => {
+          opciones.signal!.addEventListener("abort", () => rechazar(opciones.signal!.reason));
+        })
+    );
+    vi.stubGlobal("fetch", fetch);
+    const control = new AbortController();
+
+    const pedido = traerEventos(3, 7, 0, control.signal).catch((e: unknown) => e);
+    control.abort();
+    const error = await pedido;
+
+    expect(fetch.mock.calls[0][1].signal!.aborted).toBe(true);
+    expect(error).toMatchObject({ name: "AbortError" });
+    expect(error).not.toBeInstanceOf(SesionVencida);
+  });
 });
 
 // El backend manda un `moodle_user_id` negativo cuando no pudo descifrar la

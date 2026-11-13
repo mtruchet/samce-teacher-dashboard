@@ -55,7 +55,7 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     await esperar();
     fireEvent.click(screen.getByRole("button", { name: "Sin alertas: 1 sesión" }));
     await esperar();
-    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ analisis: "no_alerts", nivel: undefined }));
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ analisis: "no_alerts", nivel: undefined }), expect.any(AbortSignal));
     expect(direccion().get("analisis")).toBe("no_alerts");
     expect(resultado()).toHaveTextContent("1 de 2 sesiones");
     // El selector de nivel dice «Todos»: el estado del análisis no es un nivel.
@@ -78,7 +78,7 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     await esperar();
     fireEvent.change(screen.getByLabelText("Nivel de riesgo"), { target: { value: "high" } });
     await esperar();
-    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "high", analisis: undefined }));
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "high", analisis: undefined }), expect.any(AbortSignal));
     expect(direccion().get("analisis")).toBeNull();
     expect(screen.getByRole("button", { name: "Sin alertas: 1 sesión" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" })).toHaveAttribute("aria-pressed", "true");
@@ -104,7 +104,7 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" }));
     await esperar(400);
     expect(direccion().toString()).toBe("examen=1&nivel=high");
-    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "high", q: undefined }));
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "high", q: undefined }), expect.any(AbortSignal));
     expect(screen.getByLabelText("Buscar alumno")).toHaveValue("");
     expect(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" })).toHaveAttribute("aria-pressed", "true");
   });
@@ -146,7 +146,7 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     fireEvent.click(screen.getByRole("button", { name: "Quitar filtros" }));
     await esperar();
     expect(direccion().get("analisis")).toBeNull();
-    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ analisis: undefined }));
+    expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ analisis: undefined }), expect.any(AbortSignal));
     expect(screen.queryByRole("button", { name: "Quitar filtros" })).toBeNull();
     expect(screen.getByRole("button", { name: "Sin analizar: 0 sesiones" })).toHaveAttribute("aria-pressed", "false");
   });
