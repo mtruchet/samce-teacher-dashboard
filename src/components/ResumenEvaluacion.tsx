@@ -47,6 +47,10 @@ interface Props {
  *   número de la tarjeta;
  * - tocar la marcada borra solo su filtro.
  *
+ * El nombre de cada tarjeta empieza por lo que se lee en ella, el número y la palabra («10 Riesgo alto, 10
+ * sesiones»): quien la maneja con la voz dice lo que ve (WCAG 2.5.3), y con «Riesgo alto: 10 sesiones» el
+ * número visible quedaba al final.
+ *
  * Los niveles llevan la marca de todo el panel (`RotuloNivel`, con los tonos de las alertas), siempre con la
  * palabra y el número, para que no dependan solo del color. Los estados van en un renglón más liviano, sin
  * marca ni tono. No es una región viva: los números cambian en silencio con cada actualización.
@@ -70,7 +74,7 @@ export function ResumenEvaluacion({ resumen, filtros, onFiltrar }: Props) {
               className={n === 0 ? "resumen__tarjeta resumen__tarjeta--cero" : "resumen__tarjeta"}
               data-nivel={nivel}
               aria-pressed={elegida}
-              aria-label={`${NIVELES[nivel]}: ${cuantasSesiones(n)}`}
+              aria-label={`${enCifras(n)} ${NIVELES[nivel]}, ${cuantasSesiones(n)}`}
               onClick={() => onFiltrar(elegida ? { nivel: undefined } : { ...SIN_FILTROS, nivel })}
             >
               <span className="resumen__numero cifra">{enCifras(n)}</span>
@@ -89,7 +93,7 @@ export function ResumenEvaluacion({ resumen, filtros, onFiltrar }: Props) {
               type="button"
               className="resumen__tarjeta resumen__tarjeta--estado"
               aria-pressed={elegida}
-              aria-label={`${rotulo}: ${cuantasSesiones(n)}`}
+              aria-label={`${enCifras(n)} ${rotulo}, ${cuantasSesiones(n)}`}
               onClick={() => onFiltrar(elegida ? { analisis: undefined } : { ...SIN_FILTROS, analisis })}
             >
               <span className="resumen__numero cifra">{enCifras(n)}</span>

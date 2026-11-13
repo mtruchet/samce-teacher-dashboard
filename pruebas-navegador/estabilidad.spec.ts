@@ -126,7 +126,7 @@ test("mientras el filtro no contesta, ninguna fila sin filtrar se ve como si est
     // Empieza a mirar después del clic, que se hace enseguida.
     setTimeout(mirar, 0);
   });
-  await page.getByRole("button", { name: /^Riesgo alto/ }).click();
+  await page.getByRole("button", { name: /^[\d.]+ Riesgo alto,/ }).click();
   await page.waitForTimeout(1800);
   const { malas, ocupada, verMas } = await page.evaluate(() => {
     const w = window as unknown as { __malas: string[]; __ocupada: boolean; __verMas: boolean };

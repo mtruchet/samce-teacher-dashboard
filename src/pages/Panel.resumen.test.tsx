@@ -33,11 +33,11 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     expect(control).toContainElement(screen.getByRole("heading", { name: "Resumen de la evaluación" }));
     expect(control).toContainElement(screen.getByLabelText("Nivel de riesgo"));
 
-    fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Riesgo alto, 1 sesión" }));
     await esperar();
     expect(ultimoPedido()).toEqual(expect.objectContaining({ nivel: "high" }));
     expect(screen.getByLabelText("Nivel de riesgo")).toHaveValue("high");
-    expect(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "1 Riesgo alto, 1 sesión" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("elegir un nivel en el selector marca su tarjeta", async () => {
@@ -46,14 +46,14 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     await esperar();
     fireEvent.change(screen.getByLabelText("Nivel de riesgo"), { target: { value: "medium" } });
     await esperar();
-    expect(screen.getByRole("button", { name: "Riesgo medio: 0 sesiones" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "0 Riesgo medio, 0 sesiones" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("una tarjeta de estado pide por el estado del análisis y muestra «N de M sesiones»", async () => {
     const traer = vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1, RESUMEN));
     montar("/panel?examen=1");
     await esperar();
-    fireEvent.click(screen.getByRole("button", { name: "Sin alertas: 1 sesión" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Sin alertas, 1 sesión" }));
     await esperar();
     expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ analisis: "no_alerts", nivel: undefined }), expect.any(AbortSignal));
     expect(direccion().get("analisis")).toBe("no_alerts");
@@ -69,7 +69,7 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     montar("/panel?examen=1&nivel=high");
     await esperar();
     expect(resultado()).toHaveTextContent("1.000 de 1.245 sesiones");
-    expect(screen.getByRole("button", { name: "Riesgo alto: 1.000 sesiones" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "1.000 Riesgo alto, 1.000 sesiones" })).toBeInTheDocument();
   });
 
   it("con «Sin alertas» elegido, elegir «Riesgo alto» en la barra pide solo el nivel", async () => {
@@ -80,8 +80,8 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     await esperar();
     expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "high", analisis: undefined }), expect.any(AbortSignal));
     expect(direccion().get("analisis")).toBeNull();
-    expect(screen.getByRole("button", { name: "Sin alertas: 1 sesión" })).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "1 Sin alertas, 1 sesión" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "1 Riesgo alto, 1 sesión" })).toHaveAttribute("aria-pressed", "true");
     // Nunca salen los dos juntos en un pedido.
     for (const [, , filtros] of traer.mock.calls) expect(Boolean(filtros?.nivel && filtros?.analisis)).toBe(false);
   });
@@ -90,7 +90,7 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1, RESUMEN));
     montar("/panel?examen=1&estado=open&q=bru&orden=risk_level");
     await esperar();
-    fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Riesgo alto, 1 sesión" }));
     await esperar();
     expect(direccion().toString()).toBe("examen=1&nivel=high&orden=risk_level");
   });
@@ -101,12 +101,12 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     await esperar();
     fireEvent.change(screen.getByLabelText("Buscar alumno"), { target: { value: "lu" } });
     await esperar(100);
-    fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Riesgo alto, 1 sesión" }));
     await esperar(400);
     expect(direccion().toString()).toBe("examen=1&nivel=high");
     expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: "high", q: undefined }), expect.any(AbortSignal));
     expect(screen.getByLabelText("Buscar alumno")).toHaveValue("");
-    expect(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "1 Riesgo alto, 1 sesión" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("destildar una tarjeta mientras la búsqueda espera no la descarta: solo se borra la dimensión de la tarjeta", async () => {
@@ -115,7 +115,7 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     await esperar();
     fireEvent.change(screen.getByLabelText("Buscar alumno"), { target: { value: "lu" } });
     await esperar(100);
-    fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 1 sesión" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Riesgo alto, 1 sesión" }));
     await esperar(400);
     expect(direccion().toString()).toBe("examen=1&q=lu");
   });
@@ -124,16 +124,16 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([rindiendo], 1, RESUMEN));
     montar("/panel?examen=1&nivel=high&q=bru&orden=risk_level");
     await esperar();
-    const alto = screen.getByRole("button", { name: "Riesgo alto: 1 sesión" });
+    const alto = screen.getByRole("button", { name: "1 Riesgo alto, 1 sesión" });
     // Marcada aunque haya también una búsqueda: el selector y la tarjeta dicen lo mismo.
     expect(alto).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(alto);
     await esperar();
     expect(direccion().toString()).toBe("examen=1&q=bru&orden=risk_level");
 
-    fireEvent.click(screen.getByRole("button", { name: "Sin alertas: 1 sesión" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Sin alertas, 1 sesión" }));
     await esperar();
-    fireEvent.click(screen.getByRole("button", { name: "Sin alertas: 1 sesión" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Sin alertas, 1 sesión" }));
     await esperar();
     expect(direccion().toString()).toBe("examen=1&orden=risk_level");
   });
@@ -148,7 +148,7 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
     expect(direccion().get("analisis")).toBeNull();
     expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ analisis: undefined }), expect.any(AbortSignal));
     expect(screen.queryByRole("button", { name: "Quitar filtros" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Sin analizar: 0 sesiones" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "0 Sin analizar, 0 sesiones" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("una vuelta con otros números no cambia ninguna región viva", async () => {
@@ -159,7 +159,7 @@ describe("HU03_T03 (pendiente 10): el resumen de la evaluación en el panel", ()
 
     traer.mockResolvedValue(pagina([rindiendo], 1, resumen({ risk_high: 4, risk_low: 2, no_alerts: 9 })));
     await esperar(sesionesService.CADENCIA_MS);
-    expect(screen.getByRole("button", { name: "Riesgo alto: 4 sesiones" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "4 Riesgo alto, 4 sesiones" })).toBeInTheDocument();
     const despues = screen.getAllByRole("status");
     expect(despues).toHaveLength(antes.length);
     for (const [region, contenido] of antes) expect(region.innerHTML).toBe(contenido);

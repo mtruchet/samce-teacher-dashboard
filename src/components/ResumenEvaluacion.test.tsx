@@ -11,15 +11,27 @@ describe("ResumenEvaluacion", () => {
     render(<ResumenEvaluacion resumen={RESUMEN} filtros={{}} onFiltrar={() => {}} />);
     const nombres = screen.getAllByRole("button").map((b) => b.getAttribute("aria-label"));
     expect(nombres).toEqual([
-      "Riesgo alto: 3 sesiones",
-      "Riesgo medio: 1 sesión",
-      "Riesgo bajo: 0 sesiones",
-      "Sin alertas: 12 sesiones",
-      "Sin analizar: 2 sesiones",
-      "No se pudo analizar: 1 sesión",
-      "Análisis no disponible: 1 sesión",
+      "3 Riesgo alto, 3 sesiones",
+      "1 Riesgo medio, 1 sesión",
+      "0 Riesgo bajo, 0 sesiones",
+      "12 Sin alertas, 12 sesiones",
+      "2 Sin analizar, 2 sesiones",
+      "1 No se pudo analizar, 1 sesión",
+      "1 Análisis no disponible, 1 sesión",
     ]);
     expect(screen.getByRole("heading", { name: "Resumen de la evaluación" })).toBeInTheDocument();
+  });
+
+  it("el nombre accesible de cada tarjeta empieza por lo que se lee en ella (WCAG 2.5.3)", () => {
+    render(<ResumenEvaluacion resumen={RESUMEN} filtros={{}} onFiltrar={() => {}} />);
+    for (const tarjeta of screen.getAllByRole("button")) {
+      // Lo visible, en el orden en que se lee: el número y la palabra (el medidor no tiene texto).
+      const visible = [...tarjeta.querySelectorAll(".resumen__numero, .rotulo-nivel__nivel, .resumen__rotulo")]
+        .map((e) => e.textContent!.trim())
+        .join(" ");
+      expect(visible).toMatch(/^\d+ \S/);
+      expect(tarjeta.getAttribute("aria-label")!.startsWith(visible)).toBe(true);
+    }
   });
 
   it("los niveles llevan el tono de las alertas y el rótulo de nivel de todo el panel; los estados, sin medidor", () => {
@@ -37,12 +49,12 @@ describe("ResumenEvaluacion", () => {
 
   it("un nivel sin sesiones pesa menos, pero conserva el medidor, la palabra y el botón (V6)", () => {
     render(<ResumenEvaluacion resumen={{ ...RESUMEN, risk_high: 0, risk_low: 2 }} filtros={{}} onFiltrar={() => {}} />);
-    const cero = screen.getByRole("button", { name: "Riesgo alto: 0 sesiones" });
+    const cero = screen.getByRole("button", { name: "0 Riesgo alto, 0 sesiones" });
     expect(cero).toHaveClass("resumen__tarjeta--cero");
     expect(cero).toHaveAttribute("aria-pressed", "false");
     expect(cero.querySelector(".medidor")).not.toBeNull();
     expect(cero).toHaveTextContent("Riesgo alto");
-    for (const nombre of [/^Riesgo medio:/, /^Riesgo bajo:/]) {
+    for (const nombre of [/^\d+ Riesgo medio,/, /^\d+ Riesgo bajo,/]) {
       expect(screen.getByRole("button", { name: nombre })).not.toHaveClass("resumen__tarjeta--cero");
     }
   });
@@ -57,7 +69,7 @@ describe("ResumenEvaluacion", () => {
   it("una tarjeta de nivel deja solo su filtro y no toca el orden", () => {
     const onFiltrar = vi.fn();
     render(<ResumenEvaluacion resumen={RESUMEN} filtros={{ estado: "open", q: "ana", orden: "risk_level" }} onFiltrar={onFiltrar} />);
-    fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 3 sesiones" }));
+    fireEvent.click(screen.getByRole("button", { name: "3 Riesgo alto, 3 sesiones" }));
     const parciales = onFiltrar.mock.lastCall?.[0];
     expect(parciales).toStrictEqual({ nivel: "high", estado: undefined, analisis: undefined, q: undefined });
     expect("orden" in parciales).toBe(false);
@@ -66,16 +78,16 @@ describe("ResumenEvaluacion", () => {
   it("una tarjeta de estado filtra por el estado del análisis", () => {
     const onFiltrar = vi.fn();
     render(<ResumenEvaluacion resumen={RESUMEN} filtros={{}} onFiltrar={onFiltrar} />);
-    fireEvent.click(screen.getByRole("button", { name: "Sin analizar: 2 sesiones" }));
+    fireEvent.click(screen.getByRole("button", { name: "2 Sin analizar, 2 sesiones" }));
     expect(onFiltrar).toHaveBeenLastCalledWith({ nivel: undefined, estado: undefined, analisis: "not_analyzed", q: undefined });
   });
 
   it("la tarjeta del filtro vigente queda marcada aunque haya otros filtros, y tocarla borra solo su filtro", () => {
     const onFiltrar = vi.fn();
     render(<ResumenEvaluacion resumen={RESUMEN} filtros={{ nivel: "medium", q: "ana" }} onFiltrar={onFiltrar} />);
-    const medio = screen.getByRole("button", { name: "Riesgo medio: 1 sesión" });
+    const medio = screen.getByRole("button", { name: "1 Riesgo medio, 1 sesión" });
     expect(medio).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "Riesgo alto: 3 sesiones" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "3 Riesgo alto, 3 sesiones" })).toHaveAttribute("aria-pressed", "false");
     fireEvent.click(medio);
     expect(onFiltrar.mock.lastCall?.[0]).toStrictEqual({ nivel: undefined });
   });
@@ -83,7 +95,7 @@ describe("ResumenEvaluacion", () => {
   it("la tarjeta de estado elegida queda marcada con un estado de sesión al lado, y tocarla borra solo el análisis", () => {
     const onFiltrar = vi.fn();
     render(<ResumenEvaluacion resumen={RESUMEN} filtros={{ analisis: "unavailable", estado: "finished" }} onFiltrar={onFiltrar} />);
-    const tarjeta = screen.getByRole("button", { name: "Análisis no disponible: 1 sesión" });
+    const tarjeta = screen.getByRole("button", { name: "1 Análisis no disponible, 1 sesión" });
     expect(tarjeta).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(tarjeta);
     expect(onFiltrar.mock.lastCall?.[0]).toStrictEqual({ analisis: undefined });

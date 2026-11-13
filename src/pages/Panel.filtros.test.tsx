@@ -534,11 +534,11 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
       expect(filas()).toBe(30);
       expect(listas()).not.toHaveAttribute("aria-busy");
 
-      fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 10 sesiones" }));
+      fireEvent.click(screen.getByRole("button", { name: "10 Riesgo alto, 10 sesiones" }));
       await esperar();
       // La tarjeta ya está marcada, pero la lista es la de antes, completa y coherente: sin «Se ven con
       // «Ver más sesiones».», que salía de armar los grupos como filtrados con las filas sin filtrar.
-      expect(screen.getByRole("button", { name: "Riesgo alto: 10 sesiones" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "10 Riesgo alto, 10 sesiones" })).toHaveAttribute("aria-pressed", "true");
       expect(listas()).toHaveAttribute("aria-busy", "true");
       expect(filas()).toBe(30);
       expect(screen.queryByText("Se ven con «Ver más sesiones».")).toBeNull();
@@ -573,7 +573,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
       const contestar = conLaSegundaDemorada();
       montar("/panel?examen=1");
       await esperar();
-      fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 10 sesiones" }));
+      fireEvent.click(screen.getByRole("button", { name: "10 Riesgo alto, 10 sesiones" }));
       await esperar();
       contestar();
       await esperar();
