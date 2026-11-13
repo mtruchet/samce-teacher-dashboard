@@ -65,35 +65,63 @@ export function useSesionesDelExamen(examenElegido: string | null, clavePedido: 
    */
   const pedido = useRef(0);
 
+  // La última respuesta completa de cada vista del examen (filtro y orden), para volver a una vista ya vista
+  // sin pasar por la lista de otra: al quitar un filtro, al volver del detalle o con Atrás, la lista se dibuja
+  // en el primer cuadro con lo último que se supo de esa vista y la respuesta nueva la reemplaza al llegar.
+  // Solo del examen que se está mirando, y con un tope de ocho vistas: más que eso es memoria que no se usa.
+  const porVista = useRef(new Map<string, SesionesCargadas>());
+
   const consultar = useCallback(async () => {
     const mio = ++pedido.current;
     try {
-      const lista = await traerExamenes();
-      if (mio !== pedido.current) return;
-
-      // Las sesiones se piden solo del examen que la dirección tiene elegido, y
-      // solo si es de uno de los cursos del docente (la lista ya viene filtrada
-      // por el backend según su token).
-      const elegido = examenElegido ? lista.find((e) => String(e.id) === examenElegido) : undefined;
+      // Los dos pedidos salen a la vez. Uno detrás del otro, cada vista nueva esperaba dos viajes al servidor,
+      // y la lista llegaba después que todo lo demás. Las sesiones se piden del examen de la dirección antes
+      // de saber si es del docente; si no lo es, la respuesta (o el rechazo del backend) se descarta abajo.
+      const idPedido = examenElegido && /^\d+$/.test(examenElegido) ? Number(examenElegido) : null;
       const delPedido = leerFiltros(new URLSearchParams(clavePedido));
-      const respuesta = elegido ? await traerSesiones(elegido.id, paginas * SESIONES_POR_PAGINA, delPedido) : null;
-      const delElegido = respuesta && elegido ? respuesta.sesiones.map((s) => ({ ...s, examenId: elegido.id })) : [];
-
+      const [lista, respuesta] = await Promise.all([
+        traerExamenes(),
+        idPedido !== null
+          ? traerSesiones(idPedido, paginas * SESIONES_POR_PAGINA, delPedido).catch((error: unknown) => {
+              // El token vencido vale para los dos pedidos y se atiende abajo. Cualquier otro fallo se guarda
+              // hasta saber si el examen es del docente: de un examen ajeno, el rechazo es lo esperable.
+              if (error instanceof SesionVencida) throw error;
+              return error instanceof Error ? error : new Error(String(error));
+            })
+          : Promise.resolve(null),
+      ]);
       if (mio !== pedido.current) return;
 
-      setExamenes(lista);
-      setRecibido(true);
-      setCargadas(
-        elegido && respuesta
+      // Las sesiones valen solo si el examen es uno de los cursos del docente (la lista ya viene filtrada por
+      // el backend según su token).
+      const elegido = examenElegido ? lista.find((e) => String(e.id) === examenElegido) : undefined;
+      // De un examen propio, el fallo es real: el canal queda sin conexión y se conserva lo último que llegó.
+      if (elegido && respuesta instanceof Error) throw respuesta;
+      const ok = elegido && respuesta && !(respuesta instanceof Error) ? respuesta : null;
+
+      const nuevas: SesionesCargadas | null =
+        elegido && ok
           ? {
               examenId: elegido.id,
               vista: `${examenElegido}|${clavePedido}`,
-              lista: delElegido,
-              total: respuesta.total,
-              resumen: respuesta.resumen,
+              lista: ok.sesiones.map((s) => ({ ...s, examenId: elegido.id })),
+              total: ok.total,
+              resumen: ok.resumen,
             }
-          : null
-      );
+          : null;
+
+      if (nuevas) {
+        const memoria = porVista.current;
+        // Otro examen: lo guardado de las vistas del anterior ya no sirve.
+        if ([...memoria.values()].some((v) => v.examenId !== nuevas.examenId)) memoria.clear();
+        memoria.delete(nuevas.vista);
+        memoria.set(nuevas.vista, nuevas);
+        if (memoria.size > 8) memoria.delete(memoria.keys().next().value!);
+      }
+
+      setExamenes(lista);
+      setRecibido(true);
+      setCargadas(nuevas);
       setEnlace("vivo");
       setMarca((m) => m + 1);
     } catch (error) {
@@ -136,5 +164,12 @@ export function useSesionesDelExamen(examenElegido: string | null, clavePedido: 
     };
   }, [consultar, vencida]);
 
-  return { examenes, cargadas, enlace, marca, recibido, vencida, vencer };
+  // Lo que se muestra es siempre una respuesta completa (filas, total y resumen del mismo pedido): la de la
+  // vista pedida si es la última que llegó o está en memoria, y si no, la última. `alDia` dice si es de la
+  // vista pedida y llegó con la última consulta; mientras no lo es, la lista se marca como ocupada.
+  const pedida = `${examenElegido}|${clavePedido}`;
+  const mostrada = cargadas?.vista === pedida ? cargadas : (porVista.current.get(pedida) ?? cargadas);
+  const alDia = cargadas?.vista === pedida;
+
+  return { examenes, cargadas: mostrada, alDia, enlace, marca, recibido, vencida, vencer };
 }

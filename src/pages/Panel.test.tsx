@@ -241,3 +241,61 @@ describe("Las páginas de sesiones de un examen", () => {
     expect(traer).toHaveBeenLastCalledWith(2, 50, expect.anything());
   });
 });
+
+describe("Los dos pedidos de la lista salen a la vez", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    ingresar();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("las sesiones se piden sin esperar a la lista de exámenes", async () => {
+    let contestarExamenes: (lista: sesionesService.ExamenMonitoreado[]) => void = () => undefined;
+    vi.spyOn(sesionesService, "traerExamenes").mockReturnValue(
+      new Promise((listo) => {
+        contestarExamenes = listo;
+      })
+    );
+    const traer = simularSesiones([rindiendo]);
+    montar("/panel?examen=1&nivel=high");
+    await esperar();
+    // La lista de exámenes todavía no contestó, y las sesiones ya se pidieron, con el filtro de la dirección.
+    expect(traer).toHaveBeenCalledWith(1, 50, expect.objectContaining({ nivel: "high" }));
+
+    contestarExamenes([EXAMEN]);
+    await esperar();
+    expect(screen.getByRole("heading", { level: 1, name: "Primer Parcial" })).toBeInTheDocument();
+  });
+
+  it("de un examen que no es del docente, el rechazo del backend no se toma como un corte", async () => {
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([EXAMEN]);
+    vi.spyOn(sesionesService, "traerSesiones").mockRejectedValue(new Error("Error 404"));
+    montar("/panel?examen=999");
+    await esperar();
+    // Vuelve a los exámenes del curso, sin avisar un problema de conexión que no hubo.
+    expect(screen.getByRole("heading", { level: 1, name: "Sistemas de Información II" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Primer Parcial/ })).toBeInTheDocument();
+    expect(screen.queryByText(SIN_CONEXION)).toBeNull();
+  });
+
+  it("de un examen del docente, un fallo de red sí es un corte", async () => {
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([EXAMEN]);
+    vi.spyOn(sesionesService, "traerSesiones").mockRejectedValue(new TypeError("Failed to fetch"));
+    montar("/panel?examen=1");
+    await esperar();
+    expect(screen.getByText(SIN_CONEXION)).toBeInTheDocument();
+  });
+
+  it("si el token venció al pedir las sesiones, se avisa la sesión vencida y no un corte", async () => {
+    vi.spyOn(sesionesService, "traerExamenes").mockResolvedValue([EXAMEN]);
+    vi.spyOn(sesionesService, "traerSesiones").mockRejectedValue(new sesionesService.SesionVencida());
+    montar("/panel?examen=1");
+    await esperar();
+    expect(screen.queryByText(SIN_CONEXION)).toBeNull();
+    expect(screen.queryByRole("heading", { level: 1, name: "Primer Parcial" })).toBeNull();
+  });
+});
