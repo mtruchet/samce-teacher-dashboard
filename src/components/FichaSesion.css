@@ -31,7 +31,9 @@
    anillo. Acá lleva --sup-1, el escalón de las láminas; el anillo sigue en --sup-4. */
 .detalle__estado {
   flex: none;
-  align-self: center;
+  /* Por la línea de base, como el renglón: con center la etiqueta (26 px de alto) bajaba su texto 3 px respecto
+     de los datos de al lado. */
+  align-self: baseline;
   padding: 2px var(--e3);
   /* Transparente: con colores forzados la sombra desaparece y este borde es el que se pinta. */
   border: 1px solid transparent;

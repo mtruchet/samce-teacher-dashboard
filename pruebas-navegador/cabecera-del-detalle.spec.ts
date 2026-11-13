@@ -159,3 +159,27 @@ for (const [ancho, cuadro] of [[1280, 56], [390, 40]] as const) {
     expect(m.desvio, JSON.stringify(m)).toBeLessThanOrEqual(2);
   });
 }
+
+for (const [nombre, vista] of [
+  ["entregada", VISTAS.detalleAlto],
+  ["en curso", VISTAS.detalleEnCurso],
+] as const) {
+  test(`a 1280 px, en una sesión ${nombre} el texto de la etiqueta de estado va en la línea de base de los datos`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: ALTO });
+    await abrir(page, vista);
+    const m = await page.evaluate(() => {
+      const abajoDelTexto = (el: Element) => {
+        const rango = document.createRange();
+        rango.selectNodeContents(el);
+        return rango.getBoundingClientRect().bottom;
+      };
+      return {
+        estado: abajoDelTexto(document.querySelector(".detalle__estado")!),
+        datos: [...document.querySelectorAll(".detalle__dato")].map(abajoDelTexto),
+      };
+    });
+    expect(m.datos.length, JSON.stringify(m)).toBeGreaterThan(0);
+    // Con align-self: center el texto de la etiqueta caía 3 px más abajo que el de los datos.
+    for (const dato of m.datos) expect(Math.abs(dato - m.estado), JSON.stringify(m)).toBeLessThan(1);
+  });
+}
