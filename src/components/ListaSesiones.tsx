@@ -115,7 +115,7 @@ export function ListaSesiones({ titulo, sesiones, total, conCuenta = true, cerra
                   <tr key={s.id}>
                     <td>
                       <span className="alumno">
-                        <Usuario size={18} weight="duotone" aria-hidden="true" />
+                        <Usuario size={16} aria-hidden="true" />
                         <span className="alumno__datos">
                           {/* El nombre es lo que el docente reconoce. Sin nombre,
                               `nombreDeAlumno` pone el número del aula virtual. */}

@@ -83,7 +83,8 @@
    el mismo celeste con que el panel marca todo lo que está vivo. */
 .ficha__cuenta--vivo {
   color: var(--celeste-hondo);
-  font-weight: 500;
+  /* El panel usa dos pesos, 400 y 600: lo vivo se destaca con el de los datos que importan. */
+  font-weight: 600;
 }
 
 .ficha__estado--nada {
@@ -129,8 +130,11 @@
     order: 0;
   }
 
+  /* Base cero y no `auto`: con `auto` un nombre largo pedía todo su ancho, no entraba al lado del ícono y bajaba
+     solo a otro renglón, dejando el ícono suelto arriba. Con base cero se queda con lo que el ícono deja libre
+     y, si no entra, parte su texto en lugar de mudarse. */
   .ficha__nombre {
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     order: 1;
   }
 

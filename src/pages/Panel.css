@@ -77,12 +77,24 @@ body:has(.panel) {
 
 /* ==== Cuando un bloque no tiene filas =================================== */
 
+/* El aviso de página, fuera de toda lámina, cuando todavía no llegó nada del servidor. Va en la superficie de
+   las láminas con su anillo, como un aviso: en --sup-2 sobre la página, que también es --sup-2, no tenía
+   borde ni fondo propio y el texto quedaba suelto entre el encabezado y el pie. */
 .panel__vacio {
   padding: var(--e5);
   border-radius: var(--radio-ficha);
-  background: var(--sup-2);
+  background: var(--sup-1);
+  box-shadow: var(--anillo);
   font-size: var(--panel-cuerpo);
   color: var(--tinta-media);
+}
+
+/* Con colores forzados el anillo desaparece: el contorno del sistema lo reemplaza, como en las láminas. */
+@media (forced-colors: active) {
+  .panel__vacio {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
 }
 
 /* ==== La señal de escucha ============================================== */
@@ -226,7 +238,9 @@ body:has(.panel) {
 /* Un grupo sin filas: una línea liviana dentro de su lámina, sin un bloque alto que parezca contenido. */
 .grupos__vacio {
   margin: 0;
-  font-size: var(--panel-cuerpo);
+  /* La letra de una fila de la tabla: el vacío ocupa el lugar de las filas y habla en su voz, no en la del
+     cuerpo. */
+  font-size: var(--panel-fila);
   line-height: var(--panel-alto);
   color: var(--tinta-media);
 }

@@ -93,6 +93,12 @@
   white-space: normal;
 }
 
+/* El rótulo «Análisis» arranca donde arranca el contenido de sus celdas (después del lugar de la marca de
+   nivel, que .indicador--sin-nivel también reserva), no 15 px antes. Debajo de 760 px el encabezado se oculta. */
+.tabla th.tabla__analisis {
+  padding-left: calc(var(--e4) + var(--marca-renglon) + var(--e3));
+}
+
 /* ==== Ver una sesión ================================================== */
 
 /* «Ver» es el botón de texto compartido (.boton-texto, en base.css). Su relleno lo dejaba 8 px adentro del
@@ -239,10 +245,10 @@
     padding-right: calc(var(--e1) + var(--e2));
   }
 
-  /* El margen de la celda, el ícono (18 px) y su separación: el análisis empieza donde el nombre. */
+  /* El margen de la celda, el ícono (16 px) y su separación: el análisis empieza donde el nombre. */
   .tabla td.tabla__analisis {
     grid-area: analisis;
-    padding-left: calc(var(--e3) + 18px + var(--e3));
+    padding-left: calc(var(--e3) + 16px + var(--e3));
     white-space: normal;
   }
 
@@ -282,7 +288,7 @@
   }
 
   .tabla td.tabla__duracion {
-    padding-left: calc(var(--e3) + 18px + var(--e3));
+    padding-left: calc(var(--e3) + 16px + var(--e3));
     text-align: left;
   }
 }

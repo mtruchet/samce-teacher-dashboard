@@ -14,6 +14,13 @@
   gap: var(--e3);
 }
 
+/* Del título de una lámina a su contenido van siempre 16 px: el título trae 4 px de margen propio y la
+   grilla suma los 12 de su espacio entre renglones. Sin esto el resumen quedaba 4 px más apretado que la
+   lista y el detalle. */
+.resumen > .lamina__titulo {
+  margin-bottom: var(--e1);
+}
+
 .resumen__tarjetas {
   display: grid;
   /* El mismo espacio entre columnas que .filtros (FiltrosSesiones.css). */
@@ -69,6 +76,11 @@
 }
 
 .resumen__tarjeta--estado {
+  /* Las tarjetas de estado no llevan la marca de nivel, pero reservan su ancho con relleno: así su número
+     cae en la misma vertical que el de las tarjetas de nivel de arriba, y los dos renglones se leen como una
+     sola columna de cifras. Con un borde transparente en lugar del relleno, los colores forzados lo
+     pintarían y la tarjeta parecería tener nivel. */
+  padding-left: calc(var(--e4) + var(--marca-tarjeta));
   background: var(--sup-2);
   box-shadow: var(--anillo);
 }
@@ -135,6 +147,10 @@
     padding: var(--e2) var(--e3) var(--e2) var(--e2);
   }
 
+  .resumen__tarjeta--estado {
+    padding-left: calc(var(--e2) + var(--marca-tarjeta));
+  }
+
   .resumen__tarjeta .rotulo-nivel {
     font-size: var(--panel-nota);
   }
@@ -165,6 +181,17 @@
     padding: calc(var(--e3) - 2px) calc(var(--e4) - 2px);
   }
 
+  /* Las de estado llevan acá un borde de 1 px en lugar de la marca: se le descuenta al relleno izquierdo, para
+     que su número siga en la vertical del de las de nivel. Elegida, el borde es de 3 px y se descuenta igual,
+     así tocarla tampoco la corre. */
+  .resumen__tarjeta--estado {
+    padding-left: calc(var(--e4) + var(--marca-tarjeta) - 1px);
+  }
+
+  .resumen__tarjeta--estado[aria-pressed="true"] {
+    padding-left: calc(var(--e4) + var(--marca-tarjeta) - 3px);
+  }
+
   /* El borde izquierdo de las de nivel no cambia de ancho: ese lado conserva su relleno. */
   .resumen__tarjeta[data-nivel][aria-pressed="true"] {
     border-left-width: var(--marca-tarjeta);
@@ -179,6 +206,14 @@
     .resumen__tarjeta[data-nivel][aria-pressed="true"] {
       padding-left: var(--e2);
     }
+
+    .resumen__tarjeta--estado {
+      padding-left: calc(var(--e2) + var(--marca-tarjeta) - 1px);
+    }
+
+    .resumen__tarjeta--estado[aria-pressed="true"] {
+      padding-left: calc(var(--e2) + var(--marca-tarjeta) - 3px);
+    }
   }
 
   /* El medidor apagado de una tarjeta en cero vuelve al del resto: el gris no existe en colores forzados. */
@@ -189,5 +224,20 @@
   .resumen__tarjeta:focus-visible {
     outline: 3px solid CanvasText;
     outline-offset: 2px;
+  }
+}
+
+/* A 320 px (1280 al 400 %, WCAG 1.4.10) tres tarjetas por renglón dejaban unos 80 px para «Riesgo medio» y
+   el medidor, que no entraban. Ahí cada nivel ocupa su renglón: el número a la izquierda y el medidor con la
+   palabra a su lado, centrados en la tarjeta. */
+@media (max-width: 360px) {
+  .resumen__tarjetas--niveles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .resumen__tarjeta[data-nivel] {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--e3);
   }
 }

@@ -14,7 +14,11 @@
   color: var(--tinta-media);
 }
 
+/* Sin nivel no hay marca, pero el texto deja su lugar: el de la marca y su separación (.marca-nivel). Así el
+   «Sin alertas» de una fila empieza donde empieza el medidor de la fila de al lado, y la columna se lee sobre
+   una sola vertical. */
 .indicador--sin-nivel {
+  padding-left: calc(var(--marca-renglon) + var(--e3));
   color: var(--tinta-media);
 }
 
