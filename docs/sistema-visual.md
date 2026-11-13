@@ -178,7 +178,7 @@ Seis pasos, dos pesos (400 y 600) y un interlineado múltiplo de 5. El 500 queda
 | Nota | 12 / 400 en tinta-media / 20 | horas, cuentas, encabezados del registro y etiquetas (estos dos en 600) |
 | Rótulo de columna | 11 / 600 / mayúsculas con `--track-rotulo` | solo los encabezados de la tabla de la lista y los rótulos de los filtros |
 
-El título de la vista le saca siempre 4 px a la cifra, a cualquier ancho. `.panel` declara la letra y el renglón de base (14/20): nada dentro del panel hereda los 19/30 de la landing.
+El título de la vista le saca siempre 4 px a la cifra, a cualquier ancho. Los renglones de esos dos roles van en rem, como su letra (35 y 30 px con la letra predeterminada): si la persona agranda la letra del navegador, el renglón crece con ella y un título de dos renglones no se pisa. `.panel` declara la letra y el renglón de base (14/20): nada dentro del panel hereda los 19/30 de la landing.
 
 ### Ritmo
 
@@ -214,7 +214,7 @@ Un rol, un radio. El peso de una lámina lo dan la sombra y el fondo, nunca el r
 
 ### Componentes únicos
 
-- **Control de 40 px:** la misma piel en los selectores, la búsqueda y `.boton-secundario`.
+- **Control de 40 px:** la misma piel en los selectores, la búsqueda y `.boton-secundario`. El texto de los cuatro filtros arranca a `--e2` del borde: los selectores van sin la apariencia del navegador y su flecha es el `CaretDown` de 16 px del sistema de íconos.
 - **Etiqueta de estado:** una sola receta, la de `.detalle__estado`. «Entregó» en la lista es la misma etiqueta.
 - **Vacío dentro de una lámina:** un renglón de 13/20 en tinta-media, sin caja.
 - **Foco:** un solo anillo, `--anillo-foco`. Ninguna pieza lleva un contorno celeste propio; las filas del registro conservan el suyo, que marca la fila entera.

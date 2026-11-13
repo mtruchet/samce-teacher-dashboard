@@ -1,6 +1,7 @@
 import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { LARGO_MAXIMO_BUSQUEDA, NIVELES_FILTRO, type FiltrosSesiones as Filtros } from "../filtrosDeLaDireccion";
 import { NIVELES } from "../lenguajeAlerta";
+import { CaretDown } from "../iconos";
 import "./FiltrosSesiones.css";
 
 /** Cuánto se espera después de la última tecla antes de buscar: no se pide en cada letra. */
@@ -142,31 +143,37 @@ export function FiltrosSesiones({ filtros, onCambio, nivelRef, controlRef, onEsp
     <div className="filtros" role="group" aria-label="Filtrar y ordenar las sesiones">
       <div className="filtros__campo">
         <label htmlFor={`${id}-nivel`}>Nivel de riesgo</label>
-        <select
-          ref={nivelRef}
-          id={`${id}-nivel`}
-          value={filtros.nivel ?? ""}
-          onChange={(e) => onCambio({ nivel: (e.target.value || undefined) as Filtros["nivel"] })}
-        >
-          <option value="">Todos</option>
-          {NIVELES_FILTRO.map((nivel) => (
-            <option key={nivel} value={nivel}>
-              {NIVELES[nivel]}
-            </option>
-          ))}
-        </select>
+        <span className="filtros__selector">
+          <select
+            ref={nivelRef}
+            id={`${id}-nivel`}
+            value={filtros.nivel ?? ""}
+            onChange={(e) => onCambio({ nivel: (e.target.value || undefined) as Filtros["nivel"] })}
+          >
+            <option value="">Todos</option>
+            {NIVELES_FILTRO.map((nivel) => (
+              <option key={nivel} value={nivel}>
+                {NIVELES[nivel]}
+              </option>
+            ))}
+          </select>
+          <CaretDown size={16} aria-hidden="true" />
+        </span>
       </div>
       <div className="filtros__campo">
         <label htmlFor={`${id}-estado`}>Estado</label>
-        <select
-          id={`${id}-estado`}
-          value={filtros.estado ?? ""}
-          onChange={(e) => onCambio({ estado: (e.target.value || undefined) as Filtros["estado"] })}
-        >
-          <option value="">Todas</option>
-          <option value="open">En curso</option>
-          <option value="finished">Finalizadas</option>
-        </select>
+        <span className="filtros__selector">
+          <select
+            id={`${id}-estado`}
+            value={filtros.estado ?? ""}
+            onChange={(e) => onCambio({ estado: (e.target.value || undefined) as Filtros["estado"] })}
+          >
+            <option value="">Todas</option>
+            <option value="open">En curso</option>
+            <option value="finished">Finalizadas</option>
+          </select>
+          <CaretDown size={16} aria-hidden="true" />
+        </span>
       </div>
       <div className="filtros__campo filtros__campo--busqueda">
         <label htmlFor={`${id}-q`}>Buscar alumno</label>
@@ -183,16 +190,19 @@ export function FiltrosSesiones({ filtros, onCambio, nivelRef, controlRef, onEsp
         <label htmlFor={`${id}-orden`}>Ordenar por</label>
         {/* «Hora de inicio» es el orden predeterminado: en la dirección no se escribe, y en el control lleva
             un valor propio que se traduce a «sin orden». */}
-        <select
-          id={`${id}-orden`}
-          value={filtros.orden ?? "started_at"}
-          onChange={(e) =>
-            onCambio({ orden: e.target.value === "risk_level" ? "risk_level" : undefined })
-          }
-        >
-          <option value="started_at">Hora de inicio</option>
-          <option value="risk_level">Nivel de riesgo</option>
-        </select>
+        <span className="filtros__selector">
+          <select
+            id={`${id}-orden`}
+            value={filtros.orden ?? "started_at"}
+            onChange={(e) =>
+              onCambio({ orden: e.target.value === "risk_level" ? "risk_level" : undefined })
+            }
+          >
+            <option value="started_at">Hora de inicio</option>
+            <option value="risk_level">Nivel de riesgo</option>
+          </select>
+          <CaretDown size={16} aria-hidden="true" />
+        </span>
       </div>
     </div>
   );

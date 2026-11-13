@@ -49,6 +49,29 @@
     var(--anillo-foco);
 }
 
+/* Los selectores van sin la apariencia del navegador: Chromium les sumaba unos 4 px de relleno propio y su
+   texto arrancaba más adentro que el de la búsqueda, así que la fila de filtros no tenía una vertical
+   interior. Sin ella, los cuatro textos arrancan a var(--e2) del borde y la flecha nativa se repone con la
+   del sistema de íconos, a la misma distancia del borde derecho. */
+.filtros__selector {
+  position: relative;
+  display: grid;
+}
+
+.filtros__campo select {
+  appearance: none;
+  padding-right: calc(var(--e2) + 16px + var(--e2));
+  cursor: pointer;
+}
+
+.filtros__selector > svg {
+  position: absolute;
+  top: calc(50% - 8px);
+  right: var(--e2);
+  color: var(--tinta-media);
+  pointer-events: none;
+}
+
 .filtros__campo input::placeholder {
   color: var(--tinta-suave);
 }
@@ -71,5 +94,9 @@
   .filtros__campo select,
   .filtros__campo input {
     border: 1px solid ButtonText;
+  }
+
+  .filtros__selector > svg {
+    color: ButtonText;
   }
 }

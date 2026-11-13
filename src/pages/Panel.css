@@ -71,7 +71,8 @@ body:has(.panel) {
 /* Con la letra en su mínimo (24 px), un renglón de 35 deja un título partido en dos demasiado separado. */
 @media (max-width: 760px) {
   .panel__curso {
-    line-height: 30px;
+    /* 30 px con la letra predeterminada: en rem, como el renglón de más de 760. */
+    line-height: 1.875rem;
   }
 }
 

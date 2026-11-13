@@ -157,7 +157,8 @@
 
   /* La cifra baja a 20 px: el renglón, con ella, de 30 a 25. */
   .resumen__numero {
-    line-height: 25px;
+    /* 25 px con la letra predeterminada: en rem, como el renglón de más de 760. */
+    line-height: 1.5625rem;
   }
 }
 

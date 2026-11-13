@@ -74,6 +74,9 @@
 }
 
 .ficha__cuenta {
+  /* Una cuenta va en la nota, como la de cada lámina («Finalizadas 30») y la del registro: en el cuerpo era
+     la única cuenta del panel fuera de su paso de la escala (docs/sistema-visual.md, tabla de roles). */
+  font-size: var(--panel-nota);
   display: inline-flex;
   align-items: center;
   gap: var(--e2);

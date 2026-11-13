@@ -204,11 +204,14 @@
 
   /* Los interlineados del panel, todos múltiplos de 5: el cuerpo, la fila y la nota van en 20; el título de
      una lámina en 25; la cifra del resumen en 30 y el título de la vista en 35 (los dos bajan 5 px por debajo
-     de 760, en su hoja). Con un número por rol, dos textos del mismo rol no quedan con renglones distintos. */
+     de 760, en su hoja). Con un número por rol, dos textos del mismo rol no quedan con renglones distintos.
+     La cifra y el título de la vista tienen la letra en rem, así que su renglón también: con la letra
+     predeterminada dan los mismos 30 y 35 px, y si la persona agranda la letra del navegador el renglón crece
+     con ella (en px fijos, un título de dos renglones se pisaba). */
   --panel-alto: 20px;
   --panel-alto-pieza: 25px;
-  --panel-alto-cifra: 30px;
-  --panel-alto-curso: 35px;
+  --panel-alto-cifra: 1.875rem;
+  --panel-alto-curso: 2.1875rem;
 
   /* Solo bordes de controles (selectores, búsqueda, botón secundario): 3,67:1 sobre --sup-1 y 3,52:1 sobre
      --sup-2, por encima del 3:1 de WCAG 1.4.11. --sup-4 y --anillo daban 1,2:1: el control no se distinguía. */
