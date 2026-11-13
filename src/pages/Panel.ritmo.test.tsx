@@ -74,7 +74,7 @@ describe("El ritmo de la lista mientras se lee una sesión", () => {
     montar("/panel?examen=1&sesion=5");
     await esperar();
     // Pasado el plazo del análisis, que redibuja el detalle una vez por su cuenta.
-    await esperar(5_000);
+    await esperar(10_000);
     const dibujos = vi.mocked(AnalisisSesionVista).mock.calls.length;
     expect(dibujos).toBeGreaterThan(0);
 

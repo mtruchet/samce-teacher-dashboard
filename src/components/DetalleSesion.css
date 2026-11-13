@@ -16,7 +16,8 @@
    debajo de «Cargando el análisis…» y volvía a bajar cuando llegaba todo. Con `align-content: start`: si no,
    la grilla repartía el alto de sobra entre sus filas, la ficha se estiraba y todo volvía a subir al llegar el
    análisis. */
-.detalle[aria-busy="true"] {
+.detalle[aria-busy="true"],
+.detalle--llenando {
   min-height: calc(100dvh - var(--panel-barra));
   align-content: start;
 }

@@ -215,3 +215,35 @@ test("a 1280 px, entrando por la dirección del detalle, el pie no se asoma mien
   expect(pieVisto).toEqual([]);
   expect(corrimiento).toBeLessThan(0.01);
 });
+
+test("a 1280 px, con un análisis corto ya dibujado y los eventos en camino, el pie no se asoma", async ({ page }) => {
+  // El alto mínimo del detalle se soltaba apenas llegaba el análisis: con «Cargando los eventos…» el detalle
+  // quedaba más bajo que la pantalla, el pie subía a la vista y volvía a bajar de golpe al llegar el registro.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await simularBackend(page);
+  await demorar(page, { analisis: 100, eventos: 1500 });
+  await page.addInitScript(() => {
+    const w = window as unknown as { __pieAsomado: number; __esperando: number };
+    w.__pieAsomado = 0;
+    w.__esperando = 0;
+    const tomar = () => {
+      const pie = document.querySelector(".pie");
+      if (document.querySelector(".detalle__cargando") && pie) {
+        w.__esperando += 1;
+        if (pie.getBoundingClientRect().top < window.innerHeight) w.__pieAsomado += 1;
+      }
+      requestAnimationFrame(tomar);
+    };
+    requestAnimationFrame(tomar);
+  });
+
+  await page.goto(VISTAS.detalleNoAnalizado);
+  await page.locator(".eventos tbody tr").first().waitFor();
+
+  const { pieAsomado, esperando } = await page.evaluate(() => {
+    const w = window as unknown as { __pieAsomado: number; __esperando: number };
+    return { pieAsomado: w.__pieAsomado, esperando: w.__esperando };
+  });
+  expect(esperando).toBeGreaterThan(10);
+  expect(pieAsomado).toBe(0);
+});

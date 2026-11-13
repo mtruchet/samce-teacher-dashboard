@@ -61,8 +61,12 @@ function cuentaDeEventos(n: number): string {
 /**
  * Cuánto espera el registro a que llegue el análisis antes de dibujarse igual. Con un análisis que no contesta,
  * el docente no se queda sin el registro, que es lo que sí llegó.
+ *
+ * Ocho segundos y no tres: con tres, un análisis lento (un arranque en frío del servidor) dejaba dibujar el
+ * registro y, al llegar, lo empujaba casi una pantalla hacia abajo con el docente ya leyéndolo, que es el salto
+ * que había que sacar. Un análisis que falla no espera el plazo: el registro aparece apenas se sabe.
  */
-export const PLAZO_DEL_ANALISIS_MS = 3000;
+export const PLAZO_DEL_ANALISIS_MS = 8000;
 
 /** Tope de páginas por consulta, para que una sesión enorme no trabe el panel. */
 const PAGINAS_MAXIMAS = 20;
@@ -269,7 +273,12 @@ function DetalleSesionSinMemo({ sesion, onVencida, onConsulta }: Props) {
   return (
     // Mientras se espera el análisis, el detalle ocupa la pantalla: así el pie no se asoma y vuelve a bajar
     // cuando llega todo. `aria-busy` y no `inert`: con `inert`, el foco caía al principio de la página.
-    <div className="detalle" aria-busy={!analisisResuelto || undefined}>
+    <div
+      // Con el análisis ya dibujado pero los eventos en camino, el detalle conserva el alto de la pantalla: si no,
+      // un análisis corto dejaba asomar el pie, que volvía a bajar de golpe al llegar el registro.
+      className={analisisResuelto && cargando ? "detalle detalle--llenando" : "detalle"}
+      aria-busy={!analisisResuelto || undefined}
+    >
       {/* La ficha de la sesión. Quién es el alumno ya lo dicen el título de la
           pantalla y las migas; acá va lo que allá no entra, en una sola fila:
           si entregó, qué intento es, cuándo empezó y cuánto duró. El número

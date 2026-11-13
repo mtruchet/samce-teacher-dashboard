@@ -77,6 +77,23 @@ const ESPERA_DEL_ANUNCIO_MS = 900;
 const TITULO_DEL_PANEL = "SAMCE — Panel Docente";
 
 /**
+ * Si el «Ver» de una fila se ve entero: debajo de la barra del panel y del encabezado fijo de columnas de su
+ * tabla, y por encima del borde inferior de la pantalla.
+ */
+function aLaVista(ver: HTMLElement): boolean {
+  const r = ver.getBoundingClientRect();
+  const barra = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--panel-barra")) || 0;
+  const columnas = ver.closest("table")?.querySelector("thead")?.getBoundingClientRect().height ?? 0;
+  return r.top >= barra + columnas && r.bottom <= window.innerHeight;
+}
+
+/** Lleva el «Ver» al centro de la pantalla, de una vez y sin deslizar. */
+function centrar(ver: HTMLElement) {
+  const r = ver.getBoundingClientRect();
+  window.scrollTo({ top: window.scrollY + r.top + r.height / 2 - window.innerHeight / 2, behavior: "instant" });
+}
+
+/**
  * Numera los intentos de cada alumno dentro de un examen, por orden de
  * comienzo. El cuestionario admite reintentos, así que sin esto dos filas del
  * mismo alumno quedan idénticas y no hay manera de saber cuál es cuál.
@@ -404,7 +421,12 @@ export function Panel() {
     busqueda.current?.cancelarBusqueda();
     porAccion.current = false;
     quitarFiltros();
-    selectorDeNivel.current?.focus();
+    // Sin deslizar: con el desplazamiento suave de la página, el foco la arrastraba hasta el selector y, si la
+    // lista crecía en medio del recorrido, la hacía saltar un cuadro cientos de píxeles. El selector está en la
+    // misma lámina que el botón, así que casi siempre ya está a la vista.
+    const selector = selectorDeNivel.current;
+    selector?.focus({ preventScroll: true });
+    selector?.scrollIntoView?.({ block: "nearest", behavior: "instant" });
   }, [quitarFiltros]);
 
   // La sesión se busca entre las del examen, que son las que el backend
@@ -552,12 +574,7 @@ export function Panel() {
         // pantalla que activa el botón sin mover la página), la altura guardada es de mitad de camino y el
         // «Ver» quedaría fuera de la pantalla o debajo de la barra y el encabezado de columnas: en ese caso se
         // lo centra, como cuando se vuelve por otro camino.
-        const r = ver.getBoundingClientRect();
-        const barra = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--panel-barra")) || 0;
-        const columnas = ver.closest("table")?.querySelector("thead")?.getBoundingClientRect().height ?? 0;
-        if (!alMismoLugar || r.top < barra + columnas || r.bottom > window.innerHeight) {
-          window.scrollTo({ top: window.scrollY + r.top + r.height / 2 - window.innerHeight / 2, behavior: "instant" });
-        }
+        if (!alMismoLugar || !aLaVista(ver)) centrar(ver);
         ver.focus({ preventScroll: true });
         lugar.current = null;
         return;
@@ -576,12 +593,24 @@ export function Panel() {
   // Solo si el botón ya no está en la página: si sigue ahí y el foco está en el cuerpo, fue el docente el que
   // hizo clic en un lugar vacío, y no hay que devolvérselo.
   const verEnfocado = useRef<HTMLElement | null>(null);
+  const vistaDelFoco = useRef<string | undefined>(undefined);
+  const vistaMostrada = cargadas?.vista;
   useLayoutEffect(() => {
+    const otraVista = vistaDelFoco.current !== vistaMostrada;
+    vistaDelFoco.current = vistaMostrada;
     const ver = verEnfocado.current;
     if (!ver || ver.isConnected || document.activeElement !== document.body) return;
     const nuevo = document.querySelector<HTMLButtonElement>(`button[data-sesion="${CSS.escape(ver.dataset.sesion ?? "")}"]`);
-    if (nuevo) nuevo.focus({ preventScroll: true });
-    else verEnfocado.current = null;
+    if (!nuevo) {
+      verEnfocado.current = null;
+      return;
+    }
+    // Si llegó otra vista (la respuesta filtrada después de haber vuelto del detalle por la miga), la lista se
+    // acortó y el «Ver» puede haber quedado debajo del encabezado fijo o fuera de la pantalla: se lo centra antes
+    // de enfocarlo. Con la actualización automática de la misma vista la página no se mueve: el docente no hizo
+    // nada, y moverle la página es peor que dejarle el foco donde la fila fue a parar.
+    if (otraVista && !aLaVista(nuevo)) centrar(nuevo);
+    nuevo.focus({ preventScroll: true });
   });
 
   // Sin sesión no hay nada que supervisar: se explica y se lo devuelve al

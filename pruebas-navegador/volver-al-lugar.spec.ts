@@ -158,3 +158,31 @@ test("a 1280 px, abrir con el teclado mientras la página se desliza y volver de
   expect(caja.y).toBeGreaterThanOrEqual(52);
   expect(caja.y + caja.height).toBeLessThanOrEqual(900);
 });
+
+test("a 1280 px, entrar a una sesión por su dirección y volver con la miga deja el «Ver» enfocado entero a la vista", async ({ page }) => {
+  // Sin la vista filtrada en memoria, primero se dibujaba la lista sin filtrar, el «Ver» se centraba ahí, y al
+  // llegar la filtrada la página se acortaba y el foco quedaba debajo del encabezado fijo de columnas.
+  await page.setViewportSize({ width: 1280, height: 700 });
+  await abrir(page, `${VISTAS.lista}&nivel=medium`);
+  const sesion = await page
+    .locator(".panel__listas button[data-sesion]")
+    .last()
+    .evaluate((b) => (b as HTMLButtonElement).dataset.sesion!);
+  await demorarFiltrados(page, 800);
+  await abrir(page, `${VISTAS.lista}&nivel=medium&sesion=${sesion}`);
+
+  await page.locator(".migas button", { hasText: "Primer parcial" }).click();
+  const ver = page.locator(`button[data-sesion="${sesion}"]`);
+  await expect(ver).toBeFocused();
+  // Hasta que llegue la lista filtrada y unos cuadros más.
+  await page.waitForTimeout(1300);
+  await expect(ver).toBeFocused();
+  const { tapado, dentro } = await ver.evaluate((b) => {
+    const r = b.getBoundingClientRect();
+    const th = b.closest("table")!.querySelector("thead")!.getBoundingClientRect();
+    const enElCentro = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return { tapado: r.top < th.bottom - 1 || !b.contains(enElCentro), dentro: r.bottom <= window.innerHeight };
+  });
+  expect(tapado).toBe(false);
+  expect(dentro).toBe(true);
+});

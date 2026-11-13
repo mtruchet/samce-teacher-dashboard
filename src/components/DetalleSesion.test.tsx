@@ -4,7 +4,7 @@ import * as sesionesService from "../services/sesionesService";
 import { alerta, analisis, esperar, evento, sesionNumerada } from "../test/fabricas";
 import { horaCorta, horaExacta } from "../eventos";
 import { ingresar } from "../test/panel";
-import { DetalleSesion } from "./DetalleSesion";
+import { DetalleSesion, PLAZO_DEL_ANALISIS_MS } from "./DetalleSesion";
 
 const SESION = sesionNumerada();
 const nada = () => undefined;
@@ -778,10 +778,13 @@ describe("DetalleSesion, el orden de llegada", () => {
     expect(within(screen.getByRole("table", { name: /^Eventos de la sesión/ })).getByText("Pasó a otra ventana")).toBeInTheDocument();
   });
 
-  it("si el análisis no contesta, a los tres segundos el registro aparece igual", async () => {
+  it("si el análisis no contesta, pasado el plazo el registro aparece igual", async () => {
     vi.spyOn(sesionesService, "traerAnalisis").mockReturnValue(new Promise(() => undefined));
     render(<DetalleSesion sesion={SESION} onVencida={nada} />);
-    await esperar(2900);
+    // A los tres segundos todavía no: con ese plazo, un análisis lento empujaba el registro ya dibujado.
+    await esperar(3100);
+    expect(titulo()).toBeNull();
+    await esperar(PLAZO_DEL_ANALISIS_MS - 3100 - 100);
     expect(titulo()).toBeNull();
 
     await esperar(100);
