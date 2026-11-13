@@ -337,7 +337,9 @@ export function DetalleSesion({ sesion, onVencida, onConsulta }: Props) {
                   {/* La coma no va oculta: sin ella, el lector leía la cuenta y los extremos pegados
                       («214 eventosde 04:32…»). */}
                   <span className="detalle__punto">, </span>
-                  {eventos.length === 1
+                  {/* Sin segundos, dos extremos del mismo minuto se leían «de 14:00 a 14:00». */}
+                  {eventos.length === 1 ||
+                  horaCorta(primerEvento.received_at) === horaCorta(ultimoEvento.received_at)
                     ? `a las ${horaCorta(primerEvento.received_at)}`
                     : `de ${horaCorta(primerEvento.received_at)} a ${horaCorta(ultimoEvento.received_at)}`}
                 </span>

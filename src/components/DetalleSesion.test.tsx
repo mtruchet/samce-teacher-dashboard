@@ -422,6 +422,22 @@ describe("DetalleSesion", () => {
     expect(ficha).toHaveTextContent(/Empezó el \d{1,2}\/\d{1,2}\/\d{4} a las \d{2}:\d{2}/);
   });
 
+  it("si todos los eventos caen en el mismo minuto, el encabezado dice «a las HH:MM» y no «de HH:MM a HH:MM»", async () => {
+    const primero = "2026-09-21T14:00:05.000Z";
+    const ultimo = "2026-09-21T14:00:50.000Z";
+    vi.spyOn(sesionesService, "traerEventos").mockResolvedValue([
+      evento(1, "focus_lost", {}, { id: 1, received_at: primero, occurred_at: primero }),
+      evento(2, "focus_gained", {}, { id: 2, received_at: ultimo, occurred_at: ultimo }),
+    ]);
+
+    render(<DetalleSesion sesion={SESION} onVencida={nada} />);
+    await esperar();
+
+    const encabezado = screen.getByRole("heading", { name: "Registro de eventos" }).parentElement!;
+    expect(encabezado).toHaveTextContent(`2 eventos, a las ${horaCorta(primero)}`);
+    expect(encabezado.textContent).not.toMatch(/ de \d{2}:\d{2} a /);
+  });
+
   it("el encabezado del registro dice cuántos eventos hay y de qué hora a qué hora, sin segundos", async () => {
     const primero = "2026-09-21T14:00:05.000Z";
     const ultimo = "2026-09-21T14:03:55.000Z";
