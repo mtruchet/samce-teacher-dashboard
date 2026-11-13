@@ -1,7 +1,7 @@
 import { fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as sesionesService from "../services/sesionesService";
-import { conAnalisis, esperar, pagina, sesion, simularSesiones } from "../test/fabricas";
+import { conAnalisis, esperar, pagina, resumen, sesion, simularSesiones } from "../test/fabricas";
 import { expectLenguajeLlano } from "../test/lenguaje";
 import { EXAMEN, direccion, entregadaHaceRato, ingresar, montar, rindiendo, ultimoPedido } from "../test/panel";
 
@@ -13,6 +13,14 @@ import { EXAMEN, direccion, entregadaHaceRato, ingresar, montar, rindiendo, ulti
 const CADENCIA = sesionesService.CADENCIA_MS;
 const viva = () => screen.getByRole("status", { name: "Resultado del filtro" });
 const resultado = () => document.querySelector(".control__resultado");
+/** Sin filtro, el renglón del resultado está en su lugar pero vacío: sin cifra, sin botón y oculto a los lectores. */
+function expectRenglonVacio() {
+  const renglon = resultado();
+  expect(renglon).not.toBeNull();
+  expect(renglon!.textContent).toBe("");
+  expect(renglon).toHaveAttribute("aria-hidden", "true");
+  expect(screen.queryByRole("button", { name: "Quitar filtros" })).toBeNull();
+}
 
 describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", () => {
   beforeEach(() => {
@@ -150,7 +158,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     expect(screen.getByText("intento 2 de 3")).toBeInTheDocument();
   });
 
-  it("con un filtro dice «N de M sesiones» y no dibuja el grupo que quedó vacío", async () => {
+  it("con un filtro dice «N de M sesiones», y el grupo que quedó vacío lo dice adentro", async () => {
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(
       pagina([{ ...entregadaHaceRato(), ...conAnalisis("high") }], 1)
     );
@@ -158,8 +166,10 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     await esperar();
     expect(resultado()).toHaveTextContent("1 de 2 sesiones");
     expect(screen.getByRole("heading", { name: "Finalizadas" })).toBeInTheDocument();
-    // Bruno sigue rindiendo, pero sin alertas: «En curso» no tiene ninguna de riesgo alto.
-    expect(screen.queryByRole("heading", { name: "En curso" })).toBeNull();
+    // Bruno sigue rindiendo, pero sin alertas: «En curso» no tiene ninguna de riesgo alto, y lo dice en su
+    // lugar. El grupo no desaparece: si lo hiciera, «Finalizadas» subiría a ocupar su lugar.
+    const enCurso = screen.getByRole("heading", { name: "En curso" }).closest("section")!;
+    expect(enCurso).toHaveTextContent("Ninguna sesión en curso coincide con el filtro.");
     expect(screen.queryByText("No hay sesiones de examen vigentes.")).toBeNull();
   });
 
@@ -234,8 +244,8 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     fireEvent.click(screen.getByRole("button", { name: "Ver más sesiones" }));
     await esperar();
     expect(traer).toHaveBeenLastCalledWith(1, 100, expect.objectContaining({ orden: "risk_level" }));
-    // Ordenar no es filtrar: no hay renglón de resultado.
-    expect(resultado()).toBeNull();
+    // Ordenar no es filtrar: el renglón de resultado queda vacío.
+    expectRenglonVacio();
   });
 
   it("abrir una sesión sin filtros no vuelve a pedir la lista", async () => {
@@ -312,7 +322,14 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     const traer = vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([], 0));
     montar("/panel?examen=1&nivel=high&q=nadie&orden=risk_level");
     await esperar();
-    expect(screen.getByText("Ninguna sesión coincide con el filtro.")).toBeInTheDocument();
+    // El vacío va dentro de cada grupo, y no en una lámina aparte que reemplazaba a los dos.
+    expect(screen.queryByText("Ninguna sesión coincide con el filtro.")).toBeNull();
+    expect(screen.getByRole("heading", { name: "En curso" }).closest("section")).toHaveTextContent(
+      "Ninguna sesión en curso coincide con el filtro."
+    );
+    expect(screen.getByRole("heading", { name: "Finalizadas" }).closest("section")).toHaveTextContent(
+      "Ninguna sesión finalizada coincide con el filtro."
+    );
     expect(resultado()).toHaveTextContent("0 de 2 sesiones");
     expect(screen.getAllByRole("button", { name: "Quitar filtros" })).toHaveLength(1);
 
@@ -322,16 +339,30 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     expect(traer).toHaveBeenLastCalledWith(1, 50, expect.objectContaining({ nivel: undefined, q: undefined, orden: "risk_level" }));
   });
 
-  it("sin filtro no hay renglón de resultado entre la lámina de control y «En curso»", async () => {
+  it("sin filtro el renglón de resultado está vacío en su lugar, dentro de la lámina de control", async () => {
     simularSesiones([rindiendo]);
     montar("/panel?examen=1");
     await esperar();
-    expect(resultado()).toBeNull();
-    expect(screen.queryByRole("button", { name: "Quitar filtros" })).toBeNull();
+    expectRenglonVacio();
+    expect(resultado()!.closest(".control")).not.toBeNull();
     expect(document.querySelector(".filtros-resultado")).toBeNull();
-    // Entre la lámina de control y el primer grupo no queda ningún hijo suelto del panel que ocupe lugar.
+    // Entre la lámina de control y los grupos no queda ningún hijo suelto del panel que ocupe lugar.
     const control = document.querySelector(".panel > .control")!;
-    expect(control.nextElementSibling).toHaveClass("lista");
+    expect(control.nextElementSibling).toHaveClass("panel__listas");
+    expect(control.nextElementSibling!.firstElementChild).toHaveClass("lista");
+  });
+
+  it("con un filtro y nadie rindiendo, «En curso» sigue diciendo que no hay sesiones vigentes", async () => {
+    vi.mocked(sesionesService.traerExamenes).mockResolvedValue([{ ...EXAMEN, open_sessions: 0 }]);
+    vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(
+      pagina([{ ...entregadaHaceRato(), ...conAnalisis("high") }], 1)
+    );
+    montar("/panel?examen=1&nivel=high");
+    await esperar();
+    expect(screen.getByRole("heading", { name: "En curso" }).closest("section")).toHaveTextContent(
+      "No hay sesiones de examen vigentes."
+    );
+    expect(screen.queryByText("Ninguna sesión en curso coincide con el filtro.")).toBeNull();
   });
 
   it("los textos de la barra y de la columna «Análisis» están en lenguaje llano", async () => {
@@ -364,7 +395,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     quitar.focus();
     fireEvent.click(quitar);
     await esperar();
-    expect(resultado()).toBeNull();
+    expectRenglonVacio();
     expect(document.activeElement).not.toBe(document.body);
     expect(screen.getByLabelText("Nivel de riesgo")).toHaveFocus();
   });
@@ -400,7 +431,7 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
 
     fireEvent.click(screen.getByRole("button", { name: "Quitar filtros" }));
     await esperar();
-    expect(resultado()).toBeNull();
+    expectRenglonVacio();
     expect(viva().textContent).toBe("");
   });
 
@@ -451,10 +482,110 @@ describe("HU04_T02 §4.1 (pendiente 10): los filtros de la lista de sesiones", (
     expect(screen.getByText("Del Segundo")).toBeInTheDocument();
   });
 
-  it("el vacío del filtro va dentro de una lámina", async () => {
+  it("el vacío del filtro va dentro de la lámina de cada grupo", async () => {
     vi.spyOn(sesionesService, "traerSesiones").mockResolvedValue(pagina([], 0));
     montar("/panel?examen=1&nivel=high");
     await esperar();
-    expect(screen.getByText("Ninguna sesión coincide con el filtro.").closest(".lamina")).not.toBeNull();
+    expect(screen.queryByText("Ninguna sesión coincide con el filtro.")).toBeNull();
+    expect(screen.getByText("Ninguna sesión en curso coincide con el filtro.").closest(".lamina.lista")).not.toBeNull();
+    expect(screen.getByText("Ninguna sesión finalizada coincide con el filtro.").closest(".lamina.lista")).not.toBeNull();
+  });
+
+  describe("mientras la vista pedida no contesta", () => {
+    // Treinta sesiones: una rindiendo y veintinueve entregadas, diez de ellas de riesgo alto.
+    const treinta = Array.from({ length: 30 }, (_, i) =>
+      sesion({
+        id: 100 + i,
+        moodle_user_id: 300 + i,
+        moodle_attempt_id: 9000 + i,
+        student_name: `Alumno ${i}`,
+        status: i === 0 ? "open" : "closed",
+        ...(i > 0 && i <= 10 ? conAnalisis("high") : {}),
+      })
+    );
+    const altas = treinta.filter((s) => s.risk_level === "high");
+    const delResumen = resumen({ risk_high: 10, no_alerts: 20 });
+    const listas = () => document.querySelector(".panel__listas")!;
+    const filas = () => document.querySelectorAll("button[data-sesion]").length;
+    const cuentaFinalizadas = () =>
+      screen.getByRole("heading", { name: "Finalizadas" }).closest("section")!.querySelector(".lamina__cuenta");
+
+    /** Contesta la primera vista enseguida y deja la siguiente esperando hasta `contestar()`. */
+    function conLaSegundaDemorada() {
+      let contestar: () => void = () => undefined;
+      vi.mocked(sesionesService.traerExamenes).mockResolvedValue([{ ...EXAMEN, open_sessions: 1, closed_sessions: 29 }]);
+      let primera: string | null = null;
+      vi.spyOn(sesionesService, "traerSesiones").mockImplementation((_e, _l, filtros) => {
+        const respuesta = filtros?.nivel ? pagina(altas, 10, delResumen) : pagina(treinta, 30, delResumen);
+        const clave = filtros?.nivel ?? "";
+        primera ??= clave;
+        if (clave === primera) return Promise.resolve(respuesta);
+        return new Promise((listo) => {
+          contestar = () => listo(respuesta);
+        });
+      });
+      return () => contestar();
+    }
+
+    it("al tocar una tarjeta, la lista sigue siendo la anterior entera y se marca como ocupada", async () => {
+      const contestar = conLaSegundaDemorada();
+      montar("/panel?examen=1");
+      await esperar();
+      expect(filas()).toBe(30);
+      expect(listas()).not.toHaveAttribute("aria-busy");
+
+      fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 10 sesiones" }));
+      await esperar();
+      // La tarjeta ya está marcada, pero la lista es la de antes, completa y coherente: sin «Se ven con
+      // «Ver más sesiones».», que salía de armar los grupos como filtrados con las filas sin filtrar.
+      expect(screen.getByRole("button", { name: "Riesgo alto: 10 sesiones" })).toHaveAttribute("aria-pressed", "true");
+      expect(listas()).toHaveAttribute("aria-busy", "true");
+      expect(filas()).toBe(30);
+      expect(screen.queryByText("Se ven con «Ver más sesiones».")).toBeNull();
+      expect(cuentaFinalizadas()).toHaveTextContent("29");
+
+      contestar();
+      await esperar();
+      expect(listas()).not.toHaveAttribute("aria-busy");
+      expect(filas()).toBe(10);
+    });
+
+    it("al quitar los filtros, la lista filtrada no ofrece «Ver más sesiones» mientras llega la completa", async () => {
+      const contestar = conLaSegundaDemorada();
+      montar("/panel?examen=1&nivel=high");
+      await esperar();
+      expect(filas()).toBe(10);
+
+      fireEvent.click(screen.getByRole("button", { name: "Quitar filtros" }));
+      await esperar();
+      expect(listas()).toHaveAttribute("aria-busy", "true");
+      expect(filas()).toBe(10);
+      expect(screen.queryByRole("button", { name: "Ver más sesiones" })).toBeNull();
+      expect(cuentaFinalizadas()).toHaveTextContent("10");
+
+      contestar();
+      await esperar();
+      expect(listas()).not.toHaveAttribute("aria-busy");
+      expect(filas()).toBe(30);
+    });
+
+    it("volver a una vista ya vista la dibuja enseguida con lo último que se supo de ella", async () => {
+      const contestar = conLaSegundaDemorada();
+      montar("/panel?examen=1");
+      await esperar();
+      fireEvent.click(screen.getByRole("button", { name: "Riesgo alto: 10 sesiones" }));
+      await esperar();
+      contestar();
+      await esperar();
+      expect(filas()).toBe(10);
+
+      // La vista sin filtro ya se vio: se dibuja con las treinta en el mismo momento, y la respuesta nueva
+      // (que también contesta enseguida) la confirma sin marcarla como ocupada.
+      fireEvent.click(screen.getByRole("button", { name: "Quitar filtros" }));
+      expect(filas()).toBe(30);
+      await esperar();
+      expect(filas()).toBe(30);
+      expect(listas()).not.toHaveAttribute("aria-busy");
+    });
   });
 });

@@ -5,10 +5,17 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--e1) var(--e3);
+  /* La letra del botón: así `1lh` es el renglón del botón y no el del cuerpo. */
+  font-size: var(--panel-fila);
+  /* El alto del botón de texto, con o sin botón: sin filtro el renglón queda vacío pero en su lugar. */
+  min-block-size: calc(1lh + 2 * var(--e1));
 }
 
 .control__cifra {
   margin: 0;
   font-size: var(--panel-nota);
   color: var(--tinta-media);
+  /* El lugar de «N de M sesiones» está reservado aunque la cifra no haya llegado: «Quitar filtros» no se
+     corre de costado cuando llega. */
+  min-inline-size: 17ch;
 }

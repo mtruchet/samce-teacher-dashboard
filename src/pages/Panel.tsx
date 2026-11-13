@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { enCifras } from "../cifras";
-import { claveDelPedido } from "../filtrosDeLaDireccion";
+import { claveDelPedido, hayFiltro as hayFiltroEn, leerFiltros } from "../filtrosDeLaDireccion";
 import { Broadcast, Examen, Materia } from "../iconos";
 import { clearSession, esPanelGeneral, getStoredSession } from "../services/authService";
 import {
@@ -148,7 +148,7 @@ export function Panel() {
     null
   );
   // El ciclo de consultas: los exámenes y las sesiones del examen elegido (`useSesionesDelExamen`).
-  const { examenes, cargadas, enlace, marca, recibido, vencida, vencer } = useSesionesDelExamen(
+  const { examenes, cargadas, alDia, enlace, marca, recibido, vencida, vencer } = useSesionesDelExamen(
     examenElegido,
     clavePedido,
     paginas
@@ -259,12 +259,19 @@ export function Panel() {
     : delEsteExamen.length >= totalDelExamen
       ? numerarIntentos(delEsteExamen)
       : delEsteExamen.map((s) => ({ ...s, intento: 1, intentos: 1 }));
+  // La lista se dibuja con la vista de la respuesta que se muestra, no con la de la dirección. Entre que el
+  // docente toca una tarjeta y llega la respuesta, la lista sigue siendo la anterior entera: sin esto, la
+  // tarjeta quedaba marcada sobre las filas sin filtrar, los grupos se armaban como si estuvieran filtradas y
+  // «Ver más sesiones» aparecía o desaparecía con un total que no era el de esas filas.
+  const claveMostrada = cargadas ? cargadas.vista.slice(cargadas.vista.indexOf("|") + 1) : clavePedido;
+  const conFiltroMostrado = hayFiltroEn(leerFiltros(new URLSearchParams(claveMostrada))) && !sesionElegida;
   // Con un filtro, el total que vale es el que dice el backend para el filtro, no el del examen.
   const conFiltro = hayFiltro && !sesionElegida;
   // «N de M» vale solo si la respuesta es del pedido de esta vista. Al volver del detalle (que pide sin
   // filtrar) la última respuesta es de todo el examen, y mostrar su total daba «M de M» hasta la siguiente.
   const respuestaDelFiltro = conFiltro && cargadas?.vista === vistaDeLista && cargadas.total != null;
   const totalDeLaVista = respuestaDelFiltro ? cargadas.total! : totalDelExamen;
+  const totalMostrado = conFiltroMostrado && cargadas?.total != null ? cargadas.total : totalDelExamen;
   // M de «N de M sesiones» (D3) sale del resumen de la misma respuesta que N y las siete tarjetas, así los
   // tres números son del mismo momento. Los recuentos de la ficha del examen quedan para un backend sin resumen.
   const totalDeLaEvaluacion = cargadas?.resumen?.total ?? totalDelExamen;
@@ -289,6 +296,8 @@ export function Panel() {
       return;
     }
     if (cuantasDelFiltro === null || vistaAnunciada.current === vistaDeLista) return;
+    // La cifra que vino de la memoria de la vista es de antes: se anuncia la de la respuesta nueva.
+    if (!alDia) return;
     vistaAnunciada.current = vistaDeLista;
     if (!porAccion.current) {
       silenciarFiltro();
@@ -296,7 +305,7 @@ export function Panel() {
     }
     porAccion.current = false;
     anunciarFiltro(textoDelResultado(cuantasDelFiltro, totalDeLaEvaluacion));
-  }, [conFiltro, cuantasDelFiltro, vistaDeLista, totalDeLaEvaluacion, anunciarFiltro, silenciarFiltro]);
+  }, [conFiltro, cuantasDelFiltro, vistaDeLista, totalDeLaEvaluacion, alDia, anunciarFiltro, silenciarFiltro]);
 
   /** Un cambio de filtro del docente: si la dirección cambió, la vista que viene se anuncia. */
   const filtrar = useCallback(
@@ -471,6 +480,8 @@ export function Panel() {
   if (vencida) return <SinSesion motivo="vencida" />;
 
   const enCurso = delExamen.filter((s) => s.status === "open");
+  // La lista que se ve no es todavía la de la vista pedida (un filtro recién tocado, la vuelta del detalle).
+  const pendiente = nivel === "sesiones" && recibido && !sesionesAjenas && !alDia;
   const finalizadas = delExamen.filter((s) => s.status !== "open");
 
   // La pantalla de escucha es para cuando no hay absolutamente nada que
@@ -598,55 +609,52 @@ export function Panel() {
                     filtro ocultaba (HU04_T02, P14). */}
                 <AvisoAlertas sesiones={delExamen} clave={cargadas?.vista ?? ""} />
                 {/* Una sola lámina de control: el resumen de la evaluación (con un backend sin el resumen
-                    no se dibuja), la barra y, con un filtro, el resultado. Cada tarjeta filtra con la misma
-                    función que la barra. */}
+                    no se dibuja), la barra y el renglón del resultado, que está siempre (vacío sin filtro) para
+                    que la lámina mida lo mismo con o sin filtro. Cada tarjeta filtra con la misma función que la
+                    barra. */}
                 <section className="lamina control" aria-label="Resumen y filtros de la evaluación">
                   {cargadas?.resumen ? (
                     <ResumenEvaluacion resumen={cargadas.resumen} filtros={filtros} onFiltrar={filtrarDesdeElResumen} />
                   ) : null}
                   <FiltrosSesiones filtros={filtros} onCambio={filtrar} nivelRef={selectorDeNivel} controlRef={busqueda} />
-                  {conFiltro ? (
-                    <ResultadoDelFiltro
-                      cuantas={cuantasDelFiltro}
-                      deCuantas={totalDeLaEvaluacion}
-                      onQuitar={quitar}
-                    />
-                  ) : null}
+                  <ResultadoDelFiltro
+                    conFiltro={conFiltro}
+                    cuantas={cuantasDelFiltro}
+                    deCuantas={totalDeLaEvaluacion}
+                    onQuitar={quitar}
+                  />
                   <AnuncioVivo aviso={anuncioFiltro} etiqueta="Resultado del filtro" />
                 </section>
 
-                {/* El vacío del filtro va en una lámina, como el «En curso» vacío: ningún texto de la lista
-                    queda fuera de una superficie. Sin nombre de región: «Resultado del filtro» es el de la
-                    región viva, y dos regiones con el mismo nombre no se distinguen. */}
-                {respuestaDelFiltro && cargadas.total === 0 ? (
-                  <div className="lamina lista">
-                    <p className="grupos__vacio">Ninguna sesión coincide con el filtro.</p>
-                  </div>
-                ) : (
+                {/* Los grupos y «Ver más» son de la respuesta que se muestra. Mientras la de la vista pedida
+                    no llega, se atenúan y se marcan como ocupados (aria-busy). No van inertes: el foco que
+                    estaba en un «Ver» caería al cuerpo de la página, y las filas que se ven son sesiones
+                    reales de una misma respuesta. */}
+                <div className="panel__listas" aria-busy={pendiente || undefined}>
                   <GruposDeSesiones
                     enCurso={enCurso}
                     finalizadas={finalizadas}
-                    conFiltro={conFiltro}
-                    todasCargadas={delExamen.length >= totalDeLaVista}
+                    conFiltro={conFiltroMostrado}
+                    todasCargadas={delExamen.length >= totalMostrado}
                     recuento={{ enCurso: recuento.enCurso, finalizadas: totalFinalizadas }}
                     onVerEventos={verEventos}
                   />
-                )}
 
-                {/* «Ver más» solo si el examen tiene más sesiones de las que se ven, y
-                    mientras el backend pueda devolver más (tope por pedido). El total sale
-                    de los recuentos del examen, no de si la última página vino llena: eso
-                    era una suposición, y con el tope exacto de 1000 dejaba el botón sin
-                    traer nada, o lo escondía aunque quedaran sesiones por ver. */}
-                {delExamen.length < totalDeLaVista && paginas * SESIONES_POR_PAGINA < SESIONES_TOPE ? (
-                  <button
-                    type="button"
-                    className="boton-secundario panel__ver-mas"
-                    onClick={pedirOtraPagina}
-                  >
-                    Ver más sesiones
-                  </button>
-                ) : null}
+                  {/* «Ver más» solo si el examen tiene más sesiones de las que se ven, y
+                      mientras el backend pueda devolver más (tope por pedido). El total sale
+                      de los recuentos del examen, no de si la última página vino llena: eso
+                      era una suposición, y con el tope exacto de 1000 dejaba el botón sin
+                      traer nada, o lo escondía aunque quedaran sesiones por ver. */}
+                  {delExamen.length < totalMostrado && paginas * SESIONES_POR_PAGINA < SESIONES_TOPE ? (
+                    <button
+                      type="button"
+                      className="boton-secundario panel__ver-mas"
+                      onClick={pedirOtraPagina}
+                    >
+                      Ver más sesiones
+                    </button>
+                  ) : null}
+                </div>
                 {/* Llegó el tope del backend: no hay forma de traer más desde esta
                     pantalla, y ofrecer un botón que no trae nada es peor que decirlo. */}
                 {totalDelExamen > SESIONES_TOPE && delExamen.length >= SESIONES_TOPE ? (

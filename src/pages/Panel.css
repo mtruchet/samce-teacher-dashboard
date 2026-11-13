@@ -153,6 +153,21 @@ body:has(.panel) {
   }
 }
 
+/* Los grupos y «Ver más», con el mismo aire que separa las láminas del panel. Mientras la respuesta de la
+   vista pedida no llega, la lista que se ve es la anterior: se atenúa, y recién después de un instante (el
+   mismo token, como demora), así una respuesta rápida no hace parpadear nada. Al llegar vuelve de una vez.
+   Las tarjetas y los selectores cambian al momento, porque responden al clic. Con movimiento reducido el
+   token vale 0 y el cambio es directo. */
+.panel__listas {
+  display: grid;
+  gap: var(--e6);
+}
+
+.panel__listas[aria-busy="true"] {
+  opacity: 0.55;
+  transition: opacity var(--mov-estado) var(--curva) var(--mov-estado);
+}
+
 /* El botón es el secundario compartido (.boton-secundario, base.css); acá solo su lugar, centrado debajo. */
 .panel__ver-mas {
   display: block;
@@ -170,8 +185,9 @@ body:has(.panel) {
 
 /* ==== La lámina de control de la evaluación ============================ */
 
-/* El resumen, la barra de filtros y, con un filtro, el resultado: tres renglones en una sola lámina,
-   separados por aire y sin líneas. Sin filtro, el renglón del resultado no se dibuja y no deja hueco. */
+/* El resumen, la barra de filtros y el resultado: tres renglones en una sola lámina, separados por aire y
+   sin líneas. Sin filtro, el renglón del resultado va vacío pero ocupa su lugar: la lámina mide lo mismo con
+   o sin filtro, y la lista no baja ni sube al tocar una tarjeta. */
 .control {
   display: grid;
   gap: var(--e5);

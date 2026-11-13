@@ -4,7 +4,7 @@ import { ListaSesiones } from "./ListaSesiones";
 interface Props {
   enCurso: SesionNumerada[];
   finalizadas: SesionNumerada[];
-  /** Si la lista está filtrada: cambia qué recuento vale y si un grupo vacío se dibuja. */
+  /** Si la lista que se muestra está filtrada: cambia qué recuento vale y qué dice un grupo vacío. */
   conFiltro: boolean;
   /** Si ya están cargadas todas las sesiones que cumplen el filtro (no queda «Ver más sesiones»). */
   todasCargadas: boolean;
@@ -16,58 +16,46 @@ interface Props {
 /**
  * Los dos grupos de la lista de un examen, «En curso» y «Finalizadas».
  *
- * Sin filtro, el recuento de cada grupo es el del examen y no el de las filas cargadas: con la lista
- * paginada, contar filas daba un número distinto del de la ficha del examen. «En curso» se dibuja aunque
- * esté vacío, porque decir que nadie está rindiendo es un dato.
+ * Qué grupos se dibujan depende del examen y no del filtro: «En curso» siempre, porque decir que nadie está
+ * rindiendo es un dato, y «Finalizadas» si el examen tiene alguna. Con un filtro, el grupo que quedó sin filas
+ * lo dice adentro. Antes desaparecía, y «Finalizadas» subía a ocupar su lugar en el momento en que el docente
+ * iba a mirar la lista.
  *
- * Con un filtro, un grupo vacío no se dibuja: no dice nada que «N de M sesiones» no haya dicho ya. Cada grupo
- * cuenta sus filas solo cuando están cargadas todas las que cumplen el filtro. Si no, la cabecera va sin
- * cifra: el backend no dice cómo se reparten entre los grupos, y contar las filas cargadas daba un número que
- * no cerraba con «N de M sesiones» y que crecía con cada «Ver más sesiones».
+ * Sin filtro, el recuento de cada grupo es el del examen y no el de las filas cargadas: con la lista
+ * paginada, contar filas daba un número distinto del de la ficha del examen.
+ *
+ * Con un filtro, cada grupo cuenta sus filas solo cuando están cargadas todas las que cumplen el filtro. Si
+ * no, la cabecera va sin cifra: el backend no dice cómo se reparten entre los grupos, y contar las filas
+ * cargadas daba un número que no cerraba con «N de M sesiones» y que crecía con cada «Ver más sesiones».
  */
 export function GruposDeSesiones({ enCurso, finalizadas, conFiltro, todasCargadas, recuento, onVerEventos }: Props) {
-  if (conFiltro) {
-    return (
-      <>
-        {enCurso.length > 0 ? (
-          <ListaSesiones
-            titulo="En curso"
-            sesiones={enCurso}
-            total={enCurso.length}
-            conCuenta={todasCargadas}
-            onVerEventos={onVerEventos}
-          />
-        ) : null}
-        {finalizadas.length > 0 ? (
-          <ListaSesiones
-            titulo="Finalizadas"
-            sesiones={finalizadas}
-            total={finalizadas.length}
-            conCuenta={todasCargadas}
-            cerradas
-            onVerEventos={onVerEventos}
-          />
-        ) : null}
-      </>
-    );
-  }
+  // Las en curso llegan primero: con un filtro, si no hay ninguna entre las cargadas, no hay ninguna.
+  const vacioEnCurso =
+    recuento.enCurso === 0 || !conFiltro
+      ? "No hay sesiones de examen vigentes."
+      : "Ninguna sesión en curso coincide con el filtro.";
+  // Las finalizadas van después: con la lista cortada, las que coinciden pueden estar en la página siguiente.
+  const vacioFinalizadas =
+    conFiltro && todasCargadas ? "Ninguna sesión finalizada coincide con el filtro." : "Se ven con «Ver más sesiones».";
 
   return (
     <>
       <ListaSesiones
         titulo="En curso"
         sesiones={enCurso}
-        total={recuento.enCurso}
-        vacio={<p className="grupos__vacio">No hay sesiones de examen vigentes.</p>}
+        total={conFiltro ? enCurso.length : recuento.enCurso}
+        conCuenta={!conFiltro || todasCargadas}
+        vacio={<p className="grupos__vacio">{vacioEnCurso}</p>}
         onVerEventos={onVerEventos}
       />
       {finalizadas.length > 0 || recuento.finalizadas > 0 ? (
         <ListaSesiones
           titulo="Finalizadas"
           sesiones={finalizadas}
-          total={recuento.finalizadas}
+          total={conFiltro ? finalizadas.length : recuento.finalizadas}
+          conCuenta={!conFiltro || todasCargadas}
           cerradas
-          vacio={<p className="grupos__vacio">Se ven con «Ver más sesiones».</p>}
+          vacio={<p className="grupos__vacio">{vacioFinalizadas}</p>}
           onVerEventos={onVerEventos}
         />
       ) : null}
