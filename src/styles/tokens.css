@@ -197,6 +197,11 @@
   --panel-nota: 12px;
   --panel-rotulo: 11px;
   --panel-pieza: 17px;
+  /* La frase del veredicto («Hay 2 alertas para revisar.»), de 15 px y en el renglón del cuerpo (20). Con los
+     17 de una pieza empataba con «Análisis de la sesión», el título de su propia lámina, y las dos se leían como
+     títulos del mismo nivel. A 15 queda entre el título (17) y la bajada (13): se lee primero que todo lo de la
+     lámina, pero debajo de su título. */
+  --panel-frase: 15px;
   /* El número de las tarjetas del resumen, de 20 a 24 px. Con 28 fijo empataba o le ganaba al título de la
      vista: el h1 (--panel-curso, de 24 a 28 px) le saca siempre 4 px, a cualquier ancho. */
   --panel-cifra: clamp(1.25rem, 1rem + 0.85vw, 1.5rem);

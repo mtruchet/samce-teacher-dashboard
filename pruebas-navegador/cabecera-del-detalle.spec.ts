@@ -125,3 +125,34 @@ test("con colores forzados el aviso de captura conserva su contorno", async ({ p
   const contorno = await page.locator(".detalle__captura").evaluate((el) => getComputedStyle(el).outlineStyle);
   expect(contorno).toBe("solid");
 });
+
+for (const [ancho, cuadro] of [[1280, 56], [390, 40]] as const) {
+  test(`a ${ancho} px, la frase del veredicto va a 15/20, debajo del título de la lámina, con el cuadro de ${cuadro} px`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: ALTO });
+    await abrir(page, VISTAS.detalleAlto);
+    const m = await page.evaluate(() => {
+      const frase = document.querySelector<HTMLElement>(".veredicto__frase")!;
+      const icono = document.querySelector<HTMLElement>(".veredicto__icono")!.getBoundingClientRect();
+      const titulo = frase.closest(".lamina")!.querySelector<HTMLElement>(".lamina__titulo")!;
+      const rango = document.createRange();
+      rango.selectNodeContents(frase);
+      const primerRenglon = rango.getClientRects()[0];
+      const e = getComputedStyle(frase);
+      return {
+        letra: e.fontSize,
+        renglon: e.lineHeight,
+        titulo: getComputedStyle(titulo).fontSize,
+        bajada: getComputedStyle(document.querySelector(".veredicto__bajada")!).fontSize,
+        cuadro: [Math.round(icono.width), Math.round(icono.height)],
+        // El centro del primer renglón de la frase contra el centro del cuadro.
+        desvio: Math.abs(primerRenglon.top + primerRenglon.height / 2 - (icono.top + icono.height / 2)),
+      };
+    });
+    expect(m.letra).toBe("15px");
+    expect(m.renglon).toBe("20px");
+    expect(parseFloat(m.titulo)).toBeGreaterThan(15);
+    expect(parseFloat(m.bajada)).toBeLessThan(15);
+    expect(m.cuadro).toEqual([cuadro, cuadro]);
+    expect(m.desvio, JSON.stringify(m)).toBeLessThanOrEqual(2);
+  });
+}

@@ -166,13 +166,14 @@ Revisión de noviembre (Sprint 4): la lista, el detalle y el nivel de exámenes 
 
 ### Escala por rol
 
-Seis pasos, dos pesos (400 y 600) y un interlineado múltiplo de 5. El 500 queda solo para la barra oscura y `.boton-secundario`; el 700 no se usa (lo vigila `src/estilos.test.ts`).
+Siete pasos, dos pesos (400 y 600) y un interlineado múltiplo de 5. El 500 queda solo para la barra oscura y `.boton-secundario`; el 700 no se usa (lo vigila `src/estilos.test.ts`).
 
 | Rol | Letra / peso / interlineado | Dónde |
 |---|---|---|
 | Vista | `--panel-curso`, de 24 a 28 px / 600 / `--panel-alto-curso` 35 (30 bajo 760 px) | el título de la vista (`.panel__curso`) |
 | Cifra | `--panel-cifra`, de 20 a 24 px / 600 / `--panel-alto-cifra` 30 (25 bajo 760 px) | el número de las tarjetas del resumen |
-| Pieza | 17 / 600 / `--panel-alto-pieza` 25, con `--track-titulo` | título de lámina, nombre de la ficha de examen, frase del veredicto |
+| Pieza | 17 / 600 / `--panel-alto-pieza` 25, con `--track-titulo` | título de lámina, nombre de la ficha de examen |
+| Frase | `--panel-frase` 15 / 600 / `--panel-alto` 20, con `--track-titulo` | la frase del veredicto: entre el título de su lámina y la bajada |
 | Cuerpo | 14 / 400 o 600 / `--panel-alto` 20 | título de apartado, el hecho y la lista del análisis, las migas |
 | Fila | 13 / 400 en tinta-media o 600 en tinta / 20 | celdas, rótulo del nivel, notas, métricas, ficha de la sesión, «N de M», vacíos, botón de texto |
 | Nota | 12 / 400 en tinta-media / 20 | horas, cuentas, encabezados del registro y etiquetas (estos dos en 600) |

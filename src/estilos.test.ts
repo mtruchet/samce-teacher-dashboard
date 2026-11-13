@@ -115,6 +115,15 @@ describe("las hojas de estilo", () => {
     expect(buscar(/max-(width|inline-size):\s*\d+ch/).filter(delPanel)).toEqual([]);
   });
 
+  it("la frase del veredicto tiene su paso (--panel-frase, 15 px), entre el título de la lámina y la bajada", () => {
+    // Con los 17 px de una pieza empataba con «Análisis de la sesión», el título de su propia lámina.
+    expect(HOJAS["./styles/tokens.css"]).toMatch(/--panel-frase:\s*15px/);
+    const regla = sinComentarios(HOJAS["./components/AnalisisSesion.css"]).match(/\.veredicto__frase\s*\{([^}]*)\}/);
+    expect(regla).not.toBeNull();
+    expect(regla![1]).toMatch(/font-size:\s*var\(--panel-frase\)/);
+    expect(regla![1]).toMatch(/line-height:\s*var\(--panel-alto\)/);
+  });
+
   it("el panel mide como máximo 1080 px: ese tope es lo que deja el texto en un largo legible", () => {
     // Si se ensancha el panel, el texto vuelve a necesitar una medida propia (docs/sistema-visual.md).
     expect(HOJAS["./styles/tokens.css"]).toMatch(/--ancho-panel:\s*1080px/);

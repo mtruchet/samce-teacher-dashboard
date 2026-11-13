@@ -56,6 +56,9 @@
 /* El ícono va arriba, a la altura del título, en todos los estados: centrado contra un bloque de tres
    renglones quedaba más abajo que la frase (ronda 3). */
 .veredicto {
+  /* El lado del cuadro del ícono: 56 px, y 40 en el teléfono (abajo). La frase se centra contra él con este
+     mismo valor, así que se declara una sola vez. */
+  --veredicto-cuadro: 56px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
@@ -66,8 +69,8 @@
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  width: 56px;
-  height: 56px;
+  width: var(--veredicto-cuadro);
+  height: var(--veredicto-cuadro);
   border-radius: var(--radio-ficha);
   background: var(--sup-3);
   color: var(--tinta-media);
@@ -85,21 +88,22 @@
   color: var(--veredicto-bien-tinta);
 }
 
-/* El primer renglón queda centrado contra el cuadro del ícono (56 px), y la bajada sigue debajo. La cuenta sale
-   del interlineado de la frase y no de un número suelto: si cambia la escala, se sigue centrando. */
+/* El primer renglón queda centrado contra el cuadro del ícono, y la bajada sigue debajo. La cuenta sale del lado
+   del cuadro y del interlineado de la frase, no de un número suelto: si cambia la escala, se sigue centrando. */
 .veredicto__texto {
   display: grid;
   gap: var(--e1);
   max-width: var(--medida-panel);
-  padding-top: calc((56px - var(--panel-alto-pieza)) / 2);
+  padding-top: calc((var(--veredicto-cuadro) - var(--panel-alto)) / 2);
 }
 
-/* La frase lleva la receta de una pieza, la misma que el título de una lámina: 17 px, 600, 25 de renglón. */
+/* La frase, en su propio paso (--panel-frase, 15 px), 600 y el renglón del cuerpo (20): un escalón debajo del
+   título de la lámina (17/25) y uno arriba de la bajada (13/20). */
 .veredicto__frase {
   margin: 0;
-  font-size: var(--panel-pieza);
+  font-size: var(--panel-frase);
   font-weight: 600;
-  line-height: var(--panel-alto-pieza);
+  line-height: var(--panel-alto);
   letter-spacing: var(--track-titulo);
   color: var(--tinta);
 }
@@ -253,6 +257,18 @@
 }
 
 @media (max-width: 640px) {
+  /* En el teléfono el cuadro del ícono baja a 40 px: con 56 se comía un sexto del ancho, y la frase se partía en
+     dos renglones con el ícono más pesado que ella. El ícono baja en proporción (de 36 a 24). */
+  .veredicto {
+    --veredicto-cuadro: 40px;
+    gap: var(--e3);
+  }
+
+  .veredicto__icono svg {
+    width: 24px;
+    height: 24px;
+  }
+
   /* La hora baja a su propio renglón. */
   .analisis__alerta {
     gap: var(--e3);
