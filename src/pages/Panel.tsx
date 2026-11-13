@@ -391,6 +391,8 @@ export function Panel() {
   // llegó a la dirección: hay que descartarla, o la espera la suma después y el resultado deja de coincidir
   // con el número de la tarjeta.
   const busqueda = useRef<ControlBusqueda>(null);
+  // Si el campo de búsqueda dice algo que la lista todavía no buscó (lo avisa `FiltrosSesiones`).
+  const [busquedaEnEspera, setBusquedaEnEspera] = useState(false);
   const filtrarDesdeElResumen = useCallback(
     (parciales: Parameters<typeof aplicarFiltros>[0]) => {
       if ("q" in parciales) busqueda.current?.cancelarBusqueda();
@@ -581,7 +583,8 @@ export function Panel() {
 
   const enCurso = delExamen.filter((s) => s.status === "open");
   // La lista que se ve no es todavía la de la vista pedida (un filtro recién tocado, la vuelta del detalle).
-  const pendiente = nivel === "sesiones" && recibido && !sesionesAjenas && !alDia;
+  // También mientras la búsqueda espera que el docente deje de escribir: el campo ya dice otra cosa.
+  const pendiente = nivel === "sesiones" && recibido && !sesionesAjenas && (!alDia || busquedaEnEspera);
   const finalizadas = delExamen.filter((s) => s.status !== "open");
 
   // La pantalla de escucha es para cuando no hay absolutamente nada que
@@ -727,7 +730,13 @@ export function Panel() {
                   {cargadas?.resumen ? (
                     <ResumenEvaluacion resumen={cargadas.resumen} filtros={filtros} onFiltrar={filtrarDesdeElResumen} />
                   ) : null}
-                  <FiltrosSesiones filtros={filtros} onCambio={filtrar} nivelRef={selectorDeNivel} controlRef={busqueda} />
+                  <FiltrosSesiones
+                    filtros={filtros}
+                    onCambio={filtrar}
+                    nivelRef={selectorDeNivel}
+                    controlRef={busqueda}
+                    onEspera={setBusquedaEnEspera}
+                  />
                   <ResultadoDelFiltro
                     conFiltro={conFiltro}
                     cuantas={cuantasDelFiltro}
@@ -748,6 +757,7 @@ export function Panel() {
                     conFiltro={conFiltroMostrado}
                     todasCargadas={delExamen.length >= totalMostrado}
                     recuento={{ enCurso: recuento.enCurso, finalizadas: totalFinalizadas }}
+                    vista={cargadas?.vista}
                     onVerEventos={verEventos}
                   />
 

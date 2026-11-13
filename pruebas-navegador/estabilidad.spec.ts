@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { abrir, simularBackend, VISTAS } from "./simulacion";
+import { abrir, simularBackend, sinSesionesAbiertas, VISTAS } from "./simulacion";
 
 /**
  * Que la lista no se reacomode al filtrar (problema 1 del 13/11): al tocar una tarjeta, la lámina de control
@@ -135,5 +135,172 @@ test("mientras el filtro no contesta, ninguna fila sin filtrar se ve como si est
   expect(ocupada).toBe(true);
   expect(malas).toEqual([]);
   expect(verMas).toBe(false);
+  await expect(page.locator(".panel__listas")).not.toHaveAttribute("aria-busy");
+});
+
+interface Corrimiento {
+  suma: number;
+  /** Las piezas que se movieron, para el mensaje si la prueba falla («TR 724->551»). */
+  fuentes: string[];
+  /** Cuántas veces se movió una fila de una tabla. */
+  filas: number;
+}
+
+/**
+ * Suma los corrimientos de diseño (layout-shift) mientras corre `accion`, como los cuenta el navegador para el
+ * CLS: solo los que no siguen a una tecla o un clic en los 500 ms anteriores, que son los que llegan con la
+ * respuesta demorada, cuando el docente ya está mirando la lista.
+ */
+async function corrimientoDurante(page: Page, accion: () => Promise<void>, ms = 1500): Promise<Corrimiento> {
+  await page.evaluate(() => {
+    type Entrada = PerformanceEntry & {
+      value: number;
+      hadRecentInput: boolean;
+      sources: Array<{ node?: Node; previousRect: DOMRectReadOnly; currentRect: DOMRectReadOnly }>;
+    };
+    const w = window as unknown as { __corrimiento: Corrimiento; __observador?: PerformanceObserver };
+    w.__observador?.disconnect();
+    w.__corrimiento = { suma: 0, fuentes: [], filas: 0 };
+    w.__observador = new PerformanceObserver((lista) => {
+      for (const e of lista.getEntries() as Entrada[]) {
+        if (e.hadRecentInput) continue;
+        w.__corrimiento.suma += e.value;
+        for (const f of e.sources) {
+          const nombre = f.node?.nodeName ?? "?";
+          if (nombre === "TR") w.__corrimiento.filas += 1;
+          w.__corrimiento.fuentes.push(`${nombre} ${Math.round(f.previousRect.y)}->${Math.round(f.currentRect.y)}`);
+        }
+      }
+    });
+    w.__observador.observe({ type: "layout-shift" });
+  });
+  await accion();
+  await page.waitForTimeout(ms);
+  return page.evaluate(() => (window as unknown as { __corrimiento: Corrimiento }).__corrimiento);
+}
+
+/** Las acciones de la lámina de control, cada una seguida de la que la deshace. */
+function acciones(page: Page): Array<[string, () => Promise<void>]> {
+  const tarjetas = page.locator(".resumen__tarjeta");
+  const nivel = page.getByLabel("Nivel de riesgo");
+  const lista: Array<[string, () => Promise<void>]> = [];
+  for (let i = 0; i < 7; i++) {
+    lista.push([`prender la tarjeta ${i + 1}`, () => tarjetas.nth(i).click()]);
+    lista.push([`apagar la tarjeta ${i + 1}`, () => tarjetas.nth(i).click()]);
+  }
+  lista.push(["elegir «Riesgo medio» en el selector", async () => void (await nivel.selectOption("medium"))]);
+  lista.push(["volver a «Todos» en el selector", async () => void (await nivel.selectOption(""))]);
+  lista.push(["buscar «zzzq»", () => page.getByLabel("Buscar alumno").fill("zzzq")]);
+  lista.push(["Quitar filtros", () => page.getByRole("button", { name: "Quitar filtros" }).click()]);
+  return lista;
+}
+
+for (const [ancho, alto] of [[1280, 900], [1440, 900], [390, 844]] as const) {
+  test(`a ${ancho} px, en un examen sin nadie rindiendo, filtrar no corre nada de lo que se ve (CLS < 0,01)`, async ({ page }) => {
+    // Las filas que seguían después del filtro se movían dentro de la tabla, y el navegador lo contaba como
+    // corrimiento: de 0,02 a 0,05 por tarjeta.
+    test.slow();
+    await page.setViewportSize({ width: ancho, height: alto });
+    await sinSesionesAbiertas(page);
+    await demorarFiltrados(page, 700);
+    await abrir(page, VISTAS.lista);
+    await page.evaluate(() => document.fonts.ready);
+
+    for (const [nombre, accion] of acciones(page)) {
+      const { suma, fuentes } = await corrimientoDurante(page, accion, nombre.startsWith("buscar") ? 1800 : 1500);
+      expect(suma, `${nombre}: ${fuentes.join(", ")}`).toBeLessThan(0.01);
+    }
+  });
+}
+
+test("con la página bajada hasta la lámina de control, ninguna fila se corre al filtrar", async ({ page }) => {
+  // Así el corrimiento llegaba a 0,3. Lo que sí puede subir es el pie: si la lista filtrada es más corta que la
+  // pantalla, la página termina antes. Eso es que la lista se achicó, no que se movió algo que se estaba leyendo.
+  test.slow();
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await sinSesionesAbiertas(page);
+  await demorarFiltrados(page, 700);
+  await abrir(page, VISTAS.lista);
+  for (const [nombre, accion] of acciones(page)) {
+    await page.evaluate(() => {
+      const control = document.querySelector(".control")!;
+      window.scrollTo({ top: control.getBoundingClientRect().top + window.scrollY - 60, behavior: "instant" });
+    });
+    const { filas, fuentes } = await corrimientoDurante(page, accion, nombre.startsWith("buscar") ? 1800 : 1500);
+    expect(filas, `${nombre}: ${fuentes.join(", ")}`).toBe(0);
+  }
+});
+
+test("con alumnos rindiendo, «Finalizadas» cambia de lugar de una sola vez, cuando llega la respuesta", async ({ page }) => {
+  // Si el filtro deja «En curso» con menos filas, «Finalizadas» sube: es el resultado del filtro, y no se
+  // reserva el alto de las filas que ya no están. Lo que se mide es que el cambio sea uno solo, cuando llega la
+  // respuesta, y que ninguna fila se corra dentro de su tabla.
+  test.slow();
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await demorarFiltrados(page, 700);
+  await abrir(page, VISTAS.lista);
+  const tarjetas = page.locator(".resumen__tarjeta");
+  for (let i = 0; i < 7; i++) {
+    await page.evaluate(() => {
+      const w = window as unknown as { __lugares: number[] };
+      w.__lugares = [];
+      const t0 = performance.now();
+      const paso = () => {
+        const h = [...document.querySelectorAll("h2")].find((t) => t.textContent?.trim() === "Finalizadas");
+        if (h) w.__lugares.push(Math.round(h.getBoundingClientRect().top + window.scrollY));
+        if (performance.now() - t0 < 1500) requestAnimationFrame(paso);
+      };
+      requestAnimationFrame(paso);
+    });
+    const { filas, fuentes } = await corrimientoDurante(page, () => tarjetas.nth(i).click());
+    const lugares = await page.evaluate(() => (window as unknown as { __lugares: number[] }).__lugares);
+    const saltos = lugares.filter((y, j) => j > 0 && y !== lugares[j - 1]).length;
+    expect(saltos, `tarjeta ${i + 1}: ${[...new Set(lugares)].join(" -> ")}`).toBeLessThanOrEqual(1);
+    expect(filas, `tarjeta ${i + 1}: ${fuentes.join(", ")}`).toBe(0);
+    await tarjetas.nth(i).click();
+    await expect(page.locator(".panel__listas")).not.toHaveAttribute("aria-busy", { timeout: 3000 });
+  }
+});
+
+test("desde la primera tecla de la búsqueda, la lista está marcada como ocupada hasta que llega el resultado", async ({ page }) => {
+  // Durante los 300 ms de espera, el campo ya decía «ma» y la lista seguía entera y sin marcar.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await demorarFiltrados(page, 700);
+  await abrir(page, VISTAS.lista);
+
+  /** Desde ahora, cada cuadro en que el campo ya cambió y la lista no está marcada: con cuántas filas. */
+  const muestrear = () =>
+    page.evaluate(() => {
+      const w = window as unknown as { __sinMarcar: number[] };
+      w.__sinMarcar = [];
+      const t0 = performance.now();
+      const campo = document.querySelector<HTMLInputElement>("input[type='search']")!;
+      const inicial = campo.value;
+      const paso = () => {
+        const ocupada = document.querySelector(".panel__listas")?.getAttribute("aria-busy") === "true";
+        if (campo.value !== inicial && !ocupada) {
+          w.__sinMarcar.push(document.querySelectorAll(".panel__listas tbody tr").length);
+        }
+        if (performance.now() - t0 < 1600) requestAnimationFrame(paso);
+      };
+      requestAnimationFrame(paso);
+    });
+  /** Los cuadros sin marcar cuya lista no es la final: la de antes, con filas que no cumplen la búsqueda. */
+  const conOtraLista = async () => {
+    await page.waitForTimeout(1700);
+    const finales = await page.locator(".panel__listas tbody tr").count();
+    const cuadros = await page.evaluate(() => (window as unknown as { __sinMarcar: number[] }).__sinMarcar);
+    return cuadros.filter((n) => n !== finales);
+  };
+
+  await muestrear();
+  await page.getByLabel("Buscar alumno").pressSequentially("ma", { delay: 60 });
+  expect(await conOtraLista()).toEqual([]);
+  await expect(page.locator(".panel__listas")).not.toHaveAttribute("aria-busy");
+
+  // «Quitar filtros» vacía el campo enseguida: desde ese cuadro la lista está ocupada hasta que llega entera.
+  await muestrear();
+  await page.getByRole("button", { name: "Quitar filtros" }).click();
+  expect(await conOtraLista()).toEqual([]);
   await expect(page.locator(".panel__listas")).not.toHaveAttribute("aria-busy");
 });

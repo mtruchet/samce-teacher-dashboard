@@ -61,11 +61,18 @@ interface Props {
   /** Las cerradas no llevan un reloj corriendo sino una duración. */
   cerradas?: boolean;
   vacio?: React.ReactNode;
+  /**
+   * De qué respuesta son las filas (la vista: examen y filtros). Cuando cambia, la tabla se arma de nuevo en
+   * vez de reacomodar la anterior: las filas que siguen después de un filtro se movían dentro de la tabla, y el
+   * navegador lo contaba como un corrimiento de lo que el docente estaba leyendo. El refresco de la misma
+   * vista no la cambia, así el foco y la fila que se mira no se pierden cada pocos segundos.
+   */
+  vista?: string;
   /** Abre lo que pasó durante el intento. */
   onVerEventos: (sesion: SesionNumerada) => void;
 }
 
-export function ListaSesiones({ titulo, sesiones, total, conCuenta = true, cerradas = false, vacio, onVerEventos }: Props) {
+export function ListaSesiones({ titulo, sesiones, total, conCuenta = true, cerradas = false, vacio, vista, onVerEventos }: Props) {
   // «50 de 80» cuando la lista está cortada, para que el número coincida con el
   // de la ficha del examen y se note que faltan filas por traer.
   const cuenta =
@@ -82,7 +89,7 @@ export function ListaSesiones({ titulo, sesiones, total, conCuenta = true, cerra
       {sesiones.length === 0 ? (
         vacio
       ) : (
-        <div className="lista__marco">
+        <div className="lista__marco" key={vista}>
           <table className="tabla">
             <caption className="solo-lectores">
               {/* Corto a propósito: el lector de pantalla lo lee entero cada vez que entra a la tabla. */}

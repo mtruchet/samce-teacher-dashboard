@@ -101,4 +101,13 @@ describe("las hojas de estilo", () => {
     // Si se ensancha el panel, el texto vuelve a necesitar una medida propia (docs/sistema-visual.md).
     expect(HOJAS["./styles/tokens.css"]).toMatch(/--ancho-panel:\s*1080px/);
   });
+
+  it("la lista ocupada se atenúa a 0,8 o más: se sigue leyendo y usando, y el texto cumple 4,5:1", () => {
+    // Con 0,55, el texto secundario (--tinta-media) quedaba en 2,7:1 mientras la respuesta del filtro llegaba.
+    const regla = sinComentarios(HOJAS["./pages/Panel.css"]).match(/\.panel__listas\[aria-busy="true"\]\s*\{([^}]*)\}/);
+    expect(regla).not.toBeNull();
+    const opacidad = regla![1].match(/opacity:\s*([\d.]+)/);
+    expect(opacidad).not.toBeNull();
+    expect(Number(opacidad![1])).toBeGreaterThanOrEqual(0.8);
+  });
 });

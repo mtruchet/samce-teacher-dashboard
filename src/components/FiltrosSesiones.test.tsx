@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { expectLenguajeLlano } from "../test/lenguaje";
-import { ESPERA_BUSQUEDA_MS, FiltrosSesiones } from "./FiltrosSesiones";
+import { ESPERA_BUSQUEDA_MS, FiltrosSesiones, type ControlBusqueda } from "./FiltrosSesiones";
 
 describe("FiltrosSesiones", () => {
   beforeEach(() => vi.useFakeTimers());
@@ -127,5 +127,41 @@ describe("FiltrosSesiones", () => {
     expect(campo).toHaveValue("Anax");
     act(() => vi.advanceTimersByTime(ESPERA_BUSQUEDA_MS));
     expect(onCambio).toHaveBeenLastCalledWith({ q: "Anax" });
+  });
+
+  it("avisa que la búsqueda está en espera desde la primera tecla hasta que llega a la dirección", () => {
+    // Durante los 300 ms de espera el campo ya decía otra cosa y la lista seguía sin marcar como ocupada.
+    const onEspera = vi.fn();
+    const onCambio = vi.fn();
+    const { rerender } = render(<FiltrosSesiones filtros={{}} onCambio={onCambio} onEspera={onEspera} />);
+    expect(onEspera).toHaveBeenLastCalledWith(false);
+    const campo = screen.getByLabelText("Buscar alumno");
+    fireEvent.change(campo, { target: { value: "ma" } });
+    expect(onEspera).toHaveBeenLastCalledWith(true);
+    // Se mandó, pero la dirección todavía no la confirmó: sigue en espera.
+    act(() => vi.advanceTimersByTime(ESPERA_BUSQUEDA_MS));
+    expect(onCambio).toHaveBeenLastCalledWith({ q: "ma" });
+    expect(onEspera).toHaveBeenLastCalledWith(true);
+    rerender(<FiltrosSesiones filtros={{ q: "ma" }} onCambio={onCambio} onEspera={onEspera} />);
+    expect(onEspera).toHaveBeenLastCalledWith(false);
+
+    // Lo mismo que ya está en la dirección («ma» y un espacio) no espera nada.
+    fireEvent.change(campo, { target: { value: "ma " } });
+    expect(onEspera).toHaveBeenLastCalledWith(true);
+    act(() => vi.advanceTimersByTime(ESPERA_BUSQUEDA_MS));
+    expect(onEspera).toHaveBeenLastCalledWith(false);
+  });
+
+  it("al cancelar una búsqueda que ya está en la dirección, sigue en espera hasta que la dirección la pierde", () => {
+    const onEspera = vi.fn();
+    const ref = { current: null as ControlBusqueda | null };
+    const { rerender } = render(
+      <FiltrosSesiones filtros={{ q: "ma" }} onCambio={() => {}} onEspera={onEspera} controlRef={ref} />
+    );
+    act(() => ref.current!.cancelarBusqueda());
+    expect(screen.getByLabelText("Buscar alumno")).toHaveValue("");
+    expect(onEspera).toHaveBeenLastCalledWith(true);
+    rerender(<FiltrosSesiones filtros={{}} onCambio={() => {}} onEspera={onEspera} controlRef={ref} />);
+    expect(onEspera).toHaveBeenLastCalledWith(false);
   });
 });

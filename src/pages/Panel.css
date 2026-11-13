@@ -166,8 +166,11 @@ body:has(.panel) {
   gap: var(--e6);
 }
 
+/* 0,8 y no menos: mientras está atenuada, la lista se sigue leyendo y sus «Ver» se siguen usando (no es un
+   control inactivo), así que el texto tiene que cumplir el contraste mínimo (WCAG 1.4.3). Con 0,55 el texto
+   secundario quedaba en 2,7:1; 0,8 es la menor que lo deja en 4,5:1 o más. */
 .panel__listas[aria-busy="true"] {
-  opacity: 0.55;
+  opacity: 0.8;
   transition: opacity var(--mov-estado) var(--curva) var(--mov-estado);
 }
 

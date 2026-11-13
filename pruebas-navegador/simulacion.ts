@@ -263,6 +263,29 @@ export async function entregarEnLaConsulta(page: Page, id: number, desde: number
   );
 }
 
+/**
+ * Un examen sin nadie rindiendo: las dos sesiones en curso llegan entregadas, y el examen las cuenta como
+ * finalizadas. Es el caso más común fuera del horario del examen, y el que deja «En curso» vacío con o sin
+ * filtro. Se agrega después de `simularBackend`, y gana sobre sus rutas de los exámenes y de la lista.
+ */
+export async function sinSesionesAbiertas(page: Page): Promise<void> {
+  const cerradas = SESIONES.map((s) =>
+    s.status === "open" ? { ...s, status: "closed" as const, closed_at: hora(s.started_at, 40) } : s
+  );
+  await page.route(
+    (url) => url.pathname === "/api/monitored-quizzes",
+    (route) =>
+      json(
+        route,
+        EXAMENES.map((e) => ({ ...e, open_sessions: 0, closed_sessions: e.closed_sessions + e.open_sessions }))
+      )
+  );
+  await page.route(
+    (url) => /\/api\/monitored-quizzes\/\d+\/sessions$/.test(url.pathname),
+    (route) => contestarLista(route, new URL(route.request().url()), cerradas)
+  );
+}
+
 /** Deja la sesión del docente guardada y contesta todos los pedidos a la API con los datos falsos. */
 export async function simularBackend(page: Page): Promise<void> {
   await page.addInitScript((sesion) => {

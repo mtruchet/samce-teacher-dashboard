@@ -10,6 +10,8 @@ interface Props {
   todasCargadas: boolean;
   /** Cuántas sesiones tiene el examen en cada grupo, según los recuentos del backend. */
   recuento: { enCurso: number; finalizadas: number };
+  /** De qué respuesta son las filas: con otra, cada tabla se arma de nuevo (ver `ListaSesiones`). */
+  vista?: string;
   onVerEventos: (sesion: SesionNumerada) => void;
 }
 
@@ -28,7 +30,7 @@ interface Props {
  * no, la cabecera va sin cifra: el backend no dice cómo se reparten entre los grupos, y contar las filas
  * cargadas daba un número que no cerraba con «N de M sesiones» y que crecía con cada «Ver más sesiones».
  */
-export function GruposDeSesiones({ enCurso, finalizadas, conFiltro, todasCargadas, recuento, onVerEventos }: Props) {
+export function GruposDeSesiones({ enCurso, finalizadas, conFiltro, todasCargadas, recuento, vista, onVerEventos }: Props) {
   // Las en curso llegan primero: con un filtro, si no hay ninguna entre las cargadas, no hay ninguna.
   const vacioEnCurso =
     recuento.enCurso === 0 || !conFiltro
@@ -46,6 +48,7 @@ export function GruposDeSesiones({ enCurso, finalizadas, conFiltro, todasCargada
         total={conFiltro ? enCurso.length : recuento.enCurso}
         conCuenta={!conFiltro || todasCargadas}
         vacio={<p className="grupos__vacio">{vacioEnCurso}</p>}
+        vista={vista}
         onVerEventos={onVerEventos}
       />
       {finalizadas.length > 0 || recuento.finalizadas > 0 ? (
@@ -56,6 +59,7 @@ export function GruposDeSesiones({ enCurso, finalizadas, conFiltro, todasCargada
           conCuenta={!conFiltro || todasCargadas}
           cerradas
           vacio={<p className="grupos__vacio">{vacioFinalizadas}</p>}
+          vista={vista}
           onVerEventos={onVerEventos}
         />
       ) : null}

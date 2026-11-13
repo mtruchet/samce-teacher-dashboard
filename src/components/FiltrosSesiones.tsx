@@ -1,4 +1,4 @@
-import { useEffect, useId, useImperativeHandle, useRef, useState, type Ref } from "react";
+import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { LARGO_MAXIMO_BUSQUEDA, NIVELES_FILTRO, type FiltrosSesiones as Filtros } from "../filtrosDeLaDireccion";
 import { NIVELES } from "../lenguajeAlerta";
 import "./FiltrosSesiones.css";
@@ -24,6 +24,11 @@ interface Props {
   nivelRef?: Ref<HTMLSelectElement>;
   /** Para cancelar desde afuera una búsqueda que todavía no llegó a la dirección. */
   controlRef?: Ref<ControlBusqueda>;
+  /**
+   * Avisa si el campo dice algo que la lista todavía no buscó: desde la primera tecla hasta que la búsqueda
+   * llega a la dirección. Quien lo monta marca la lista como ocupada mientras tanto.
+   */
+  onEspera?: (esperando: boolean) => void;
 }
 
 /**
@@ -43,7 +48,7 @@ interface Props {
  * Va dentro de la lámina de control, sin lámina propia. «N de M sesiones» y «Quitar filtros» no son de la
  * barra: van en el renglón de resultado (`ResultadoDelFiltro`), debajo.
  */
-export function FiltrosSesiones({ filtros, onCambio, nivelRef, controlRef }: Props) {
+export function FiltrosSesiones({ filtros, onCambio, nivelRef, controlRef, onEspera }: Props) {
   const id = useId();
   const [texto, setTexto] = useState(filtros.q ?? "");
   const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,11 +69,22 @@ export function FiltrosSesiones({ filtros, onCambio, nivelRef, controlRef }: Pro
   const q = filtros.q ?? "";
   const enviada = useRef(q);
   const [ultimaQ, setUltimaQ] = useState(q);
+  // Si el campo dice algo que la lista todavía no buscó. Empieza con la tecla y no cuando vence la espera:
+  // durante esos 300 ms el campo ya mostraba el texto nuevo y la lista seguía entera y sin marcar, con filas
+  // que no cumplían la búsqueda. Termina cuando la búsqueda llega a la dirección, y no cuando se manda:
+  // react-router la confirma un rato después, y en el medio la lista quedaba un cuadro sin marcar.
+  const [enEspera, setEnEspera] = useState(false);
+  const qActual = useRef(q);
+  useEffect(() => {
+    qActual.current = q;
+  }, [q]);
   // El último cambio de afuera, con la búsqueda que trajo. La referencia se asienta en el efecto y no en el
   // render: un render descartado no puede dejarla adelantada.
   const [deAfuera, setDeAfuera] = useState<{ vez: number; q: string } | null>(null);
   if (q !== ultimaQ) {
     setUltimaQ(q);
+    // Llegó la búsqueda: sigue en espera solo si el docente siguió tecleando en el medio.
+    setEnEspera(q === enviada.current && espera.current !== null);
     if (q !== enviada.current) {
       if (texto.trim() !== q) setTexto(q);
       setDeAfuera((d) => ({ vez: (d?.vez ?? 0) + 1, q }));
@@ -94,17 +110,30 @@ export function FiltrosSesiones({ filtros, onCambio, nivelRef, controlRef }: Pro
         espera.current = null;
         enviada.current = "";
         setTexto("");
+        // El campo ya quedó vacío, pero la lista sigue buscando lo de antes hasta que la dirección pierda la
+        // búsqueda (la borra quien llamó).
+        setEnEspera(qActual.current !== "");
       },
     }),
     []
   );
 
+  // Antes de pintar: con un efecto común, el primer cuadro con la tecla nueva salía con la lista sin marcar.
+  useLayoutEffect(() => {
+    onEspera?.(enEspera);
+  }, [enEspera, onEspera]);
+  useLayoutEffect(() => () => onEspera?.(false), [onEspera]);
+
   function escribir(valor: string) {
     setTexto(valor);
+    setEnEspera(true);
     if (espera.current) clearTimeout(espera.current);
     espera.current = setTimeout(() => {
       espera.current = null;
       enviada.current = valor.trim();
+      // Si lo escrito ya es la búsqueda de la dirección («Juan» y un espacio), la dirección no cambia y no hay
+      // nada que esperar.
+      if (valor.trim() === qActual.current) setEnEspera(false);
       alCambiar.current({ q: valor.trim() || undefined });
     }, ESPERA_BUSQUEDA_MS);
   }
