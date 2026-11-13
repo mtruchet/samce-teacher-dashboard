@@ -152,23 +152,11 @@
 }
 
 @media (max-width: 760px) {
-  /* La hora de comienzo se va de la vista: el transcurrido dice lo mismo y ocupa menos. Sigue para los
-     lectores de pantalla, como su rótulo de columna, así la tabla y su título (que la nombra) siguen diciendo
-     lo mismo. Va por su clase y no por su posición, porque el número de columna cambia en cuanto se agrega
-     una y la regla termina escondiendo otra cosa. */
-  .tabla tbody td.tabla__hora {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  /* La fila se apila: a la izquierda el alumno; a la derecha «Ver» y, debajo, la duración; y el análisis
-     entero abajo, alineado con el nombre. Con la duración al lado del nombre, una duración larga («197 h
-     21 min») dejaba al alumno sin lugar y la marca de captura se salía de su celda. Las celdas siguen siendo
+  /* La fila se apila: a la izquierda el alumno; a la derecha «Ver» y, debajo, la duración; abajo el análisis,
+     alineado con el nombre, y a su derecha la hora de comienzo. Con la duración al lado del nombre, una
+     duración larga («197 h 21 min») dejaba al alumno sin lugar y la marca de captura se salía de su celda.
+     La hora antes se escondía acá, y con el navegador al 200 % (WCAG 1.4.10, el mismo ancho) el docente se
+     quedaba sin saber a qué hora empezó cada alumno: el transcurrido no lo dice. Las celdas siguen siendo
      celdas de la tabla; los rótulos de columna quedan para los lectores de pantalla. */
   .tabla,
   .tabla tbody {
@@ -190,7 +178,7 @@
     grid-template-areas:
       "alumno eventos"
       "alumno tiempo"
-      "analisis analisis";
+      "analisis hora";
     align-items: center;
     column-gap: var(--e2);
     padding-block: var(--e2);
@@ -204,8 +192,7 @@
     align-self: start;
   }
 
-  /* Sin `display`: como hijas de la grilla, las celdas ya se dibujan como bloques. La hora de comienzo queda
-     fuera de la grilla por la regla de arriba. */
+  /* Sin `display`: como hijas de la grilla, las celdas ya se dibujan como bloques. */
   .tabla td,
   .tabla td:not(:first-child) {
     width: auto;
@@ -223,6 +210,16 @@
 
   .tabla td.tabla__eventos {
     grid-area: eventos;
+  }
+
+  /* Un dato de apoyo, más chico y más suave que la duración, al pie de la fila y en el mismo borde que «Ver». */
+  .tabla td.tabla__hora {
+    grid-area: hora;
+    align-self: end;
+    padding-right: calc(var(--e1) + var(--e2));
+    font-size: var(--panel-nota);
+    color: var(--tinta-media);
+    white-space: nowrap;
   }
 
   /* Acá la celda tiene un relleno menor que el del botón: correrlo lo sacaría de la fila (y su anillo de foco,
@@ -261,13 +258,21 @@
 
 /* A 320 px (1280 al 400 %, WCAG 1.4.10) ni así entraba: la celda del alumno quedaba más angosta que el nombre
    y la marca de captura, que se montaban sobre la duración. Ahí la duración baja a su propio renglón,
-   alineada con el nombre, y el alumno se queda con todo el ancho menos «Ver». */
+   alineada con el nombre, y el alumno se queda con todo el ancho menos «Ver». La hora de comienzo comparte el
+   renglón de la duración, contra el borde derecho: en la columna de «Ver» la ensanchaba y le quitaba al nombre
+   el lugar que esto le da. El análisis va entero abajo. */
 @media (max-width: 360px) {
   .tabla tbody tr {
     grid-template-areas:
       "alumno eventos"
       "tiempo tiempo"
       "analisis analisis";
+  }
+
+  .tabla td.tabla__hora {
+    grid-area: tiempo;
+    justify-self: end;
+    align-self: start;
   }
 
   .tabla td.tabla__duracion {

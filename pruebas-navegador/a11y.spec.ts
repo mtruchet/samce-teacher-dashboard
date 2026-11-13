@@ -362,6 +362,25 @@ test("a 1280 px, si el alumno entrega con el foco en su «Ver», el foco sigue e
   expect(await page.evaluate(() => window.scrollY)).toBe(y);
 });
 
+for (const ancho of [390, 320] as const) {
+  test(`a ${ancho} px (el 200 y el 400 % de zoom), la hora de comienzo de cada sesión se ve, sin desplazar la página de costado`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: ALTO });
+    await abrir(page, VISTAS.lista);
+    const celdas = await page.locator(".tabla tbody td.tabla__hora").evaluateAll((tds) =>
+      tds.map((td) => ({
+        ancho: td.getBoundingClientRect().width,
+        recorte: getComputedStyle(td).clipPath,
+        texto: td.textContent?.trim() ?? "",
+      }))
+    );
+    expect(celdas.length).toBeGreaterThan(2);
+    const escondidas = celdas.filter((c) => c.ancho <= 20 || c.recorte !== "none" || !c.texto);
+    expect(escondidas).toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth)).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`hora-${ancho}.png`), fullPage: true });
+  });
+}
+
 /**
  * Los roles del árbol de accesibilidad real de Chromium (por CDP), no los que calcula Playwright desde el DOM:
  * un `display: grid` puede hacer que el navegador descarte la semántica de tabla, y `ariaSnapshot()` no lo ve.
@@ -388,7 +407,7 @@ test("B5: a 390 px, la tabla apilada sigue siendo una tabla para los lectores de
   expect(angosta.table).toBeGreaterThanOrEqual(2);
   expect(angosta.row).toBeGreaterThan(2);
   expect(angosta.cell).toBeGreaterThan(2);
-  // La hora de comienzo se va de la vista, no del árbol: los encabezados son los mismos que a 1280 px, y el
+  // Apilada, la tabla tiene los mismos encabezados y celdas que a 1280 px (la hora de comienzo incluida), y el
   // título de la tabla, que la nombra, sigue siendo cierto (A5).
   await page.setViewportSize({ width: 1280, height: ALTO });
   const ancha = await rolesDelArbol(page);
