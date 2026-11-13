@@ -11,6 +11,10 @@
   font-size: var(--panel-fila);
   /* El alto del botón de texto, con o sin botón: sin filtro el renglón queda vacío pero en su lugar. */
   min-block-size: calc(1lh + 2 * var(--e1));
+  /* Más pegado a los controles que el resto de los renglones de la lámina, con filtro o sin él (el alto no
+     cambia al filtrar): es el resultado de esos controles, y sin filtro el renglón vacío dejaba al pie de la
+     lámina una franja de aire tres veces más alta que la de arriba. */
+  margin-top: calc(-1 * var(--e2));
 }
 
 .control__cifra {

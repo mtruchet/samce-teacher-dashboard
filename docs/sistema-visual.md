@@ -176,7 +176,7 @@ Seis pasos, dos pesos (400 y 600) y un interlineado múltiplo de 5. El 500 queda
 | Cuerpo | 14 / 400 o 600 / `--panel-alto` 20 | título de apartado, el hecho y la lista del análisis, las migas |
 | Fila | 13 / 400 en tinta-media o 600 en tinta / 20 | celdas, rótulo del nivel, notas, métricas, ficha de la sesión, «N de M», vacíos, botón de texto |
 | Nota | 12 / 400 en tinta-media / 20 | horas, cuentas, encabezados del registro y etiquetas (estos dos en 600) |
-| Rótulo de columna | 11 / 600 / mayúsculas con `--track-rotulo` | solo los encabezados de la tabla de la lista y los rótulos de los filtros |
+| Rótulo de columna | 11 / 600 / mayúsculas con `--track-rotulo` | solo los encabezados de la tabla de la lista (los rótulos de los filtros van en nota, 12 / 600, minúscula inicial) |
 
 El título de la vista le saca siempre 4 px a la cifra, a cualquier ancho. Los renglones de esos dos roles van en rem, como su letra (35 y 30 px con la letra predeterminada): si la persona agranda la letra del navegador, el renglón crece con ella y un título de dos renglones no se pisa. `.panel` declara la letra y el renglón de base (14/20): nada dentro del panel hereda los 19/30 de la landing.
 

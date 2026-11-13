@@ -31,7 +31,7 @@ function contraste(adelante: string, fondo: string): number {
   return (claro + 0.05) / (oscuro + 0.05);
 }
 
-test("V2: a 1280 px, las tarjetas del resumen y los controles de la barra caen sobre las mismas columnas", async ({ page }) => {
+test("V2: a 1280 px, los estados caen sobre las columnas de los controles y los niveles ocupan todo el ancho", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: ALTO });
   await abrir(page, VISTAS.lista);
   const medidas = await page.evaluate(() => {
@@ -53,10 +53,12 @@ test("V2: a 1280 px, las tarjetas del resumen y los controles de la barra caen s
     expect(cerca(e.x, medidas.controles[i].x), JSON.stringify(medidas)).toBe(true);
     expect(cerca(e.w, medidas.controles[i].w), JSON.stringify(medidas)).toBe(true);
   });
-  medidas.niveles.forEach((n, i) => {
-    expect(cerca(n.x, medidas.controles[i].x), JSON.stringify(medidas)).toBe(true);
-    expect(cerca(n.w, medidas.controles[i].w), JSON.stringify(medidas)).toBe(true);
-  });
+  // Los tres niveles ocupan todo el ancho de la barra, en tres columnas iguales: la primera empieza donde el
+  // primer control y la última termina donde el último (antes ocupaban tres de cuatro y la cuarta quedaba vacía).
+  const fin = (c: { x: number; w: number }) => c.x + c.w;
+  expect(cerca(medidas.niveles[0].x, medidas.controles[0].x), JSON.stringify(medidas)).toBe(true);
+  expect(cerca(fin(medidas.niveles[2]), fin(medidas.controles[3])), JSON.stringify(medidas)).toBe(true);
+  medidas.niveles.forEach((n) => expect(cerca(n.w, medidas.niveles[0].w), JSON.stringify(medidas)).toBe(true));
 });
 
 for (const ancho of [320, 390]) {

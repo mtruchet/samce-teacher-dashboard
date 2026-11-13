@@ -13,13 +13,13 @@
   min-width: 0;
 }
 
-/* Los rótulos van en mayúsculas espaciadas, como los encabezados de la tabla que tienen debajo: es la única
-   excepción a la minúscula inicial de los títulos del panel (docs/sistema-visual.md). */
+/* Los rótulos van en minúscula inicial, en el paso de nota y en 600, como las etiquetas del resto del panel.
+   Iban en mayúsculas espaciadas de 11 px, como los encabezados de la tabla de abajo, pero dentro de la lámina
+   de control eran lo único en mayúsculas y se leían como de otro sistema. Las mayúsculas quedan solo en los
+   encabezados de columna (docs/sistema-visual.md). */
 .filtros__campo label {
-  font-size: var(--panel-rotulo);
+  font-size: var(--panel-nota);
   font-weight: 600;
-  letter-spacing: var(--track-rotulo);
-  text-transform: uppercase;
   color: var(--tinta-media);
 }
 
