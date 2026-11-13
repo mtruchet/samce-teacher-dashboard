@@ -202,7 +202,7 @@ Un rol, un radio. El peso de una lámina lo dan la sombra y el fondo, nunca el r
 | Lámina de apoyo | `--sup-2` | `--anillo` | — | 16 |
 | Ficha de la sesión | ninguno: es un renglón de la cabecera, debajo del nombre y al ras de él | — | — | — |
 | Tarjeta (de nivel, de estado, de alerta) | tinte al 8 % o `--sup-2` | `--anillo`, más `--marca-tarjeta` si hay nivel | `--elev-1` al pasar el mouse | 12 |
-| Aviso y vacío de página | `--nivel-1-fondo`, o `--sup-1` en el vacío | 1 px adentro | — | 12 |
+| Aviso y vacío de página | `--nivel-1-fondo`, o `--sup-1` en el vacío y en el aviso de captura del detalle | 1 px adentro (`--anillo` en los dos de `--sup-1`) | — | 12 |
 | Control (selector, búsqueda, `.boton-secundario`) | `--sup-1` | 1 px adentro en `--borde-control` (3,5:1) | — | `--radio-chip` 6 |
 | Etiqueta de estado | `--sup-3`; `--sup-1` en la ficha de la sesión, que va sobre la página | 1 px adentro en `--sup-4`, más un borde transparente | — | 6 |
 | Paso de la escalera | `--sup-2` | 1 px adentro en `--sup-4` | — | 6 |

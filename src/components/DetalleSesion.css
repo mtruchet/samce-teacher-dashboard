@@ -81,15 +81,30 @@
   color: var(--nivel-1-tinta);
 }
 
-/* La explicación de una captura incompleta: suelta entre la cabecera y el análisis, sin caja, con la marca de
-   renglón en --tinta-suave (4,78:1 contra la página). El texto arranca donde el de las láminas (la marca más su
-   relleno suman var(--e6)), y el aire de arriba y de abajo es el de la pila, no un margen propio. */
+/* La explicación de una captura incompleta, en una caja propia (13/11): suelta, con una marca de renglón, se
+   leía como una nota al pie entre la cabecera y el análisis, y es lo que dice cuánto se puede confiar en todo lo
+   de abajo. Va como el vacío de página (Panel.css), porque también va sobre la página y no adentro de una lámina:
+   --sup-1 con el anillo y el radio de una ficha, sin sombra (no es una lámina). --sup-1 y no --sup-3: la página
+   del panel es --sup-3, y la caja no se habría visto; sobre --sup-1, --tinta-media da 8,1:1 y --tinta 16,1:1.
+   La marca de renglón se va: con caja, una segunda señal sobra. El texto arranca donde el de las láminas
+   (relleno de --e6, --e4 en el teléfono). */
 .detalle__captura {
   margin: 0;
-  padding: var(--e2) 0 var(--e2) calc(var(--e6) - var(--marca-renglon));
-  border-left: var(--marca-renglon) solid var(--tinta-suave);
+  padding: var(--e4) var(--e6);
+  border-radius: var(--radio-ficha);
+  background: var(--sup-1);
+  box-shadow: var(--anillo);
   font-size: var(--panel-fila);
+  line-height: var(--panel-alto);
   color: var(--tinta-media);
+}
+
+/* Con colores forzados el anillo desaparece: el contorno del sistema lo reemplaza, como en las láminas. */
+@media (forced-colors: active) {
+  .detalle__captura {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
 }
 
 /* Lo corto en la tinta del texto, como el estado de la ficha: es lo que hay que leer; el detalle lo explica. */
@@ -101,7 +116,7 @@
 @media (max-width: 760px) {
   /* El aviso de captura sigue al ras del contenido de la lámina, que acá se angosta. */
   .detalle__captura {
-    padding-left: calc(var(--e4) - var(--marca-renglon));
+    padding-inline: var(--e4);
   }
 }
 

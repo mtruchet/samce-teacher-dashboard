@@ -77,3 +77,51 @@ test("a 1280 px, en una sesión en curso el pulso sigue a la altura del nombre, 
   expect(m.pulsoArriba).toBeGreaterThanOrEqual(m.h1Arriba - 1);
   expect(m.pulsoIzquierda).toBeGreaterThan(m.ficha);
 });
+
+for (const ancho of [1280, 390]) {
+  test(`a ${ancho} px, el aviso de captura va en su caja, con el texto al ras del de las láminas y 4,5:1 o más`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: ALTO });
+    await abrir(page, VISTAS.detalleNoSePudo);
+    const m = await page.evaluate(() => {
+      const aviso = document.querySelector<HTMLElement>(".detalle__captura")!;
+      const e = getComputedStyle(aviso);
+      const lamina = document.querySelector<HTMLElement>(".detalle .lamina")!;
+      const titulo = lamina.querySelector<HTMLElement>(".lamina__titulo")!;
+      const rango = document.createRange();
+      rango.selectNodeContents(aviso);
+      return {
+        fondo: e.backgroundColor,
+        pagina: getComputedStyle(document.body).backgroundColor,
+        radio: e.borderTopLeftRadius,
+        sombra: e.boxShadow,
+        bordeIzquierdo: e.borderLeftWidth,
+        color: e.color,
+        fuerte: getComputedStyle(aviso.querySelector("strong")!).color,
+        cajaIzquierda: aviso.getBoundingClientRect().left,
+        laminaIzquierda: lamina.getBoundingClientRect().left,
+        textoIzquierda: rango.getBoundingClientRect().left,
+        tituloIzquierda: titulo.getBoundingClientRect().left,
+      };
+    });
+    // Una caja propia: --sup-1 sobre la página --sup-3, con el anillo y el radio de una ficha, sin la marca.
+    expect(m.fondo).toBe("rgb(255, 255, 255)");
+    expect(m.fondo).not.toBe(m.pagina);
+    expect(m.radio).toBe("12px");
+    expect(m.sombra).toContain("inset");
+    expect(m.bordeIzquierdo).toBe("0px");
+    // Alineada con las láminas, y su texto con el de ellas.
+    expect(Math.abs(m.cajaIzquierda - m.laminaIzquierda)).toBeLessThan(1);
+    expect(Math.abs(m.textoIzquierda - m.tituloIzquierda)).toBeLessThan(1);
+    // --tinta-media y --tinta sobre blanco.
+    expect(m.color).toBe("rgb(62, 83, 91)");
+    expect(m.fuerte).toBe("rgb(20, 35, 42)");
+  });
+}
+
+test("con colores forzados el aviso de captura conserva su contorno", async ({ page }) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  await page.setViewportSize({ width: 1280, height: ALTO });
+  await abrir(page, VISTAS.detalleNoSePudo);
+  const contorno = await page.locator(".detalle__captura").evaluate((el) => getComputedStyle(el).outlineStyle);
+  expect(contorno).toBe("solid");
+});
