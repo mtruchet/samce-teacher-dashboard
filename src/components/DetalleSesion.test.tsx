@@ -610,7 +610,7 @@ describe("DetalleSesion", () => {
     expect(document.getElementById("evento-1")).toHaveFocus();
   });
 
-  it("después de ir a un momento, «Mostrar N más» no le roba el foco al botón", async () => {
+  it("después de ir a un momento, «Mostrar N más» lleva el foco a la primera fila nueva y no a la del momento", async () => {
     const eventos = Array.from({ length: 200 }, (_, i) =>
       i + 1 === 120 ? evento(120, "clipboard", { action: "paste" }) : evento(i + 1, "keystroke", { count: 1 })
     );
@@ -627,7 +627,8 @@ describe("DetalleSesion", () => {
     fireEvent.click(mas);
     await esperar();
     expect(document.getElementById("evento-120")).not.toHaveFocus();
-    expect(mas).toHaveFocus();
+    // Se veía hasta la fila del momento (la 120); la que sigue, más vieja, es la 119.
+    expect(document.getElementById("evento-119")).toHaveFocus();
   });
 
   it("HU05_T02, momentos (P8): con el seq desordenado, los momentos siguen el orden del registro: hora de llegada, seq e id", async () => {

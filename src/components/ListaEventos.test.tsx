@@ -52,12 +52,53 @@ describe("ListaEventos", () => {
     expect(document.getElementById("evento-144")).toHaveFocus();
   });
 
-  it("un «Mostrar más» que no llega al final deja el foco en su botón", () => {
+  it("«Mostrar 50 más» lleva el foco a la primera fila nueva, no lo deja en el botón que baja fuera de la pantalla", () => {
     render(<ListaEventos eventos={eventos(194)} />);
     const boton = screen.getByRole("button", { name: `Mostrar ${TANDA} más` });
     boton.focus();
     fireEvent.click(boton);
-    expect(boton).toHaveFocus();
+    // Se veían del 194 al 145: la fila 51 es la del 144, y es una fila, no un botón.
+    expect(document.activeElement).toBe(document.getElementById("evento-144"));
+    expect(document.activeElement?.tagName).toBe("TR");
+  });
+
+  it("los eventos nuevos entran arriba y no sacan la última fila que se veía", () => {
+    const { rerender } = render(<ListaEventos eventos={eventos(120)} />);
+    const ultima = filas()[filas().length - 1];
+    const id = ultima.id;
+    rerender(<ListaEventos eventos={eventos(130)} />);
+    expect(document.getElementById(id)).toBeInTheDocument();
+    expect(filas()).toHaveLength(TANDA + 10);
+  });
+
+  it("después de «Mostrar todos», los eventos nuevos no vuelven a esconder nada", () => {
+    const { rerender } = render(<ListaEventos eventos={eventos(120)} />);
+    fireEvent.click(screen.getByRole("button", { name: "Mostrar todos" }));
+    rerender(<ListaEventos eventos={eventos(125)} />);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(filas()).toHaveLength(125);
+  });
+
+  it("la fila a la que se saltó sigue a la vista cuando llegan eventos nuevos", () => {
+    const { rerender } = render(<ListaEventos eventos={eventos(120)} destacado={{ id: 1, vez: 1 }} />);
+    expect(document.getElementById("evento-1")).toBeInTheDocument();
+    rerender(<ListaEventos eventos={eventos(127)} destacado={{ id: 1, vez: 1 }} />);
+    expect(document.getElementById("evento-1")).toBeInTheDocument();
+  });
+
+  it("la fila con el foco lo conserva cuando llegan eventos nuevos", () => {
+    const { rerender } = render(<ListaEventos eventos={eventos(120)} />);
+    const fila = filas()[TANDA - 1];
+    fila.focus();
+    rerender(<ListaEventos eventos={eventos(125)} />);
+    expect(document.activeElement).toBe(fila);
+  });
+
+  it("un registro que se montó vacío muestra la primera tanda cuando llegan los eventos", () => {
+    const { rerender } = render(<ListaEventos eventos={[]} vacio={<p>Nada</p>} />);
+    rerender(<ListaEventos eventos={eventos(70)} />);
+    expect(filas()).toHaveLength(TANDA);
+    expect(screen.getByText(`Se ven los ${TANDA} eventos más recientes de 70.`)).toBeInTheDocument();
   });
 
   it("el último «Mostrar más» dice cuántos quedan, no la tanda entera", () => {
@@ -112,7 +153,7 @@ describe("ListaEventos", () => {
     expect(fila).toHaveClass("eventos__fila--destacada");
   });
 
-  it("después del salto, «Mostrar N más» deja el foco en el botón", () => {
+  it("después del salto, «Mostrar N más» no vuelve a llevar el foco a la fila del salto", () => {
     const muchos = Array.from({ length: TANDA * 3 }, (_, i) => evento(i + 1, "keystroke", { count: 1 }));
     const { rerender } = render(<ListaEventos eventos={muchos} />);
     rerender(<ListaEventos eventos={muchos} destacado={{ id: TANDA * 3, vez: 1 }} />);
@@ -180,18 +221,18 @@ describe("ListaEventos", () => {
       const antes = region.firstChild;
       expect(region).toHaveTextContent("");
 
-      // Llega un evento: la cifra visible cambia, la región viva no.
+      // Llega un evento: la cifra visible cambia, la región viva no. Entra arriba sin sacar ninguna de abajo.
       rerender(<ListaEventos eventos={eventos(195)} />);
-      expect(screen.getByText(`Se ven los ${TANDA} eventos más recientes de 195.`)).toBeInTheDocument();
+      expect(screen.getByText(`Se ven los ${TANDA + 1} eventos más recientes de 195.`)).toBeInTheDocument();
       expect(region.firstChild).toBe(antes);
       expect(region).toHaveTextContent("");
       // El texto visible ya no es una región viva.
-      expect(screen.getByText(`Se ven los ${TANDA} eventos más recientes de 195.`)).not.toHaveAttribute("role");
+      expect(screen.getByText(`Se ven los ${TANDA + 1} eventos más recientes de 195.`)).not.toHaveAttribute("role");
 
       expect(screen.getByRole("button", { name: `Mostrar ${TANDA} más` })).toHaveClass("boton-secundario");
       fireEvent.click(screen.getByRole("button", { name: `Mostrar ${TANDA} más` }));
       expect(region.firstChild).not.toBe(antes);
-      expect(region).toHaveTextContent(`Se ven los ${2 * TANDA} eventos más recientes de 195.`);
+      expect(region).toHaveTextContent(`Se ven los ${2 * TANDA + 1} eventos más recientes de 195.`);
     });
 
     it("«Mostrar todos» anuncia «Se ven los M eventos.», en lenguaje llano (H04; texto a confirmar por Facundo)", () => {

@@ -135,7 +135,20 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
   const entradas = useMemo(() => conHuecos(eventos).reverse(), [eventos]);
   // Cuánto duró cada corte de la conexión, para que la fila de la vuelta lo diga (ver `cortesDeConexion`).
   const cortes = useMemo(() => cortesDeConexion(eventos), [eventos]);
-  const [visibles, setVisibles] = useState(TANDA);
+  // Cuántas filas quedan sin mostrar, contadas desde el extremo viejo (el de abajo). Se cuentan desde ahí y
+  // no cuántas se ven desde arriba: los eventos nuevos entran arriba, y con la cuenta desde arriba cada uno
+  // empujaba fuera de la tabla la última fila visible, justo la que el docente podía estar leyendo, y si
+  // tenía el foco, el foco caía al principio de la página. Así, un evento nuevo agrega una fila arriba y no
+  // saca ninguna de abajo.
+  const [ocultas, setOcultas] = useState(() => Math.max(0, entradas.length - TANDA));
+  // Un registro que se montó vacío cuenta sus primeras filas cuando llegan, no al montarse: si no, el primer
+  // lote entraba entero, con cero ocultas.
+  const [iniciada, setIniciada] = useState(entradas.length > 0);
+  if (!iniciada && entradas.length > 0) {
+    setIniciada(true);
+    setOcultas(Math.max(0, entradas.length - TANDA));
+  }
+  const cuantasSeVen = entradas.length - ocultas;
 
   // Si la fila pedida no está entre las que se ven, se muestran filas hasta incluirla; después se la lleva a
   // la vista, recibe el foco y queda resaltada un momento.
@@ -152,7 +165,7 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
   const indiceDestacado = pendiente
     ? entradas.findIndex((e) => e.clase !== "hueco" && e.evento.id === pendiente.id)
     : -1;
-  if (indiceDestacado >= visibles) setVisibles(indiceDestacado + 1);
+  if (indiceDestacado >= cuantasSeVen) setOcultas(entradas.length - 1 - indiceDestacado);
   useEffect(() => {
     if (!destacado || destacado.vez === atendido.current) return;
     const fila = document.getElementById(`evento-${destacado.id}`);
@@ -164,27 +177,27 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
     setResaltada({ id: destacado.id, vez: destacado.vez });
     window.clearTimeout(apagar.current);
     apagar.current = window.setTimeout(() => setResaltada(null), RESALTADO_MS);
-  }, [destacado, visibles]);
+  }, [destacado, ocultas]);
 
   // «Se ven los N eventos más recientes de M» queda a la vista y al día, pero se anuncia solo cuando el
   // docente pide más filas: un evento nuevo cambia la cifra en silencio.
   const [anuncioVistos, anunciar] = useAnuncio();
   const [marco, desborda] = useDesborde();
-  // Cuando se muestran todas, los dos botones desaparecen y el foco caía al principio de la página: va a la
-  // primera fila nueva, la que sigue a la última que se veía, como en el salto desde los momentos.
+  // Al mostrar más, el foco va a la primera fila nueva, la que sigue a la última que se veía, como en el
+  // salto desde los momentos. Con «Mostrar todos» los dos botones desaparecían y el foco caía al principio de
+  // la página; con «Mostrar 50 más» se quedaba en el botón, que bajaba cincuenta filas y quedaba fuera de la
+  // pantalla, lejos de lo que se acababa de agregar.
   const filaQueSigue = useRef<number | null>(null);
   useEffect(() => {
     if (filaQueSigue.current === null) return;
     document.getElementById(`evento-${filaQueSigue.current}`)?.focus();
     filaQueSigue.current = null;
-  }, [visibles]);
-  const mostrar = (cuantas: number) => {
-    if (cuantas >= entradas.length) {
-      const siguiente = entradas.slice(visibles).find((e) => e.clase === "evento");
-      filaQueSigue.current = siguiente?.clase === "evento" ? siguiente.evento.id : null;
-    }
-    setVisibles(cuantas);
-    const vistos = entradas.slice(0, cuantas).filter((e) => e.clase !== "hueco").length;
+  }, [ocultas]);
+  const mostrar = (nuevasOcultas: number) => {
+    const siguiente = entradas.slice(cuantasSeVen).find((e) => e.clase === "evento");
+    filaQueSigue.current = siguiente?.clase === "evento" ? siguiente.evento.id : null;
+    setOcultas(nuevasOcultas);
+    const vistos = entradas.slice(0, entradas.length - nuevasOcultas).filter((e) => e.clase !== "hueco").length;
     anunciar(
       vistos < eventos.length
         ? `Se ven los ${enCifras(vistos)} eventos más recientes de ${enCifras(eventos.length)}.`
@@ -194,7 +207,7 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
 
   if (eventos.length === 0) return <>{vacio}</>;
 
-  const mostradas = entradas.slice(0, visibles);
+  const mostradas = entradas.slice(0, cuantasSeVen);
   const quedan = entradas.length - mostradas.length;
   // Los huecos no son eventos: la cuenta dice cuántos eventos se ven, que es lo que dice el encabezado.
   const eventosVistos = mostradas.filter((e) => e.clase !== "hueco").length;
@@ -264,10 +277,10 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
             {enCifras(eventos.length)}.
           </p>
           <div className="eventos__botones">
-            <button type="button" className="boton-secundario" onClick={() => mostrar(visibles + TANDA)}>
+            <button type="button" className="boton-secundario" onClick={() => mostrar(Math.max(0, ocultas - TANDA))}>
               Mostrar {enCifras(Math.min(TANDA, quedan))} más
             </button>
-            <button type="button" className="boton-secundario" onClick={() => mostrar(entradas.length)}>
+            <button type="button" className="boton-secundario" onClick={() => mostrar(0)}>
               Mostrar todos
             </button>
           </div>
