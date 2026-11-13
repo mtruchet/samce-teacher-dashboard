@@ -143,7 +143,8 @@
 /* Con colores forzados las sombras desaparecen:
    - todas las tarjetas llevan un borde del sistema, para que se sigan viendo como botones, y las de nivel
      conservan su borde de 4 px a la izquierda;
-   - la elegida se marca con un borde más grueso del color de selección, adentro;
+   - la elegida se marca con un borde más grueso del color de selección, adentro, y resta del relleno lo que el
+     borde suma: sin eso, la tarjeta tocada crecía 4 px y empujaba todo lo de abajo;
    - el foco es el contorno de base.css, afuera, así la elegida con foco se distingue de la elegida sin él. */
 @media (forced-colors: active) {
   .resumen__tarjeta {
@@ -156,10 +157,23 @@
 
   .resumen__tarjeta[aria-pressed="true"] {
     border: 3px solid Highlight;
+    padding: calc(var(--e3) - 2px) calc(var(--e4) - 2px);
   }
 
+  /* El borde izquierdo de las de nivel no cambia de ancho: ese lado conserva su relleno. */
   .resumen__tarjeta[data-nivel][aria-pressed="true"] {
     border-left-width: var(--marca-tarjeta);
+    padding-left: var(--e4);
+  }
+
+  @media (max-width: 760px) {
+    .resumen__tarjeta[aria-pressed="true"] {
+      padding: calc(var(--e2) - 2px) calc(var(--e3) - 2px) calc(var(--e2) - 2px) calc(var(--e2) - 2px);
+    }
+
+    .resumen__tarjeta[data-nivel][aria-pressed="true"] {
+      padding-left: var(--e2);
+    }
   }
 
   /* El medidor apagado de una tarjeta en cero vuelve al del resto: el gris no existe en colores forzados. */

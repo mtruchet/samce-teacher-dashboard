@@ -120,6 +120,27 @@ test.describe("B2: con colores forzados", () => {
     expect(conFoco.contorno.startsWith("solid")).toBe(true);
   });
 
+  for (const ancho of [1280, 390] as const) {
+    for (const [cual, selector] of [
+      ["de nivel", '.resumen__tarjeta[data-nivel="high"]'],
+      ["de estado", ".resumen__tarjetas--estados .resumen__tarjeta >> nth=0"],
+    ] as const) {
+      test(`a ${ancho} px, tocar una tarjeta ${cual} no la agranda ni corre las de abajo`, async ({ page }) => {
+        await page.setViewportSize({ width: ancho, height: ALTO });
+        await abrir(page, VISTAS.lista);
+        const tarjeta = page.locator(selector);
+        const estados = page.locator(".resumen__tarjetas--estados");
+        const medir = async () => ({ tarjeta: await tarjeta.boundingBox(), estados: (await estados.boundingBox())!.y });
+        const antes = await medir();
+        await tarjeta.click();
+        await expect(tarjeta).toHaveAttribute("aria-pressed", "true");
+        await page.mouse.move(0, 0);
+        const despues = await medir();
+        expect(despues).toEqual(antes);
+      });
+    }
+  }
+
   test("las tarjetas de estado del resumen conservan un borde, como botones", async ({ page }) => {
     await abrir(page, VISTAS.lista);
     const bordes = await page.evaluate(() =>
