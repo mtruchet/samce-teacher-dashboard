@@ -286,6 +286,19 @@ test("a 1280 px, a mitad de la tabla el encabezado de columnas queda fijo debajo
   expect(Math.abs(top - 52)).toBeLessThanOrEqual(1);
 });
 
+test("a 1280 px, con «Mostrar todos», el encabezado del registro de eventos queda fijo debajo de la barra", async ({ page }) => {
+  // El marco se desplazaba de costado aunque la tabla entrara, y el encabezado quedaba fijo contra él y no
+  // contra la página: bajando por cientos de filas no se sabía qué era cada columna.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await abrir(page, VISTAS.detalleAlto);
+  await page.getByRole("button", { name: "Mostrar todos" }).click();
+  const arriba = await page.locator(".eventos").evaluate((t) => t.getBoundingClientRect().top + window.scrollY);
+  await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), arriba + 800);
+  const top = await page.locator(".eventos th").first().evaluate((e) => e.getBoundingClientRect().top);
+  expect(top).toBeGreaterThanOrEqual(51);
+  expect(top).toBeLessThanOrEqual(53);
+});
+
 test("a 1280 px, la rueda del ratón sobre la tabla desplaza la página", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await abrir(page, VISTAS.lista);

@@ -6,8 +6,17 @@
 /* Sin desplazamiento interno: la tabla crece con la página y se muestra de a
    tandas, con «Mostrar más» abajo (`ListaEventos`). Con el alto fijo de antes,
    quien miraba el registro veía diez filas y no encontraba cómo llegar al
-   resto. */
+   resto.
+
+   El marco no se desplaza de costado salvo que la tabla no entre: con `overflow-x: auto` pasaba a ser un
+   contenedor de desplazamiento, y el encabezado de columnas quedaba fijo contra él (que no se mueve) y no
+   contra la página. Con «Mostrar todos» se bajaba por cientos de filas sin saber qué era cada columna.
+   `useDesborde` mide igual con el desborde visible y pone la clase cuando hace falta. */
 .eventos__marco {
+  overflow-x: visible;
+}
+
+.eventos__marco--desborda {
   overflow-x: auto;
 }
 
@@ -18,7 +27,9 @@
 
 .eventos th {
   position: sticky;
-  top: 0;
+  /* Debajo de la barra del panel, que también es fija: ni la lámina ni el marco se desplazan por dentro, así
+     que el encabezado queda fijo contra la página. */
+  top: var(--panel-barra);
   z-index: 1;
   padding: 0 var(--e4) var(--e2);
   /* El mismo fondo que la lámina del registro: el encabezado queda fijo arriba
@@ -84,6 +95,9 @@
 /* Un solo movimiento para el fondo de la fila: el del hover y el de la fila a la que se saltó. */
 .eventos tbody tr {
   transition: background-color var(--mov-entrada) var(--curva);
+  /* Una fila que recibe el foco no queda debajo del encabezado fijo de columnas: el navegador ya deja lugar
+     para la barra del panel, y esto le suma el alto del encabezado. */
+  scroll-margin-top: var(--e8);
 }
 
 .eventos tbody tr:hover {

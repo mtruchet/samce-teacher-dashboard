@@ -222,7 +222,7 @@ export function ListaEventos({ eventos, vacio, destacado }: Props) {
           que es lo normal a cualquier ancho, era una parada de más con un anillo alrededor de todo el
           registro, y un grupo con el mismo nombre que la región que lo contiene. */}
       <div
-        className="eventos__marco"
+        className={desborda ? "eventos__marco eventos__marco--desborda" : "eventos__marco"}
         ref={marco}
         {...(desborda ? { tabIndex: 0, role: "group", "aria-label": "Registro de eventos" } : {})}
       >
