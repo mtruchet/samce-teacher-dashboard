@@ -87,7 +87,7 @@
 .veredicto__texto {
   display: grid;
   gap: var(--e1);
-  max-width: var(--medida);
+  max-width: var(--medida-panel);
   padding-top: 13px;
 }
 
@@ -151,7 +151,7 @@
 
 /* El hecho es lo primero que se lee de la tarjeta: pesa más que todo lo demás. */
 .analisis__hecho {
-  max-width: var(--medida);
+  max-width: var(--medida-panel);
   margin: 0;
   font-size: var(--panel-cuerpo);
   font-weight: 600;
@@ -179,7 +179,7 @@
 .analisis__lista {
   display: grid;
   gap: var(--e2);
-  max-width: var(--medida);
+  max-width: var(--medida-panel);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -190,6 +190,9 @@
 .analisis__lista li {
   position: relative;
   padding-left: var(--e5);
+  /* Con la medida del panel, una viñeta larga corre casi toda la lámina: sin esto, su último renglón podía
+     quedar con una palabra sola. Lo mismo en las notas de abajo. */
+  text-wrap: pretty;
 }
 
 .analisis__lista li::before {
@@ -209,11 +212,12 @@
   display: flex;
   align-items: flex-start;
   gap: var(--e2);
-  max-width: var(--medida);
+  max-width: var(--medida-panel);
   margin: 0;
   font-size: var(--panel-fila);
   line-height: 1.5;
   color: var(--tinta-media);
+  text-wrap: pretty;
 }
 
 .analisis__nota svg {

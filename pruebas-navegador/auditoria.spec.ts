@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { abrir, simularBackend, VISTAS } from "./simulacion";
+import { abrir, EXAMENES, simularBackend, VISTAS } from "./simulacion";
 
 /**
  * Lo que encontró la auditoría en vivo del 12/11 y solo se ve en un navegador: la grilla del bloque de control,
@@ -386,3 +386,64 @@ test("QA2-01: la miga del curso y la ficha de un examen llevan el foco al h1 de 
   await page.getByRole("main").getByRole("button", { name: /Primer parcial/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Primer parcial" })).toBeFocused();
 });
+
+for (const ancho of [1280, 1440, 1920]) {
+  test(`V9: a ${ancho} px, el texto del análisis usa el ancho de su lámina y no salta de renglón a mitad`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: ALTO });
+    await abrir(page, VISTAS.detalleAlto);
+    // Con la medida de la landing (68ch), cada uno de estos bloques se quedaba en unos 520 px dentro de una
+    // lámina de unos 1000, y el texto saltaba de renglón con media lámina vacía (problema 3 del 13/11).
+    const cortos = await page.evaluate(() => {
+      const r: string[] = [];
+      let medidos = 0;
+      for (const e of document.querySelectorAll<HTMLElement>(".analisis__hecho, .analisis__lista, .apartado__nota, .historial__aviso")) {
+        if (!e.offsetParent) continue;
+        medidos++;
+        const padre = e.parentElement!;
+        const cs = getComputedStyle(padre);
+        const disponible = padre.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const ancho = e.getBoundingClientRect().width;
+        if (ancho < disponible - 1) r.push(`${e.className}: ${Math.round(ancho)} de ${Math.round(disponible)}`);
+      }
+      return { r, medidos };
+    });
+    expect(cortos.medidos).toBeGreaterThan(2);
+    expect(cortos.r).toEqual([]);
+  });
+}
+
+test("V9: a 390 px, ningún bloque de texto del análisis se sale de su lámina", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: ALTO });
+  await abrir(page, VISTAS.detalleAlto);
+  const fuera = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>(".analisis__hecho, .analisis__lista, .apartado__nota, .historial__aviso")]
+      .filter((e) => e.offsetParent && e.getBoundingClientRect().right > e.parentElement!.getBoundingClientRect().right + 1)
+      .map((e) => e.className),
+  );
+  expect(fuera).toEqual([]);
+});
+
+for (const ancho of [1280, 1920]) {
+  test(`V10: a ${ancho} px, el título de un examen de 36 caracteres va en un renglón, a la altura del pulso`, async ({ page }) => {
+    // Con 26ch, «Segundo Parcial (réplica del campus)» se partía en dos con más de media lámina libre.
+    await page.route("**/api/monitored-quizzes", (route) =>
+      route.fulfill({ json: EXAMENES.map((e) => ({ ...e, name: "Primer parcial (recuperatorio único)" })) }),
+    );
+    await page.setViewportSize({ width: ancho, height: ALTO });
+    await abrir(page, VISTAS.lista);
+    const m = await page.evaluate(() => {
+      const h1 = document.querySelector<HTMLElement>("h1.panel__curso")!;
+      const pulso = document.querySelector(".panel__encabezado .enlace")!;
+      return {
+        texto: h1.textContent,
+        alto: h1.getBoundingClientRect().height,
+        renglon: parseFloat(getComputedStyle(h1).lineHeight),
+        arriba: h1.getBoundingClientRect().top,
+        pulsoArriba: pulso.getBoundingClientRect().top,
+      };
+    });
+    expect(m.texto).toBe("Primer parcial (recuperatorio único)");
+    expect(m.alto, JSON.stringify(m)).toBeLessThanOrEqual(m.renglon * 1.3);
+    expect(Math.abs(m.pulsoArriba - m.arriba), JSON.stringify(m)).toBeLessThan(m.renglon);
+  });
+}

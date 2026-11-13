@@ -44,8 +44,10 @@ body:has(.panel) {
   font-weight: 600;
   letter-spacing: var(--track-titulo);
   color: var(--tinta);
-  /* Un nombre de materia largo baja de renglón antes que empujar al pulso. */
-  max-width: 26ch;
+  /* Un nombre de materia largo baja de renglón antes que empujar al pulso. Con 26ch, un título de 36
+     caracteres («Segundo Parcial (réplica del campus)») se partía en dos con más de media lámina libre: el
+     tope es ahora 40ch, y nunca más que lo que deja el lugar del pulso (16rem). */
+  max-width: min(40ch, 100% - 16rem);
   text-wrap: balance;
 }
 
@@ -123,10 +125,11 @@ body:has(.panel) {
   margin-bottom: var(--e3);
 }
 
-/* El bloque llena el ancho del panel; el párrafo se queda en una medida que
-   todavía se lee de un renglón al otro sin perder la línea. */
+/* El bloque llena el ancho del panel, y el párrafo usa la misma medida que el
+   resto del texto del panel (--medida-panel): el tope de la lámina ya lo deja
+   en un largo que se lee de un renglón al otro sin perder la línea. */
 .espera__bajada {
-  max-width: 92ch;
+  max-width: var(--medida-panel);
   font-size: var(--panel-cuerpo);
   line-height: 20px;
   color: var(--tinta-media);

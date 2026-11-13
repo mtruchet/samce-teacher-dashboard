@@ -197,6 +197,11 @@
   --panel-curso: clamp(1.375rem, 1.2rem + 0.85vw, 1.75rem);
 
   --ancho-panel: 1080px;
+  /* La medida del texto del panel. --medida (68ch) es de la landing: con la letra de 14 px del panel daba
+     unos 520 px, y las explicaciones saltaban de renglón a mitad de una lámina de 1030 px, con media lámina
+     vacía. Va en rem y no en ch para que el borde derecho sea el mismo con letra de 13, 14 o 19 px; el largo
+     legible a 1920 px lo pone --ancho-panel, que es el tope de la lámina. */
+  --medida-panel: 62rem;
 
   --panel-barra: 52px;
   --fila-curso: 40px;

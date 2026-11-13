@@ -52,6 +52,14 @@ Un error habitual es usar la misma proporción entre todos los tamaños. Convien
 
 Para el texto grande de la página pública hay que **reducir el espaciado entre letras**, porque el espaciado por defecto, pensado para tamaños de lectura, queda suelto en titulares.
 
+### Medidas del texto
+
+El panel usa `--medida-panel` (62rem); `--medida` (68ch) es de la landing. Con la letra de 14 px del panel, 68ch daban unos 520 px, y las explicaciones del análisis saltaban de renglón a mitad de una lámina de unos 1030 px, con media lámina vacía. La medida del panel va en rem para que el borde derecho del texto sea el mismo con letra de 13, 14 o 19 px, y los párrafos largos llevan `text-wrap: pretty` para que el último renglón no quede con una palabra sola.
+
+El panel mide como máximo 1080 px (`--ancho-panel`); ese tope es lo que deja el texto en un largo legible. Ensanchar el panel obliga a volver a poner una medida en el texto.
+
+El título de la vista (el nombre del curso, del examen o del alumno) llega hasta 40ch y nunca ocupa el lugar del indicador «En vivo»: un nombre de examen de unos 36 caracteres entra en un renglón.
+
 ---
 
 ## 3. Color

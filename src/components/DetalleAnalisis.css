@@ -5,10 +5,11 @@
 /* Una línea suelta del apartado: que las métricas se muestran al terminar, que el recorrido anterior no quedó
    registrado, un origen sin registro. Acompaña, no encabeza. */
 .apartado__nota {
-  max-width: var(--medida);
+  max-width: var(--medida-panel);
   font-size: var(--panel-fila);
   line-height: 1.5;
   color: var(--tinta-media);
+  text-wrap: pretty;
 }
 
 /* ==== Cómo cambió el riesgo: una escalera ============================== */
@@ -105,11 +106,12 @@
 /* El aviso de D6 lo escribe el panel, no el motor: va con otra forma que las notas de la explicación (sin el
    ícono de información, en cursiva y en --tinta-media) y separado de ella. */
 .historial__aviso {
-  max-width: var(--medida);
+  max-width: var(--medida-panel);
   font-size: var(--panel-nota);
   font-style: italic;
   line-height: 1.5;
   color: var(--tinta-media);
+  text-wrap: pretty;
 }
 
 /* La explicación que repite la vigente queda plegada: se abre si hace falta, sin leer dos veces lo mismo. */
@@ -212,7 +214,7 @@
   /* Entre renglones, el doble de lo que el botón sobresale de cada uno (ver .momentos__ir): con menos, los
      «Ver en el registro» seguidos se pisaban y cada uno quedaba con menos de 24 px libres (WCAG 2.5.8). */
   gap: calc(2 * var(--e1)) var(--e4);
-  max-width: var(--medida);
+  max-width: var(--medida-panel);
 }
 
 .momentos__momento {

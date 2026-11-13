@@ -47,7 +47,7 @@ const SESION_DEL_DOCENTE = {
   courseName: "Álgebra y Geometría Analítica",
 };
 
-const EXAMENES = [
+export const EXAMENES = [
   {
     id: EXAMEN,
     moodle_course_id: CURSO,

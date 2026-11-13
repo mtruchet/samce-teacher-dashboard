@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
  * - Nadie apaga el contorno del foco: con colores forzados (Windows) el anillo de sombra desaparece y el
  *   contorno es lo único que queda.
  * - Las transiciones usan las duraciones con nombre (--mov-*), que se apagan con «reducir movimiento».
+ * - El texto del panel usa el ancho de su lámina (--medida-panel), no la medida de la landing.
  *
  * Las hojas se leen como texto con `import.meta.glob` (sin `fs`, como la prueba de contraste lee los tokens).
  */
@@ -78,5 +79,26 @@ describe("las hojas de estilo", () => {
       }
     }
     expect(hallados).toEqual([]);
+  });
+
+  it("el texto del panel usa --medida-panel: --medida (68ch) queda para la landing", () => {
+    // Con --medida, las explicaciones del detalle saltaban de renglón a unos 520 px, a mitad de una lámina de
+    // 1030 px (problema 3 del 13/11).
+    expect(HOJAS["./styles/tokens.css"]).toMatch(/--medida-panel:\s*62rem/);
+    const fuera = (l: string) => !l.startsWith("./pages/Landing.css") && !l.startsWith("./styles/base.css");
+    expect(buscar(/var\(--medida\)/).filter(fuera)).toEqual([]);
+  });
+
+  it("ninguna regla del panel corta el texto con una medida en ch, salvo el pie", () => {
+    // El pie va en columnas angostas a propósito. El título del examen lleva su tope dentro de min(), que no
+    // es una medida suelta: ver «.panel__curso» en Panel.css.
+    const delPanel = (l: string) =>
+      (l.startsWith("./components/") || l.startsWith("./pages/Panel.css")) && !l.startsWith("./components/Pie.css");
+    expect(buscar(/max-(width|inline-size):\s*\d+ch/).filter(delPanel)).toEqual([]);
+  });
+
+  it("el panel mide como máximo 1080 px: ese tope es lo que deja el texto en un largo legible", () => {
+    // Si se ensancha el panel, el texto vuelve a necesitar una medida propia (docs/sistema-visual.md).
+    expect(HOJAS["./styles/tokens.css"]).toMatch(/--ancho-panel:\s*1080px/);
   });
 });
